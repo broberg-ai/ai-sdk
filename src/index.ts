@@ -2,6 +2,17 @@
 // The facade is the only public surface; provider SDKs never leak through it.
 export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
+export {
+  httpTransport,
+  subprocessTransport,
+  parseClaudeCliJson,
+} from "./transport/index.js";
+export type {
+  TransportRequest,
+  TransportResponse,
+  HttpResponse,
+  SubprocessResponse,
+} from "./transport/index.js";
 
 export type {
   Transport,
