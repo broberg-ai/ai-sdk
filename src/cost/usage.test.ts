@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { computeCost, freshUsage } from "./usage.js";
 import { createAI } from "../client.js";
 
-test("computeCost returns 0 for an unpriced model (table empty until F3.6)", () => {
-  expect(computeCost("anthropic", "claude-sonnet-4-6", 1000, 500)).toBe(0);
+test("computeCost returns 0 for an unpriced/unknown model (never throws)", () => {
+  expect(computeCost("acme", "imaginary-model-v9", 1000, 500)).toBe(0);
 });
 
 test("freshUsage builds a complete Usage; subprocess pins cost 0 + flag", () => {
