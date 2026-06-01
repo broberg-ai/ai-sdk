@@ -10,6 +10,9 @@ export {
 } from "./providers/stub.js";
 export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
+export { computeCost, freshUsage } from "./cost/usage.js";
+export { getPrice } from "./cost/pricing.js";
+export type { PricingEntry } from "./cost/pricing.js";
 export {
   httpTransport,
   subprocessTransport,

@@ -55,16 +55,19 @@ export function createAI(config: AiConfig = {}): AiClient {
     return adapter;
   }
 
-  /** Stamp call-context metadata the client owns onto the adapter's Usage. */
+  /** Stamp call-context metadata the client owns onto the adapter's Usage:
+   *  capability, tier, purpose, the wall-clock latency, and the timestamp. */
   function enrich(
     usage: Usage,
     capability: Capability,
     tier: Tier | undefined,
     purpose: string | undefined,
+    latencyMs: number,
   ): Usage {
     usage.capability = capability;
     if (tier) usage.tier = tier;
     if (purpose) usage.purpose = purpose;
+    usage.latencyMs = Math.round(latencyMs);
     if (!usage.ts) usage.ts = new Date().toISOString();
     return usage;
   }
@@ -94,6 +97,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       if (!adapter.chat) {
         throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
       }
+      const t0 = performance.now();
       const res = await adapter.chat({
         messages: toMessages(input),
         spec,
@@ -101,7 +105,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         maxTokens: input.maxTokens,
         temperature: input.temperature,
       });
-      enrich(res.usage, "chat", input.tier ?? "smart", input.purpose);
+      enrich(res.usage, "chat", input.tier ?? "smart", input.purpose, performance.now() - t0);
       await report(res.usage);
       return res;
     },
@@ -122,8 +126,9 @@ export function createAI(config: AiConfig = {}): AiClient {
           ],
         },
       ];
+      const t0 = performance.now();
       const res = await adapter.vision({ messages, spec });
-      enrich(res.usage, "vision", input.tier ?? "vision", input.purpose);
+      enrich(res.usage, "vision", input.tier ?? "vision", input.purpose, performance.now() - t0);
       await report(res.usage);
       return res;
     },
@@ -145,8 +150,9 @@ export function createAI(config: AiConfig = {}): AiClient {
         },
         { role: "user", content: `Translate${fromClause} to ${input.to}:\n\n${input.text}` },
       ];
+      const t0 = performance.now();
       const res = await adapter.chat({ messages, spec });
-      enrich(res.usage, "translate", input.tier ?? "fast", input.purpose);
+      enrich(res.usage, "translate", input.tier ?? "fast", input.purpose, performance.now() - t0);
       await report(res.usage);
       return { text: res.text, usage: res.usage };
     },
@@ -158,13 +164,14 @@ export function createAI(config: AiConfig = {}): AiClient {
       if (!adapter.image) {
         throw new Error(`createAI: provider "${spec.provider}" does not support image`);
       }
+      const t0 = performance.now();
       const res = await adapter.image({
         prompt: input.prompt,
         spec,
         width: input.width,
         height: input.height,
       });
-      enrich(res.usage, "image", undefined, input.purpose);
+      enrich(res.usage, "image", undefined, input.purpose, performance.now() - t0);
       await report(res.usage);
       return res;
     },
@@ -177,8 +184,9 @@ export function createAI(config: AiConfig = {}): AiClient {
         throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
       }
       const text = Array.isArray(input.text) ? input.text : [input.text];
+      const t0 = performance.now();
       const res = await adapter.embedding({ input: text, spec });
-      enrich(res.usage, "embedding", input.tier ?? "embedding", input.purpose);
+      enrich(res.usage, "embedding", input.tier ?? "embedding", input.purpose, performance.now() - t0);
       await report(res.usage);
       return res;
     },
