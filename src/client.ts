@@ -3,6 +3,8 @@
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
 import { resolveTier } from "./routing/tier-map.js";
 import { defaultProviders } from "./providers/stub.js";
+import { computeCost } from "./cost/usage.js";
+import { BudgetGuard } from "./cost/budget.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -44,6 +46,21 @@ export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
   const cfg = aiConfigSchema.parse(config);
   const providers = cfg.providers ?? defaultProviders;
+  const budget = cfg.budget ? new BudgetGuard(cfg.budget) : undefined;
+
+  const estTokens = (s: string): number => Math.ceil(s.length / 4);
+
+  /** Pre-flight budget check. Estimates this call's cost and throws
+   *  BudgetExceededError before the transport fires. No-op without a budget. */
+  function preflight(spec: TierSpec, estInTokens: number, estOutTokens: number): void {
+    if (!budget) return;
+    budget.check(computeCost(spec.provider, spec.model, estInTokens, estOutTokens));
+  }
+
+  /** Fold the actual cost into the rolling total after a successful call. */
+  function settle(usage: Usage): void {
+    if (budget) budget.record(usage.costUsd);
+  }
 
   function pickProvider(name: string): ProviderAdapter {
     const adapter = providers[name];
@@ -97,15 +114,22 @@ export function createAI(config: AiConfig = {}): AiClient {
       if (!adapter.chat) {
         throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
       }
+      const messages = toMessages(input);
+      const estIn = messages.reduce(
+        (n, m) => n + estTokens(typeof m.content === "string" ? m.content : JSON.stringify(m.content)),
+        0,
+      );
+      preflight(spec, estIn, input.maxTokens ?? 512);
       const t0 = performance.now();
       const res = await adapter.chat({
-        messages: toMessages(input),
+        messages,
         spec,
         tools: input.tools,
         maxTokens: input.maxTokens,
         temperature: input.temperature,
       });
       enrich(res.usage, "chat", input.tier ?? "smart", input.purpose, performance.now() - t0);
+      settle(res.usage);
       await report(res.usage);
       return res;
     },
@@ -126,9 +150,12 @@ export function createAI(config: AiConfig = {}): AiClient {
           ],
         },
       ];
+      // Rough: prompt tokens + ~1k for the image payload.
+      preflight(spec, estTokens(input.prompt) + 1000, 512);
       const t0 = performance.now();
       const res = await adapter.vision({ messages, spec });
       enrich(res.usage, "vision", input.tier ?? "vision", input.purpose, performance.now() - t0);
+      settle(res.usage);
       await report(res.usage);
       return res;
     },
@@ -150,9 +177,12 @@ export function createAI(config: AiConfig = {}): AiClient {
         },
         { role: "user", content: `Translate${fromClause} to ${input.to}:\n\n${input.text}` },
       ];
+      const estIn = estTokens(input.text) + 40;
+      preflight(spec, estIn, estIn);
       const t0 = performance.now();
       const res = await adapter.chat({ messages, spec });
       enrich(res.usage, "translate", input.tier ?? "fast", input.purpose, performance.now() - t0);
+      settle(res.usage);
       await report(res.usage);
       return { text: res.text, usage: res.usage };
     },
@@ -164,6 +194,9 @@ export function createAI(config: AiConfig = {}): AiClient {
       if (!adapter.image) {
         throw new Error(`createAI: provider "${spec.provider}" does not support image`);
       }
+      // Image cost is not token-based; pre-flight estimates 0 (only a per-call
+      // ceiling of 0 would block). Actual cost is folded in post-call.
+      preflight(spec, 0, 0);
       const t0 = performance.now();
       const res = await adapter.image({
         prompt: input.prompt,
@@ -172,6 +205,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         height: input.height,
       });
       enrich(res.usage, "image", undefined, input.purpose, performance.now() - t0);
+      settle(res.usage);
       await report(res.usage);
       return res;
     },
@@ -184,9 +218,11 @@ export function createAI(config: AiConfig = {}): AiClient {
         throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
       }
       const text = Array.isArray(input.text) ? input.text : [input.text];
+      preflight(spec, text.reduce((n, t) => n + estTokens(t), 0), 0);
       const t0 = performance.now();
       const res = await adapter.embedding({ input: text, spec });
       enrich(res.usage, "embedding", input.tier ?? "embedding", input.purpose, performance.now() - t0);
+      settle(res.usage);
       await report(res.usage);
       return res;
     },
