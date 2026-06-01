@@ -12,6 +12,7 @@ export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
 export { computeCost, freshUsage } from "./cost/usage.js";
 export { BudgetGuard, BudgetExceededError } from "./cost/budget.js";
+export { noopSink, multiSink } from "./cost/sinks/index.js";
 export { getPrice } from "./cost/pricing.js";
 export type { PricingEntry } from "./cost/pricing.js";
 export {
