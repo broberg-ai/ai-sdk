@@ -4,3 +4,8 @@
 .env.*
 !.env.example
 .claude/settings.local.json
+
+# build output + generated files
+dist
+node_modules
+src/version.ts
