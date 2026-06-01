@@ -4,17 +4,15 @@
 
 | Area | Path | Notes |
 |---|---|---|
-| SDK source | `src/` | TypeScript ESM package — client, adapters, transports, capabilities, sinks |
-| Client + types | `src/client.ts`, `src/types.ts` | `createAI()` factory, all public types and Zod schemas |
-| Adapters | `src/adapters/` | One file per provider: `anthropic.ts`, `openai.ts`, `gemini.ts`, `deepinfra.ts`, `openrouter.ts`, `fal.ts` |
-| Transports | `src/transports/` | `http.ts` (fetch) and `subprocess.ts` (`claude -p`) |
-| Capabilities | `src/capabilities/` | `vision.ts`, `translate.ts`, `image.ts`, `embedding.ts`; `contracts/` for prompt-contract caps |
-| Sinks | `src/sinks/` | `noop.ts`, `multi.ts`, `discord.ts`, `sqlite.ts` |
-| Pricing | `src/pricing.ts` | Versioned per-`(provider, model)` pricing table |
-| Budget | `src/budget.ts` | `BudgetGuard` + `BudgetExceededError` |
+| SDK source | `src/` | TypeScript ESM package — entry: `src/index.ts` |
+| Client + schema | `src/client.ts`, `src/types.ts`, `src/schema/` | `createAI()` factory, all public types, Zod schemas |
+| Providers | `src/providers/` | One file per provider: `anthropic-api.ts`, `anthropic-subprocess.ts`, `openai.ts`, `gemini.ts`, `deepinfra.ts`, `openrouter.ts`, `fal.ts` |
+| Transport | `src/transport/` | `http.ts` (fetch) and `subprocess.ts` (`claude -p`) |
+| Capabilities | `src/capabilities/` | `chat.ts`, `vision.ts`, `translate.ts`, `image.ts`, `embedding.ts`, `transcribe.ts`; `contracts/` for prompt-contract caps (mockup, design, extract, classify, rerank) |
+| Routing | `src/routing/` | Tier map — `fast\|smart\|powerful\|cheap\|vision\|embedding` → `(provider, model, transport)` |
+| Cost | `src/cost/` | `usage.ts` (Usage type), `pricing.ts` (tables), `budget.ts` (BudgetGuard), `sinks/` (upmetrics, discord, sqlite, noop, multi) |
 | Compat | `src/compat/` | `webhouse-ai.ts` shim for `@webhouse/ai` migration (F6.1) |
-| Scan scripts | `scripts/` | `scan-ai-usage.ts` traversal script (F1) |
-| Plan docs | `docs/features/` | `F<n>-<slug>.md` plan-docs for every epic |
+| Docs | `docs/` | `PLAN.md`, `TRAVERSE-PROMPT.md` (F1 traversal), `features/F<n>-<slug>.md` plan-docs |
 
 ## Working with cardmem
 
