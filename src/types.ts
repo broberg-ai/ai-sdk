@@ -177,71 +177,12 @@ export interface ProviderAdapter {
 
 // ── Client config ──────────────────────────────────────────────────────────
 
-/** Input to `createAI()`. All optional — an empty config yields a client whose
- *  calls resolve via DEFAULT_TIER_MAP with no cost sink and no budget guard. */
-export interface AiConfig {
-  /** Per-tier routing overrides merged on top of DEFAULT_TIER_MAP. */
-  defaults?: Partial<Record<Tier, TierSpec>>;
-  /** Provider adapters by name, e.g. { anthropic, openai, fal }. */
-  providers?: Record<string, ProviderAdapter>;
-  /** Where per-call Usage is reported. Omit for no reporting. */
-  costSink?: CostSink;
-  /** Pre-flight spend ceilings. Omit for no guard. */
-  budget?: BudgetConfig;
-}
-
-// ── Capability input shapes + client ───────────────────────────────────────
-// These are the user-facing call signatures. F2.6 derives Zod schemas for them;
-// for now they are plain types. Each extends CallOptions (tier/override/fallback/purpose).
-
-export interface ChatInput extends CallOptions {
-  /** Shorthand single-turn prompt. Provide this OR `messages`. */
-  prompt?: string;
-  /** Full multi-turn message list. Takes precedence over `prompt`. */
-  messages?: Message[];
-  /** System prompt prepended when building from `prompt`. */
-  system?: string;
-  tools?: Tool[];
-  maxTokens?: number;
-  temperature?: number;
-}
-
-export interface VisionInput extends CallOptions {
-  /** Image URL or raw bytes. */
-  image: string | Uint8Array;
-  prompt: string;
-  mimeType?: string;
-}
-
-export interface TranslateInput extends CallOptions {
-  text: string;
-  /** Target language (name or BCP-47 code). */
-  to: string;
-  /** Source language; omit to auto-detect. */
-  from?: string;
-}
-
-export interface ImageInput extends CallOptions {
-  prompt: string;
-  width?: number;
-  height?: number;
-}
-
-export interface EmbeddingInput extends CallOptions {
-  text: string | string[];
-}
+// NOTE: AiConfig, the 5 capability inputs (ChatInput…EmbeddingInput) and the
+// AiClient facade are defined in ./schema/inputs.ts — Zod schemas are the single
+// source of truth and the types are derived via z.infer. They are not duplicated
+// here. This file holds the base/wire types those schemas build on.
 
 export interface TranslateResult {
   text: string;
   usage: Usage;
-}
-
-/** The public facade. Capabilities are provider-agnostic; callers never touch a
- *  provider SDK directly. */
-export interface AiClient {
-  chat(input: ChatInput): Promise<ChatResult>;
-  vision(input: VisionInput): Promise<ChatResult>;
-  translate(input: TranslateInput): Promise<TranslateResult>;
-  image(input: ImageInput): Promise<ImageResult>;
-  embedding(input: EmbeddingInput): Promise<EmbeddingResult>;
 }

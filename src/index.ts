@@ -43,12 +43,27 @@ export type {
   EmbeddingRequest,
   EmbeddingResult,
   ProviderAdapter,
+  TranslateResult,
+} from "./types.js";
+
+// Public input shapes + facade type — Zod-derived (single source of truth).
+export {
+  chatInputSchema,
+  visionInputSchema,
+  translateInputSchema,
+  imageInputSchema,
+  embeddingInputSchema,
+  aiConfigSchema,
+  messageSchema,
+  toolSchema,
+  tierSpecSchema,
+} from "./schema/inputs.js";
+export type {
   AiConfig,
+  AiClient,
   ChatInput,
   VisionInput,
   TranslateInput,
   ImageInput,
   EmbeddingInput,
-  TranslateResult,
-  AiClient,
-} from "./types.js";
+} from "./schema/inputs.js";

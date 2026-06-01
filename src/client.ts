@@ -3,6 +3,14 @@
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
 import { resolveTier } from "./routing/tier-map.js";
 import { defaultProviders } from "./providers/stub.js";
+import {
+  aiConfigSchema,
+  chatInputSchema,
+  visionInputSchema,
+  translateInputSchema,
+  imageInputSchema,
+  embeddingInputSchema,
+} from "./schema/inputs.js";
 import type {
   AiConfig,
   AiClient,
@@ -11,6 +19,8 @@ import type {
   TranslateInput,
   ImageInput,
   EmbeddingInput,
+} from "./schema/inputs.js";
+import type {
   ChatResult,
   ImageResult,
   EmbeddingResult,
@@ -31,7 +41,9 @@ const DEFAULT_IMAGE_SPEC: TierSpec = {
 };
 
 export function createAI(config: AiConfig = {}): AiClient {
-  const providers = config.providers ?? defaultProviders;
+  // Validate config at the boundary (throws ZodError on bad shape).
+  const cfg = aiConfigSchema.parse(config);
+  const providers = cfg.providers ?? defaultProviders;
 
   function pickProvider(name: string): ProviderAdapter {
     const adapter = providers[name];
@@ -58,9 +70,9 @@ export function createAI(config: AiConfig = {}): AiClient {
   }
 
   async function report(usage: Usage): Promise<void> {
-    if (!config.costSink) return;
+    if (!cfg.costSink) return;
     try {
-      await config.costSink.record(usage);
+      await cfg.costSink.record(usage);
     } catch {
       // A broken sink must never crash a real AI call (F3.3 invariant).
     }
@@ -76,7 +88,8 @@ export function createAI(config: AiConfig = {}): AiClient {
 
   return {
     async chat(input: ChatInput): Promise<ChatResult> {
-      const spec = resolveTier(input.tier ?? "smart", input.override, config.defaults);
+      input = chatInputSchema.parse(input);
+      const spec = resolveTier(input.tier ?? "smart", input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.chat) {
         throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
@@ -94,7 +107,8 @@ export function createAI(config: AiConfig = {}): AiClient {
     },
 
     async vision(input: VisionInput): Promise<ChatResult> {
-      const spec = resolveTier(input.tier ?? "vision", input.override, config.defaults);
+      input = visionInputSchema.parse(input);
+      const spec = resolveTier(input.tier ?? "vision", input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.vision) {
         throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
@@ -115,7 +129,8 @@ export function createAI(config: AiConfig = {}): AiClient {
     },
 
     async translate(input: TranslateInput): Promise<TranslateResult> {
-      const spec = resolveTier(input.tier ?? "fast", input.override, config.defaults);
+      input = translateInputSchema.parse(input);
+      const spec = resolveTier(input.tier ?? "fast", input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.chat) {
         throw new Error(`createAI: provider "${spec.provider}" does not support chat (translate routes through chat)`);
@@ -137,6 +152,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     },
 
     async image(input: ImageInput): Promise<ImageResult> {
+      input = imageInputSchema.parse(input);
       const spec: TierSpec = { ...DEFAULT_IMAGE_SPEC, ...input.override };
       const adapter = pickProvider(spec.provider);
       if (!adapter.image) {
@@ -154,7 +170,8 @@ export function createAI(config: AiConfig = {}): AiClient {
     },
 
     async embedding(input: EmbeddingInput): Promise<EmbeddingResult> {
-      const spec = resolveTier(input.tier ?? "embedding", input.override, config.defaults);
+      input = embeddingInputSchema.parse(input);
+      const spec = resolveTier(input.tier ?? "embedding", input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.embedding) {
         throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
