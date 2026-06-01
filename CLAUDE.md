@@ -4,10 +4,17 @@
 
 | Area | Path | Notes |
 |---|---|---|
-| _(example — replace)_ App | `src/` | Main application code |
-| _(example — replace)_ Tests | `tests/` | Test suites |
-
-Replace the example rows above with this repo's real layout before relying on cardmem skills to scope changes.
+| SDK source | `src/` | TypeScript ESM package — client, adapters, transports, capabilities, sinks |
+| Client + types | `src/client.ts`, `src/types.ts` | `createAI()` factory, all public types and Zod schemas |
+| Adapters | `src/adapters/` | One file per provider: `anthropic.ts`, `openai.ts`, `gemini.ts`, `deepinfra.ts`, `openrouter.ts`, `fal.ts` |
+| Transports | `src/transports/` | `http.ts` (fetch) and `subprocess.ts` (`claude -p`) |
+| Capabilities | `src/capabilities/` | `vision.ts`, `translate.ts`, `image.ts`, `embedding.ts`; `contracts/` for prompt-contract caps |
+| Sinks | `src/sinks/` | `noop.ts`, `multi.ts`, `discord.ts`, `sqlite.ts` |
+| Pricing | `src/pricing.ts` | Versioned per-`(provider, model)` pricing table |
+| Budget | `src/budget.ts` | `BudgetGuard` + `BudgetExceededError` |
+| Compat | `src/compat/` | `webhouse-ai.ts` shim for `@webhouse/ai` migration (F6.1) |
+| Scan scripts | `scripts/` | `scan-ai-usage.ts` traversal script (F1) |
+| Plan docs | `docs/features/` | `F<n>-<slug>.md` plan-docs for every epic |
 
 ## Working with cardmem
 
