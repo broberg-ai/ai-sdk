@@ -1,7 +1,5 @@
 ## Project layout
 
-> **Fill this in for THIS repo.** Every cardmem-compatible repo MUST have a `## Project layout` section with the columns `Area | Path | Notes`. The cardmem Init flow (or the `feature` skill) populates it from the repo's actual structure — replace the example rows below.
-
 | Area | Path | Notes |
 |---|---|---|
 | SDK source | `src/` | TypeScript ESM package — entry: `src/index.ts` |
