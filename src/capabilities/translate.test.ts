@@ -7,8 +7,11 @@ const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
   realCreateAI({ providers: stubProviders, ...cfg });
 
 const realFetch = globalThis.fetch;
+const prevKey = process.env.OPENROUTER_API_KEY;
 afterEach(() => {
   globalThis.fetch = realFetch;
+  if (prevKey === undefined) delete process.env.OPENROUTER_API_KEY;
+  else process.env.OPENROUTER_API_KEY = prevKey;
 });
 
 test("TRANSLATE_DEFAULT_TIER is 'fast'", () => {
@@ -35,6 +38,7 @@ test("ai.translate() returns { text, usage } tagged capability translate, defaul
 });
 
 test("ai.translate() e2e through the live OpenRouter adapter (mocked fetch)", async () => {
+  process.env.OPENROUTER_API_KEY = "or-test"; // fetch is mocked; key just unblocks the adapter
   const seen: { url: string; body: any }[] = [];
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     seen.push({ url: String(url), body: JSON.parse(init!.body as string) });
