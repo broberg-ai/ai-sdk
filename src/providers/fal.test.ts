@@ -23,6 +23,15 @@ test("sync mode: POSTs fal.run/{model} with Key auth, returns image url", async 
   expect(res.url).toBe("https://fal.media/out.png");
   expect(res.usage.provider).toBe("fal");
   expect(res.usage.capability).toBe("image");
+  expect(res.usage.costUsd).toBeCloseTo(0.003, 6); // flux/schnell per-image estimate
+});
+
+test("pricePerImage config overrides the per-image estimate", async () => {
+  const fetchImpl = (async () =>
+    new Response(JSON.stringify({ images: [{ url: "u" }] }), { status: 200 })) as unknown as typeof fetch;
+  const a = falAdapter({ apiKey: "fk", pricePerImage: 0.5, fetch: fetchImpl });
+  const res = await a.image!(req);
+  expect(res.usage.costUsd).toBe(0.5);
 });
 
 test("queue mode: polls IN_PROGRESS → COMPLETED then fetches the result", async () => {

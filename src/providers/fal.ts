@@ -27,7 +27,19 @@ export interface FalAdapterConfig {
   pollIntervalMs?: number;
   timeoutMs?: number;
   fetch?: typeof fetch;
+  /** Override the per-image USD price (else a built-in estimate per model, 0 if unknown). */
+  pricePerImage?: number;
 }
+
+// Per-image USD ESTIMATES (fal prices by megapixel/model and changes often —
+// verify before relying on these; override via config.pricePerImage). fal does
+// not return a price, so this is the SDK's best-effort cost for `usage.costUsd`.
+const FAL_IMAGE_PRICE_ESTIMATE: Record<string, number> = {
+  "fal-ai/flux/schnell": 0.003,
+  "fal-ai/flux/dev": 0.025,
+  "fal-ai/flux-pro": 0.05,
+  "fal-ai/flux-pro/v1.1": 0.04,
+};
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -53,7 +65,8 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       ? runSync(req.spec.model, headers, body)
       : runQueue(req.spec.model, headers, body));
 
-    // fal cost is not token-based and rarely returned; record 0 (image capability).
+    // fal returns no price; estimate per-image (one image per call) so usage.costUsd
+    // isn't silently 0. Override via config.pricePerImage.
     const usage = freshUsage({
       provider: "fal",
       model: req.spec.model,
@@ -62,6 +75,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
+    usage.costUsd = config.pricePerImage ?? FAL_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0;
     return { url, usage };
   }
 

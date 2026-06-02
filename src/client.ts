@@ -114,125 +114,164 @@ export function createAI(config: AiConfig = {}): AiClient {
     return msgs;
   }
 
+  /** Run a capability with an optional fallback chain. Tries the primary route,
+   *  then each fallback (Tier or TierSpec) in order if the call errors. A budget
+   *  breach propagates immediately (not a fallback trigger). On the first
+   *  success: stamp Usage, settle the budget, report to the sink, return. */
+  async function runCapability<R extends { usage: Usage }>(opts: {
+    primary: TierSpec;
+    fallback?: (Tier | TierSpec)[];
+    capability: Capability;
+    tier?: Tier;
+    purpose?: string;
+    estIn: number;
+    estOut: number;
+    invoke: (spec: TierSpec) => Promise<R>;
+  }): Promise<R> {
+    const routes: TierSpec[] = [
+      opts.primary,
+      ...(opts.fallback ?? []).map((f) =>
+        typeof f === "string" ? resolveTier(f, undefined, cfg.defaults) : f,
+      ),
+    ];
+    let lastErr: unknown;
+    for (let i = 0; i < routes.length; i++) {
+      const spec = routes[i]!;
+      preflight(spec, opts.estIn, opts.estOut); // BudgetExceededError propagates
+      try {
+        const t0 = performance.now();
+        const res = await opts.invoke(spec);
+        enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0);
+        settle(res.usage);
+        await report(res.usage);
+        return res;
+      } catch (e) {
+        lastErr = e; // try the next fallback route
+      }
+    }
+    throw lastErr;
+  }
+
   const client: AiClient = {
     async chat(input: ChatInput): Promise<ChatResult> {
       input = chatInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? "smart", input.override, cfg.defaults);
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.chat) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
-      }
+      const tier = input.tier ?? "smart";
       const messages = toMessages(input);
       const estIn = messages.reduce(
         (n, m) => n + estTokens(typeof m.content === "string" ? m.content : JSON.stringify(m.content)),
         0,
       );
-      preflight(spec, estIn, input.maxTokens ?? 512);
-      const t0 = performance.now();
-      const res = await adapter.chat({
-        messages,
-        spec,
-        tools: input.tools,
-        maxTokens: input.maxTokens,
-        temperature: input.temperature,
+      return runCapability({
+        primary: resolveTier(tier, input.override, cfg.defaults),
+        fallback: input.fallback,
+        capability: "chat",
+        tier,
+        purpose: input.purpose,
+        estIn,
+        estOut: input.maxTokens ?? 512,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
+          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature });
+        },
       });
-      enrich(res.usage, "chat", input.tier ?? "smart", input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
-      return res;
     },
 
     async vision(input: VisionInput): Promise<ChatResult> {
       input = visionInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? VISION_DEFAULT_TIER, input.override, cfg.defaults);
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.vision) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
-      }
+      const tier = input.tier ?? VISION_DEFAULT_TIER;
       const messages: Message[] = buildVisionMessages(input);
-      // Rough: prompt tokens + ~1k for the image payload.
-      preflight(spec, estTokens(input.prompt) + 1000, 512);
-      const t0 = performance.now();
-      const res = await adapter.vision({ messages, spec });
-      enrich(res.usage, "vision", input.tier ?? VISION_DEFAULT_TIER, input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
-      return res;
+      return runCapability({
+        primary: resolveTier(tier, input.override, cfg.defaults),
+        fallback: input.fallback,
+        capability: "vision",
+        tier,
+        purpose: input.purpose,
+        estIn: estTokens(input.prompt) + 1000, // prompt + ~1k image payload
+        estOut: 512,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.vision) throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
+          return adapter.vision({ messages, spec });
+        },
+      });
     },
 
     async translate(input: TranslateInput): Promise<TranslateResult> {
       input = translateInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? TRANSLATE_DEFAULT_TIER, input.override, cfg.defaults);
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.chat) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support chat (translate routes through chat)`);
-      }
+      const tier = input.tier ?? TRANSLATE_DEFAULT_TIER;
       const messages: Message[] = buildTranslateMessages(input);
       const estIn = estTokens(input.text) + 40;
-      preflight(spec, estIn, estIn);
-      const t0 = performance.now();
-      const res = await adapter.chat({ messages, spec });
-      enrich(res.usage, "translate", input.tier ?? TRANSLATE_DEFAULT_TIER, input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
+      const res = await runCapability<ChatResult>({
+        primary: resolveTier(tier, input.override, cfg.defaults),
+        fallback: input.fallback,
+        capability: "translate",
+        tier,
+        purpose: input.purpose,
+        estIn,
+        estOut: estIn,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat (translate routes through chat)`);
+          return adapter.chat({ messages, spec });
+        },
+      });
       return { text: res.text, usage: res.usage };
     },
 
     async image(input: ImageInput): Promise<ImageResult> {
       input = imageInputSchema.parse(input);
-      const spec: TierSpec = { ...DEFAULT_IMAGE_SPEC, ...input.override };
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.image) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support image`);
-      }
-      // Image cost is not token-based; pre-flight estimates 0 (only a per-call
-      // ceiling of 0 would block). Actual cost is folded in post-call.
-      preflight(spec, 0, 0);
-      const t0 = performance.now();
-      const res = await adapter.image({
-        prompt: input.prompt,
-        spec,
-        width: input.width,
-        height: input.height,
+      return runCapability({
+        primary: { ...DEFAULT_IMAGE_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "image",
+        purpose: input.purpose,
+        estIn: 0, // image cost is not token-based
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.image) throw new Error(`createAI: provider "${spec.provider}" does not support image`);
+          return adapter.image({ prompt: input.prompt, spec, width: input.width, height: input.height });
+        },
       });
-      enrich(res.usage, "image", undefined, input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
-      return res;
     },
 
     async embedding(input: EmbeddingInput): Promise<EmbeddingResult> {
       input = embeddingInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? EMBEDDING_DEFAULT_TIER, input.override, cfg.defaults);
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.embedding) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
-      }
+      const tier = input.tier ?? EMBEDDING_DEFAULT_TIER;
       const text = Array.isArray(input.text) ? input.text : [input.text];
-      preflight(spec, text.reduce((n, t) => n + estTokens(t), 0), 0);
-      const t0 = performance.now();
-      const res = await adapter.embedding({ input: text, spec });
-      enrich(res.usage, "embedding", input.tier ?? EMBEDDING_DEFAULT_TIER, input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
-      return res;
+      return runCapability({
+        primary: resolveTier(tier, input.override, cfg.defaults),
+        fallback: input.fallback,
+        capability: "embedding",
+        tier,
+        purpose: input.purpose,
+        estIn: text.reduce((n, t) => n + estTokens(t), 0),
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.embedding) throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
+          return adapter.embedding({ input: text, spec });
+        },
+      });
     },
 
     async transcribe(input: TranscribeInput): Promise<TranscribeResult> {
       input = transcribeInputSchema.parse(input);
-      const spec: TierSpec = { ...DEFAULT_TRANSCRIBE_SPEC, ...input.override };
-      const adapter = pickProvider(spec.provider);
-      if (!adapter.transcribe) {
-        throw new Error(`createAI: provider "${spec.provider}" does not support transcribe`);
-      }
       const audio = await resolveAudio(input.audio);
-      preflight(spec, 0, 0);
-      const t0 = performance.now();
-      const res = await adapter.transcribe({ audio, language: input.language, spec });
-      enrich(res.usage, "transcribe", undefined, input.purpose, performance.now() - t0);
-      settle(res.usage);
-      await report(res.usage);
-      return res;
+      return runCapability({
+        primary: { ...DEFAULT_TRANSCRIBE_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "transcribe",
+        purpose: input.purpose,
+        estIn: 0,
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.transcribe) throw new Error(`createAI: provider "${spec.provider}" does not support transcribe`);
+          return adapter.transcribe({ audio, language: input.language, spec });
+        },
+      });
     },
 
     // Replaced below with the real prompt-contracts (needs the client itself).

@@ -84,8 +84,9 @@ const { text, usage } = await ai.vision({ image: bytes, mimeType: "image/jpeg", 
 // text → your existing JSON-parsing; usage → already reported to the sink
 ```
 
-> **Note (v1):** keep your own try/catch fallback if you need one — the SDK's
-> `CallOptions.fallback` is a typed stub, not yet executed (see §9).
+> **Built-in failover:** pass `fallback: [<tier|spec>, …]` and the SDK tries the
+> primary route, then each fallback in order if a call errors — so you no longer
+> need to hand-roll a try/catch chain (§4).
 
 ---
 
@@ -188,6 +189,20 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose? }`.
 
+**Failover** — `fallback` is an ordered list of routes (a `Tier` or a full
+`{provider, model, transport}`) tried if the primary call errors:
+
+```ts
+await ai.vision({
+  image, prompt,
+  override: { provider: "anthropic", model: "claude-sonnet-4-6", transport: "http" },
+  fallback: [{ provider: "openrouter", model: "anthropic/claude-sonnet-4-6", transport: "http" }],
+});
+```
+
+A **budget breach is not a fallback trigger** — it throws immediately (you asked
+not to spend, so the SDK won't quietly retry on a pricier route).
+
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):
 
@@ -237,12 +252,16 @@ for per-feature cost attribution.
 
 ## 6. Known limitations (v1)
 
-- **`CallOptions.fallback` is a typed stub** — the client does not yet execute a
-  fallback chain. Wrap your own try/catch if you need failover today.
-- **fal.ai + Whisper cost = 0** — those are priced per-image / per-minute, not
-  per-token; `costUsd` is 0 for now (tokens/latency still tracked).
+- **fal.ai cost is an estimate; Whisper cost = 0.** fal images use a per-image
+  USD estimate per model (`config.pricePerImage` overrides) since fal returns no
+  price. Whisper is priced per-minute and the API returns no duration, so its
+  `costUsd` stays 0 (tokens/latency still tracked). Token-based calls are metered
+  exactly.
 - **In-memory rolling budget** — `BudgetGuard`'s rolling total lives on the
   `createAI` instance; it does not persist across processes.
+
+*(Resolved since the first draft: `CallOptions.fallback` now executes a real
+failover chain — §4.)*
 
 ---
 
