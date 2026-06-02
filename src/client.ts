@@ -7,6 +7,7 @@ import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
 import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
+import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -197,7 +198,7 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async embedding(input: EmbeddingInput): Promise<EmbeddingResult> {
       input = embeddingInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? "embedding", input.override, cfg.defaults);
+      const spec = resolveTier(input.tier ?? EMBEDDING_DEFAULT_TIER, input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.embedding) {
         throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
@@ -206,7 +207,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       preflight(spec, text.reduce((n, t) => n + estTokens(t), 0), 0);
       const t0 = performance.now();
       const res = await adapter.embedding({ input: text, spec });
-      enrich(res.usage, "embedding", input.tier ?? "embedding", input.purpose, performance.now() - t0);
+      enrich(res.usage, "embedding", input.tier ?? EMBEDDING_DEFAULT_TIER, input.purpose, performance.now() - t0);
       settle(res.usage);
       await report(res.usage);
       return res;
