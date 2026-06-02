@@ -70,5 +70,13 @@ const PRICING: Record<string, PricingEntry> = {
 };
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {
-  return PRICING[`${provider}:${model}`];
+  const exact = PRICING[`${provider}:${model}`];
+  if (exact) return exact;
+  // Providers ship dated model snapshots, e.g. "claude-haiku-4-5-20251001".
+  // Strip a trailing -YYYYMMDD and retry the base lookup so a dated variant
+  // prices the same as its base model instead of falling through to 0 — a real
+  // paid call must never be logged as $0 (F012). Covers openrouter slugs too.
+  const base = model.replace(/-\d{8}$/, "");
+  if (base !== model) return PRICING[`${provider}:${base}`];
+  return undefined;
 }
