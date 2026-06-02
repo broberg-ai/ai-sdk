@@ -93,8 +93,8 @@ export const openaiStubAdapter: ProviderAdapter = {
   },
 };
 
-/** fal.ai adapter stub — image generation. */
-export const falAdapter: ProviderAdapter = {
+/** fal.ai adapter stub — image generation (real one in fal.ts, F5.3). */
+export const falStubAdapter: ProviderAdapter = {
   name: "fal",
   async image(req: ImageRequest): Promise<ImageResult> {
     return {
@@ -110,5 +110,5 @@ export const falAdapter: ProviderAdapter = {
 export const stubProviders: Record<string, ProviderAdapter> = {
   anthropic: anthropicApiAdapter,
   openai: openaiStubAdapter,
-  fal: falAdapter,
+  fal: falStubAdapter,
 };

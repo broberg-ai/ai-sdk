@@ -7,7 +7,7 @@ const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
 import {
   anthropicApiAdapter,
   anthropicSubprocessAdapter,
-  falAdapter,
+  falStubAdapter,
 } from "./providers/stub.js";
 import type { CostSink, ProviderAdapter, Usage } from "./types.js";
 
@@ -24,7 +24,7 @@ test("stub adapters satisfy ProviderAdapter", () => {
   const adapters: ProviderAdapter[] = [
     anthropicApiAdapter,
     anthropicSubprocessAdapter,
-    falAdapter,
+    falStubAdapter,
   ];
   for (const a of adapters) {
     expect(typeof a.name).toBe("string");

@@ -6,7 +6,7 @@ import { openaiAdapter } from "./openai.js";
 import { geminiAdapter } from "./gemini.js";
 import { deepinfraAdapter } from "./deepinfra.js";
 import { openrouterAdapter } from "./openrouter.js";
-import { falAdapter } from "./stub.js";
+import { falAdapter } from "./fal.js";
 import type { ProviderAdapter } from "../types.js";
 
 export const defaultProviders: Record<string, ProviderAdapter> = {
@@ -15,5 +15,5 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   gemini: geminiAdapter(),
   deepinfra: deepinfraAdapter(),
   openrouter: openrouterAdapter(),
-  fal: falAdapter, // real fal.ai adapter lands in F5.3
+  fal: falAdapter(),
 };
