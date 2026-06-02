@@ -15,5 +15,8 @@ export function openrouterAdapter(
       "HTTP-Referer": config.referer ?? "https://broberg.ai",
       "X-Title": config.title ?? "@broberg/ai-sdk",
     },
+    // OpenRouter returns ground-truth usage.cost (USD) when usage:{include:true}
+    // is set — use it over the local pricing-table estimate (F010).
+    costFromResponseField: true,
   });
 }

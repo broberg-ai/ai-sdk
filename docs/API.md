@@ -163,7 +163,8 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 
 | Method | Input (key fields) | Returns | Default tier |
 |---|---|---|---|
-| `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature? }` | `{ text, toolCalls?, usage }` | `smart` |
+| `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature?, responseFormat? }` | `{ text, toolCalls?, usage }` | `smart` |
+| `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
 | `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync) |
@@ -185,6 +186,45 @@ await ai.vision({
 
 A **budget breach is not a fallback trigger** — it throws immediately (you asked
 not to spend, so the SDK won't quietly retry on a pricier route).
+
+### Streaming — `ai.chatStream`
+
+For streaming chat UIs (live token deltas + agentic tool-loops), `ai.chatStream`
+takes the **same input** as `ai.chat` and returns an `AsyncIterable<ChatStreamEvent>`:
+
+```ts
+for await (const ev of ai.chatStream({ messages, tools, fallback: […] })) {
+  switch (ev.type) {
+    case "text":      process.stdout.write(ev.delta); break;       // live deltas
+    case "tool_call": run(ev.name, ev.args); break;                // id, name, args — emitted COMPLETE
+    case "usage":     log(ev.costUsd, ev.model); break;            // ev.usage is the full Usage
+    case "finish":    break;                                        // "end_turn" | "tool_calls" | "length" | "stop"
+    case "error":     warn(ev.message, ev.status); break;
+  }
+}
+```
+
+- **Per-turn engine, not an agent runtime.** You own the tool-loop: when a turn
+  finishes with `tool_calls`, execute them, append the `assistant`(with `toolCalls`)
+  + `tool`(result, `toolCallId`) messages, and call `chatStream` again.
+- **All chat providers stream.** OpenAI/DeepInfra/OpenRouter (OpenAI-compatible),
+  Anthropic-direct (`/v1/messages` SSE), and Gemini-direct (`streamGenerateContent`).
+- **Pre-stream fallback.** The `fallback` chain re-routes on an eligible error
+  (429/5xx/network) **before the first token**; once deltas have started, an error
+  surfaces as an `{type:"error"}` event (deltas can't be un-emitted).
+- **`usage` is reported to the cost sink** like any other call (it carries the
+  full `Usage`, cost included).
+
+### JSON mode — `responseFormat`
+
+`ai.chat`/`ai.chatStream` accept `responseFormat: "json"` to request a JSON object
+from OpenAI-compatible providers (OpenRouter/OpenAI/DeepInfra) — no more
+markdown-fence stripping at the call-site:
+
+```ts
+const { text } = await ai.chat({ prompt: "…return JSON…", responseFormat: "json" });
+const data = JSON.parse(text);
+```
 
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):
@@ -236,6 +276,10 @@ for per-feature cost attribution.
 ## 6. Cost precision & budget persistence
 
 - **Token-based calls are metered exactly** from the pricing table.
+- **OpenRouter cost is ground-truth.** The openrouter adapter sends
+  `usage:{include:true}` and uses OpenRouter's returned `usage.cost` (USD) as
+  `costUsd`, falling back to the pricing table only if absent — so openrouter
+  routes (primary *or* fallback) never log `$0` for an unpriced model.
 - **fal.ai images** use a per-image USD **estimate** per model
   (`config.pricePerImage` overrides) since fal returns no price.
 - **Whisper** is per-minute: pass `durationSec` to `ai.transcribe` and it prices
@@ -257,7 +301,8 @@ for per-feature cost attribution.
 
 *(Resolved across v0.1.2 → v0.2.0: `CallOptions.fallback` executes a real failover
 chain (§4); fal per-image cost; Whisper per-minute cost; pluggable persistent
-budget store.)*
+budget store. v0.3.0: `ai.chatStream` streaming (all chat providers) + tool-loop
+threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (F010).)*
 
 ---
 

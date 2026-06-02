@@ -59,6 +59,8 @@ export {
   httpTransport,
   subprocessTransport,
   parseClaudeCliJson,
+  streamTransport,
+  StreamHttpError,
 } from "./transport/index.js";
 export type {
   TransportRequest,
@@ -84,6 +86,7 @@ export type {
   CallOptions,
   ChatRequest,
   ChatResult,
+  ChatStreamEvent,
   ImageRequest,
   ImageResult,
   EmbeddingRequest,
