@@ -5,6 +5,7 @@ import { resolveTier } from "./routing/tier-map.js";
 import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
+import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -136,25 +137,17 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async vision(input: VisionInput): Promise<ChatResult> {
       input = visionInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? "vision", input.override, cfg.defaults);
+      const spec = resolveTier(input.tier ?? VISION_DEFAULT_TIER, input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.vision) {
         throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
       }
-      const messages: Message[] = [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: input.prompt },
-            { type: "image", image: input.image, mimeType: input.mimeType },
-          ],
-        },
-      ];
+      const messages: Message[] = buildVisionMessages(input);
       // Rough: prompt tokens + ~1k for the image payload.
       preflight(spec, estTokens(input.prompt) + 1000, 512);
       const t0 = performance.now();
       const res = await adapter.vision({ messages, spec });
-      enrich(res.usage, "vision", input.tier ?? "vision", input.purpose, performance.now() - t0);
+      enrich(res.usage, "vision", input.tier ?? VISION_DEFAULT_TIER, input.purpose, performance.now() - t0);
       settle(res.usage);
       await report(res.usage);
       return res;
