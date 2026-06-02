@@ -68,6 +68,9 @@ const callOptions = {
   override: tierSpecSchema.partial().optional(),
   fallback: z.array(z.union([tierSchema, tierSpecSchema])).optional(),
   purpose: z.string().optional(),
+  /** Consumer-defined attribution dimensions (e.g. {tenantId}) ridden into the
+   *  cost sink for per-tenant/per-customer cost breakdown (F011). */
+  labels: z.record(z.string(), z.string()).optional(),
 } as const;
 
 // ── The 5 capability inputs ────────────────────────────────────────────────

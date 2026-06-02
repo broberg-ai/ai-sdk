@@ -62,6 +62,10 @@ export function upmetricsSink(config: UpmetricsSinkConfig): CostSink {
           started_at: startedAt,
           ended_at: endedAt,
           tags: {
+            // Consumer attribution labels (e.g. tenantId) ride in tags so no new
+            // top-level field risks the strict-shape ingest schema (F011). The
+            // SDK-owned keys win — a label can never clobber capability/transport/sdk.
+            ...usage.labels,
             capability: usage.capability,
             transport: usage.transport,
             sdk: SDK_TAG,

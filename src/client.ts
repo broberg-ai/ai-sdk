@@ -89,10 +89,12 @@ export function createAI(config: AiConfig = {}): AiClient {
     tier: Tier | undefined,
     purpose: string | undefined,
     latencyMs: number,
+    labels: Record<string, string> | undefined,
   ): Usage {
     usage.capability = capability;
     if (tier) usage.tier = tier;
     if (purpose) usage.purpose = purpose;
+    if (labels && Object.keys(labels).length > 0) usage.labels = labels;
     usage.latencyMs = Math.round(latencyMs);
     if (!usage.ts) usage.ts = new Date().toISOString();
     return usage;
@@ -125,6 +127,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     capability: Capability;
     tier?: Tier;
     purpose?: string;
+    labels?: Record<string, string>;
     estIn: number;
     estOut: number;
     invoke: (spec: TierSpec) => Promise<R>;
@@ -142,7 +145,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       try {
         const t0 = performance.now();
         const res = await opts.invoke(spec);
-        enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0);
+        enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0, opts.labels);
         await settle(res.usage);
         await report(res.usage);
         return res;
@@ -213,7 +216,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         })) {
           if (ev.type === "text" || ev.type === "tool_call") emitted = true;
           if (ev.type === "usage") {
-            enrich(ev.usage, "chat", i === 0 ? tier : undefined, input.purpose, performance.now() - t0);
+            enrich(ev.usage, "chat", i === 0 ? tier : undefined, input.purpose, performance.now() - t0, input.labels);
             await settle(ev.usage);
             await report(ev.usage);
           }
@@ -247,6 +250,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "chat",
         tier,
         purpose: input.purpose,
+        labels: input.labels,
         estIn,
         estOut: input.maxTokens ?? 512,
         invoke: async (spec) => {
@@ -269,6 +273,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "vision",
         tier,
         purpose: input.purpose,
+        labels: input.labels,
         estIn: estTokens(input.prompt) + 1000, // prompt + ~1k image payload
         estOut: 512,
         invoke: async (spec) => {
@@ -290,6 +295,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "translate",
         tier,
         purpose: input.purpose,
+        labels: input.labels,
         estIn,
         estOut: estIn,
         invoke: async (spec) => {
@@ -308,6 +314,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         fallback: input.fallback,
         capability: "image",
         purpose: input.purpose,
+        labels: input.labels,
         estIn: 0, // image cost is not token-based
         estOut: 0,
         invoke: async (spec) => {
@@ -328,6 +335,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "embedding",
         tier,
         purpose: input.purpose,
+        labels: input.labels,
         estIn: text.reduce((n, t) => n + estTokens(t), 0),
         estOut: 0,
         invoke: async (spec) => {
@@ -346,6 +354,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         fallback: input.fallback,
         capability: "transcribe",
         purpose: input.purpose,
+        labels: input.labels,
         estIn: 0,
         estOut: 0,
         invoke: async (spec) => {
