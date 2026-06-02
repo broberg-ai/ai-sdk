@@ -3,6 +3,7 @@
 export { createAI } from "./client.js";
 export { toProviderTools, fromProviderToolCall } from "./providers/tools.js";
 export { openaiAdapter } from "./providers/openai.js";
+export { geminiAdapter } from "./providers/gemini.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
 export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
 export {
