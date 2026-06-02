@@ -1,0 +1,70 @@
+name: publish
+
+# Publishes @broberg/ai-sdk to npm via OIDC Trusted Publishing — NO token/secret.
+# Triggers:
+#   • push a tag matching v*  (e.g. v0.1.1)  → publishes that commit
+#   • manual run (Actions → publish → Run workflow)
+#
+# PREREQUISITE (one-time): the package must already exist on npm AND have a
+# Trusted Publisher configured at npmjs.com → @broberg/ai-sdk → Settings →
+# Trusted Publisher = broberg-ai/ai-sdk, workflow `publish.yml`. npm has no
+# "pending publisher", so v0.1.0 is bootstrapped once by hand; every publish
+# after that runs here with zero secrets (OIDC + provenance).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # lets GitHub mint the OIDC token npm exchanges for publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # resolves to >=22.14, required by OIDC publishing
+          registry-url: https://registry.npmjs.org
+
+      # OIDC trusted publishing needs npm CLI >= 11.5.1; node 22 still ships 10.x.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        run: bun test
+
+      - name: Build
+        run: bun run build
+
+      - name: Guard — tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+
+      - name: Guard — version not already on npm
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          if npm view "@broberg/ai-sdk@$PKG" version >/dev/null 2>&1; then
+            echo "::error::@broberg/ai-sdk@$PKG already published — bump the version first."
+            exit 1
+          fi
+          echo "Publishing @broberg/ai-sdk@$PKG"
+
+      # npm (not bun) does the OIDC token exchange + provenance. No NODE_AUTH_TOKEN.
+      - name: Publish (OIDC)
+        run: npm publish --access public --provenance
