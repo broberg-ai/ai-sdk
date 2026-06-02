@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test";
 import { noopSink, multiSink } from "./index.js";
-import { createAI } from "../../client.js";
+import { createAI as realCreateAI } from "../../client.js";
+import { stubProviders } from "../../providers/stub.js";
+const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
+  realCreateAI({ providers: stubProviders, ...cfg });
 import { BudgetExceededError } from "../budget.js";
 import type { CostSink, Usage } from "../../types.js";
 

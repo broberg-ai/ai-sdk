@@ -2,18 +2,20 @@
 // The facade is the only public surface; provider SDKs never leak through it.
 export { createAI } from "./client.js";
 export { toProviderTools, fromProviderToolCall } from "./providers/tools.js";
+export { anthropicAdapter } from "./providers/anthropic.js";
 export { openaiAdapter } from "./providers/openai.js";
 export { geminiAdapter } from "./providers/gemini.js";
 export { deepinfraAdapter } from "./providers/deepinfra.js";
 export { openrouterAdapter } from "./providers/openrouter.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
 export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
+export { defaultProviders } from "./providers/registry.js";
 export {
   anthropicApiAdapter,
   anthropicSubprocessAdapter,
   openaiStubAdapter,
   falAdapter,
-  defaultProviders,
+  stubProviders,
 } from "./providers/stub.js";
 export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";

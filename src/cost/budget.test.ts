@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test";
 import { BudgetGuard, BudgetExceededError } from "./budget.js";
-import { createAI } from "../client.js";
+import { createAI as realCreateAI } from "../client.js";
+import { stubProviders } from "../providers/stub.js";
+const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
+  realCreateAI({ providers: stubProviders, ...cfg });
 
 test("per-call ceiling: a single call over the limit throws", () => {
   const g = new BudgetGuard({ perCallUsd: 0.001 });

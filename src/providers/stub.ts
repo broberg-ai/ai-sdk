@@ -104,9 +104,10 @@ export const falAdapter: ProviderAdapter = {
   },
 };
 
-/** Default provider registry wired when AiConfig.providers is absent. Keyed by
- *  provider name (matches TierSpec.provider). */
-export const defaultProviders: Record<string, ProviderAdapter> = {
+/** Stub provider registry — deterministic, no network. Used by tests via
+ *  createAI({ providers: stubProviders }). The real default registry (registry.ts)
+ *  wires the live adapters. */
+export const stubProviders: Record<string, ProviderAdapter> = {
   anthropic: anthropicApiAdapter,
   openai: openaiStubAdapter,
   fal: falAdapter,

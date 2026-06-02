@@ -2,7 +2,7 @@
 // delegates the call, stamps call-context metadata onto Usage, and reports to the
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
 import { resolveTier } from "./routing/tier-map.js";
-import { defaultProviders } from "./providers/stub.js";
+import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
 import {

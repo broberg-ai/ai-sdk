@@ -5,7 +5,10 @@ import {
   imageInputSchema,
   aiConfigSchema,
 } from "./inputs.js";
-import { createAI } from "../client.js";
+import { createAI as realCreateAI } from "../client.js";
+import { stubProviders } from "../providers/stub.js";
+const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
+  realCreateAI({ providers: stubProviders, ...cfg });
 
 test("valid chat input parses cleanly", () => {
   const parsed = chatInputSchema.parse({ prompt: "hello", tier: "fast" });

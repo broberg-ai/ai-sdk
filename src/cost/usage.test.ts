@@ -1,6 +1,9 @@
 import { expect, test } from "bun:test";
 import { computeCost, freshUsage } from "./usage.js";
-import { createAI } from "../client.js";
+import { createAI as realCreateAI } from "../client.js";
+import { stubProviders } from "../providers/stub.js";
+const createAI = (cfg: Parameters<typeof realCreateAI>[0] = {}) =>
+  realCreateAI({ providers: stubProviders, ...cfg });
 
 test("computeCost returns 0 for an unpriced/unknown model (never throws)", () => {
   expect(computeCost("acme", "imaginary-model-v9", 1000, 500)).toBe(0);
