@@ -111,6 +111,8 @@ export const transcribeInputSchema = z.object({
   /** Audio URL or raw bytes. */
   audio: z.union([z.string(), z.instanceof(Uint8Array)]),
   language: z.string().optional(),
+  /** Audio length in seconds — enables Whisper per-minute cost. */
+  durationSec: z.number().positive().optional(),
   ...callOptions,
 });
 

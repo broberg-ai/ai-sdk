@@ -53,6 +53,16 @@ test("ai.transcribe({audio: bytes}) → text via default openai/whisper", async 
   expect(res.usage.capability).toBe("transcribe");
 });
 
+test("durationSec → Whisper per-minute cost (120s ≈ $0.012); without it → 0", async () => {
+  process.env.OPENAI_API_KEY = "sk-test";
+  globalThis.fetch = (async () => new Response(JSON.stringify({ text: "t" }), { status: 200 })) as unknown as typeof fetch;
+  const ai = createAI();
+  const withDur = await ai.transcribe({ audio: new Uint8Array([1]), durationSec: 120 });
+  expect(withDur.usage.costUsd).toBeCloseTo(0.012, 6);
+  const without = await ai.transcribe({ audio: new Uint8Array([1]) });
+  expect(without.usage.costUsd).toBe(0);
+});
+
 test("ai.transcribe({audio: URL}) fetches the URL then transcribes", async () => {
   process.env.OPENAI_API_KEY = "sk-test";
   const urls: string[] = [];

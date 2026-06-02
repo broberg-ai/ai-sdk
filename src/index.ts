@@ -37,6 +37,8 @@ export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
 export { computeCost, freshUsage } from "./cost/usage.js";
 export { BudgetGuard, BudgetExceededError } from "./cost/budget.js";
+export { sqliteBudgetStore } from "./cost/budget-store.js";
+export type { SqliteBudgetStoreConfig } from "./cost/budget-store.js";
 export {
   noopSink,
   multiSink,
@@ -78,6 +80,7 @@ export type {
   Usage,
   CostSink,
   BudgetConfig,
+  BudgetStore,
   CallOptions,
   ChatRequest,
   ChatResult,

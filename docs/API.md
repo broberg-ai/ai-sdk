@@ -92,26 +92,7 @@ const { text, usage } = await ai.vision({ image: bytes, mimeType: "image/jpeg", 
 
 ## 3. The abstractions (the layer cake)
 
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │  Capabilities        chat · vision · translate · image ·       │  ← what you call
-  │  (AiClient)          embedding · transcribe · contracts.*      │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Routing             Tier  →  resolveTier()  →  TierSpec       │  ← which model
-  │                      (provider, model, transport)              │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Providers           ProviderAdapter registry                 │  ← how to talk to it
-  │                      anthropic · openai · gemini · deepinfra · │
-  │                      openrouter · fal      (+ tool norm)       │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Transport           httpTransport · subprocessTransport       │  ← how bytes travel
-  ├──────────────────────────────────────────────────────────────┤
-  │  Cost                Usage · computeCost · pricing · Budget ·  │  ← what it cost
-  │                      CostSink (upmetrics/discord/sqlite/…)     │
-  ├──────────────────────────────────────────────────────────────┤
-  │  Schema              Zod on every public input + AiConfig      │  ← validated boundary
-  └──────────────────────────────────────────────────────────────┘
-```
+![@broberg/ai-sdk architecture — the layer cake](./assets/sdk-layer-cake.svg)
 
 ### 3.1 Facade — `createAI()` → `AiClient`
 The single entry point. `createAI(config?)` returns an `AiClient` with the
@@ -250,18 +231,30 @@ for per-feature cost attribution.
 
 ---
 
-## 6. Known limitations (v1)
+## 6. Cost precision & budget persistence
 
-- **fal.ai cost is an estimate; Whisper cost = 0.** fal images use a per-image
-  USD estimate per model (`config.pricePerImage` overrides) since fal returns no
-  price. Whisper is priced per-minute and the API returns no duration, so its
-  `costUsd` stays 0 (tokens/latency still tracked). Token-based calls are metered
-  exactly.
-- **In-memory rolling budget** — `BudgetGuard`'s rolling total lives on the
-  `createAI` instance; it does not persist across processes.
+- **Token-based calls are metered exactly** from the pricing table.
+- **fal.ai images** use a per-image USD **estimate** per model
+  (`config.pricePerImage` overrides) since fal returns no price.
+- **Whisper** is per-minute: pass `durationSec` to `ai.transcribe` and it prices
+  `(durationSec/60) × $0.006`. Omit it → `costUsd 0` (the API returns no duration).
+- **Persistent / shared budget.** By default `BudgetGuard`'s rolling total is
+  in-memory (per `createAI` instance). For a budget that survives restarts and is
+  shared across processes/instances, pass a persistent store:
 
-*(Resolved since the first draft: `CallOptions.fallback` now executes a real
-failover chain — §4.)*
+  ```ts
+  import { createAI, sqliteBudgetStore } from "@broberg/ai-sdk";
+  const ai = createAI({
+    budget: { rollingUsd: 20, store: sqliteBudgetStore({ dbPath: "./ai-budget.db", key: "2026-06-02" }) },
+  });
+  ```
+
+  Implement the `BudgetStore` interface (`getSpent` / `addSpent`) to back it with
+  redis or any shared store.
+
+*(Resolved across v0.1.2 → v0.2.0: `CallOptions.fallback` executes a real failover
+chain (§4); fal per-image cost; Whisper per-minute cost; pluggable persistent
+budget store.)*
 
 ---
 

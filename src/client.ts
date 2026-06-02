@@ -60,14 +60,14 @@ export function createAI(config: AiConfig = {}): AiClient {
 
   /** Pre-flight budget check. Estimates this call's cost and throws
    *  BudgetExceededError before the transport fires. No-op without a budget. */
-  function preflight(spec: TierSpec, estInTokens: number, estOutTokens: number): void {
+  async function preflight(spec: TierSpec, estInTokens: number, estOutTokens: number): Promise<void> {
     if (!budget) return;
-    budget.check(computeCost(spec.provider, spec.model, estInTokens, estOutTokens));
+    await budget.check(computeCost(spec.provider, spec.model, estInTokens, estOutTokens));
   }
 
   /** Fold the actual cost into the rolling total after a successful call. */
-  function settle(usage: Usage): void {
-    if (budget) budget.record(usage.costUsd);
+  async function settle(usage: Usage): Promise<void> {
+    if (budget) await budget.record(usage.costUsd);
   }
 
   function pickProvider(name: string): ProviderAdapter {
@@ -137,12 +137,12 @@ export function createAI(config: AiConfig = {}): AiClient {
     let lastErr: unknown;
     for (let i = 0; i < routes.length; i++) {
       const spec = routes[i]!;
-      preflight(spec, opts.estIn, opts.estOut); // BudgetExceededError propagates
+      await preflight(spec, opts.estIn, opts.estOut); // BudgetExceededError propagates
       try {
         const t0 = performance.now();
         const res = await opts.invoke(spec);
         enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0);
-        settle(res.usage);
+        await settle(res.usage);
         await report(res.usage);
         return res;
       } catch (e) {
@@ -269,7 +269,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.transcribe) throw new Error(`createAI: provider "${spec.provider}" does not support transcribe`);
-          return adapter.transcribe({ audio, language: input.language, spec });
+          return adapter.transcribe({ audio, language: input.language, durationSec: input.durationSec, spec });
         },
       });
     },

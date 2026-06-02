@@ -103,12 +103,22 @@ export interface CostSink {
   record(usage: Usage): void | Promise<void>;
 }
 
+/** Backing store for a BudgetGuard's rolling total. Default is in-memory
+ *  (per createAI instance). A persistent store (e.g. sqliteBudgetStore) makes
+ *  the rolling budget survive restarts + shared across processes (F7.1). */
+export interface BudgetStore {
+  getSpent(): number | Promise<number>;
+  addSpent(usd: number): void | Promise<void>;
+}
+
 /** Pre-flight budget ceilings, enforced before a call fires (F3.2). */
 export interface BudgetConfig {
   /** Reject a single call whose estimated cost exceeds this many USD. */
   perCallUsd?: number;
-  /** Reject once cumulative spend on this client instance exceeds this many USD. */
+  /** Reject once cumulative spend exceeds this many USD. */
   rollingUsd?: number;
+  /** Where the rolling total lives. Omit for in-memory (per instance). */
+  store?: BudgetStore;
 }
 
 // ── Provider adapter contract ──────────────────────────────────────────────
@@ -165,6 +175,8 @@ export interface TranscribeRequest {
   /** Raw audio bytes (the client resolves a URL to bytes before calling). */
   audio: Uint8Array;
   language?: string;
+  /** Audio length in seconds — enables per-minute cost (Whisper). Omit → cost 0. */
+  durationSec?: number;
   spec: TierSpec;
 }
 
