@@ -102,7 +102,7 @@ const { text, usage } = await ai.vision({ image: bytes, mimeType: "image/jpeg", 
   ├──────────────────────────────────────────────────────────────┤
   │  Providers           ProviderAdapter registry                 │  ← how to talk to it
   │                      anthropic · openai · gemini · deepinfra · │
-  │                      openrouter · fal      (+ F4.5 tool norm)  │
+  │                      openrouter · fal      (+ tool norm)       │
   ├──────────────────────────────────────────────────────────────┤
   │  Transport           httpTransport · subprocessTransport       │  ← how bytes travel
   ├──────────────────────────────────────────────────────────────┤
@@ -265,4 +265,4 @@ failover chain — §4.)*
 
 ---
 
-*Version: `SDK_TAG` (e.g. `@broberg/ai-sdk@0.1.1`). Source: `broberg-ai/ai-sdk`.*
+*Version: `SDK_TAG` (e.g. `@broberg/ai-sdk@0.1.2`). Source: `broberg-ai/ai-sdk`. Model menu: [docs/runbooks/AI-MODELS.md](./runbooks/AI-MODELS.md).*
