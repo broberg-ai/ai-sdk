@@ -11,6 +11,7 @@ import type {
   ImageResult,
   EmbeddingResult,
 } from "../types.js";
+import type { Contracts } from "../capabilities/contracts/types.js";
 
 // ── Reusable sub-schemas ───────────────────────────────────────────────────
 
@@ -137,4 +138,6 @@ export interface AiClient {
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;
+  /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
+  contracts: Contracts;
 }

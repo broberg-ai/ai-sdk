@@ -8,6 +8,7 @@ import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
 import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
+import { makeContracts } from "./capabilities/contracts/index.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -109,7 +110,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     return msgs;
   }
 
-  return {
+  const client: AiClient = {
     async chat(input: ChatInput): Promise<ChatResult> {
       input = chatInputSchema.parse(input);
       const spec = resolveTier(input.tier ?? "smart", input.override, cfg.defaults);
@@ -212,5 +213,11 @@ export function createAI(config: AiConfig = {}): AiClient {
       await report(res.usage);
       return res;
     },
+
+    // Replaced below with the real prompt-contracts (needs the client itself).
+    contracts: undefined as unknown as AiClient["contracts"],
   };
+
+  client.contracts = makeContracts(client);
+  return client;
 }
