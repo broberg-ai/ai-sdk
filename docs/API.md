@@ -1,0 +1,249 @@
+# @broberg/ai-sdk — API & Architecture
+
+> The public guide to what the SDK is, how to bundle it into an app, and the
+> abstractions it's built from. Companion to the short [README](../README.md).
+
+---
+
+## 1. Why this exists
+
+Across the portfolio (cms, trail, buddy, sanneandersen, xrt81, …) every repo had
+re-invented its own LLM plumbing: a different provider SDK, a hand-rolled
+fallback chain, ad-hoc cost tracking (or none). An earlier attempt to wrap the
+Vercel AI SDK failed because repos kept speaking the *underlying* SDK's dialect —
+the wrapper leaked.
+
+`@broberg/ai-sdk` is a **facade with its own contract**. The design principles:
+
+1. **Provider-agnostic surface.** Your code calls `ai.vision()`, `ai.chat()` —
+   never `new Anthropic()` or `fetch("api.openai.com/…")`. Swap providers by
+   changing a *tier*, not your call-sites.
+2. **Cost is first-class.** Every call returns a `Usage` (tokens, **cost in USD**,
+   latency, transport) and can fan that out to any sink. Cost is never an
+   afterthought you bolt on later.
+3. **One SDK, all repos.** The same facade everywhere means one place to add a
+   provider, fix pricing, or change the cost pipeline — it trickles down.
+4. **Lean + typed.** Bun + TypeScript, ESM-only, Zod on every public boundary,
+   plain `fetch` adapters (no heavyweight provider SDKs bundled).
+
+Proven in production: a real xrt81 image-upload runs
+`ai.vision()` → `upmetricsSink` → upmetrics `agent_runs` with metered cost.
+
+---
+
+## 2. Install & bundle into an app
+
+```bash
+bun add @broberg/ai-sdk     # or: npm i @broberg/ai-sdk / pnpm add
+```
+
+- **ESM-only.** Your app must be `"type": "module"` (or import dynamically).
+- **Runs on Node and Bun.** `bun:sqlite` (used only by `sqliteSink`) is loaded
+  lazily, so importing the package never breaks a Node consumer.
+- **No keys in code.** Each adapter reads its key from the environment at call
+  time. Set what you use:
+
+  | Env var | Used by |
+  |---|---|
+  | `ANTHROPIC_API_KEY` | Anthropic (http). Subprocess uses the local `claude` CLI, no key |
+  | `OPENAI_API_KEY` | OpenAI chat/vision/embedding + Whisper |
+  | `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) | Google Gemini |
+  | `DEEPINFRA_API_KEY` | DeepInfra |
+  | `OPENROUTER_API_KEY` | OpenRouter (incl. MiniMax) |
+  | `FAL_KEY` | fal.ai images |
+
+### The one-time wiring in your app
+
+Create the client **once** (e.g. a module singleton) and reuse it:
+
+```ts
+// lib/ai.ts
+import { createAI, upmetricsSink } from "@broberg/ai-sdk";
+
+export const ai = createAI({
+  // Optional: report every call's cost somewhere.
+  costSink: upmetricsSink({
+    baseUrl: process.env.UPMETRICS_BASE_URL ?? "https://upmetrics.org",
+    apiKey: process.env.UPMETRICS_API_KEY!, // your project's X-Upmetrics-Key
+    agentName: "my-app",                    // how dashboards group runs
+  }),
+  // Optional: pre-flight spend guard.
+  budget: { perCallUsd: 0.05, rollingUsd: 5 },
+});
+```
+
+Then everywhere else: `import { ai } from "./lib/ai"` and call capabilities.
+
+### Migrating an existing call-site
+
+Replace a direct provider call with the matching capability. Example — xrt81's
+vision call went from a hand-rolled `fetch("api.anthropic.com/v1/messages")` to:
+
+```ts
+const { text, usage } = await ai.vision({ image: bytes, mimeType: "image/jpeg", prompt });
+// text → your existing JSON-parsing; usage → already reported to the sink
+```
+
+> **Note (v1):** keep your own try/catch fallback if you need one — the SDK's
+> `CallOptions.fallback` is a typed stub, not yet executed (see §9).
+
+---
+
+## 3. The abstractions (the layer cake)
+
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  Capabilities        chat · vision · translate · image ·       │  ← what you call
+  │  (AiClient)          embedding · transcribe · contracts.*      │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Routing             Tier  →  resolveTier()  →  TierSpec       │  ← which model
+  │                      (provider, model, transport)              │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Providers           ProviderAdapter registry                 │  ← how to talk to it
+  │                      anthropic · openai · gemini · deepinfra · │
+  │                      openrouter · fal      (+ F4.5 tool norm)  │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Transport           httpTransport · subprocessTransport       │  ← how bytes travel
+  ├──────────────────────────────────────────────────────────────┤
+  │  Cost                Usage · computeCost · pricing · Budget ·  │  ← what it cost
+  │                      CostSink (upmetrics/discord/sqlite/…)     │
+  ├──────────────────────────────────────────────────────────────┤
+  │  Schema              Zod on every public input + AiConfig      │  ← validated boundary
+  └──────────────────────────────────────────────────────────────┘
+```
+
+### 3.1 Facade — `createAI()` → `AiClient`
+The single entry point. `createAI(config?)` returns an `AiClient` with the
+capability methods. It owns *orchestration*: resolve the tier, pick the provider,
+run a pre-flight budget check, time the call, stamp call-context onto `Usage`,
+and report to the sink. Adapters never see budgets or sinks — that's the
+facade's job.
+
+### 3.2 Routing — Tiers
+A **Tier** is a named intent, not a model. The six built-ins:
+
+| Tier | Default route | Use for |
+|---|---|---|
+| `fast` | anthropic haiku (http) | quick, cheap text |
+| `smart` | anthropic sonnet (http) | the default for `chat` |
+| `powerful` | anthropic opus (http) | hardest reasoning |
+| `cheap` | anthropic haiku (**subprocess** `claude -p`) | Max-plan, **costUsd 0** |
+| `vision` | anthropic sonnet (http) | image understanding |
+| `embedding` | openai text-embedding-3-small (http) | vectors |
+
+`resolveTier(tier, override?, configMap?)` merges **per-call override > client
+config > built-in defaults**. So you can rename what `smart` means globally
+(`createAI({ defaults: { smart: { provider:"openrouter", model:"…", transport:"http" } } })`)
+or override one call (`ai.chat({ prompt, override:{ provider:"openrouter", model:"minimax/minimax-m2.7", transport:"http" } })`).
+`DEFAULT_TIER_MAP` is exported if you want to read the defaults.
+
+### 3.3 Providers — `ProviderAdapter`
+A thin contract every provider implements (`chat?`, `vision?`, `image?`,
+`embedding?`, `transcribe?` — all optional; an adapter implements only what it
+supports). The **registry** maps a provider name → adapter. `createAI()` uses
+`defaultProviders` (the real adapters, keys from env); pass `providers` to
+override, or use the exported `stubProviders` for deterministic tests. Tool /
+function-calling is normalized across providers via `toProviderTools` /
+`fromProviderToolCall`. Built-in adapters: `anthropicAdapter` (http +
+`claude -p`), `openaiAdapter`, `geminiAdapter`, `deepinfraAdapter`,
+`openrouterAdapter`, `falAdapter`.
+
+### 3.4 Transport — http vs subprocess
+The transport decides *how bytes travel*, never *what they contain*.
+`httpTransport` is a provider-agnostic `fetch` wrapper; `subprocessTransport`
+spawns the local `claude -p` CLI (Max plan, `costUsd 0`, flagged
+`subprocess: true`). A `TierSpec`'s `transport` field selects it.
+
+### 3.5 Cost engine
+- **`Usage`** — returned on every call: `{ provider, model, tier?, transport,
+  inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, costUsd,
+  latencyMs, capability, purpose?, ts, subprocess? }`. Its fields mirror the
+  upmetrics `agent_runs` schema 1:1.
+- **`computeCost` + pricing** — versioned per-`(provider, model)` table
+  (`getPrice`). Unknown model → 0 (the call still completes).
+- **`BudgetGuard`** — pre-flight estimate; throws `BudgetExceededError`
+  (`{ kind, limit, spent, requested }`) *before* the request fires.
+- **`CostSink`** — `record(usage)`. A failing sink never crashes a call.
+  Built-ins: **`upmetricsSink`** (canonical — forwards to upmetrics
+  `/api/agent`), `discordSink`, `sqliteSink` (+ `getCostSummary`), `multiSink`
+  (fan-out, error-isolated), `noopSink`.
+
+### 3.6 Schema boundary
+Zod schemas are the single source of truth for the public input shapes — the
+TypeScript types are `z.infer`-derived, and every client method `.parse()`s its
+input, throwing `ZodError` on a bad shape before any provider work happens.
+
+---
+
+## 4. Capabilities reference
+
+| Method | Input (key fields) | Returns | Default tier |
+|---|---|---|---|
+| `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature? }` | `{ text, toolCalls?, usage }` | `smart` |
+| `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
+| `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
+| `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync) |
+| `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
+| `ai.transcribe` | `{ audio: string\|Uint8Array, language? }` | `{ text, usage }` | openai whisper-1 |
+
+All accept `CallOptions`: `{ tier?, override?, fallback?, purpose? }`.
+
+### Prompt contracts — `ai.contracts.*`
+Structured calls layered on chat/vision (so budget + cost apply uniformly):
+
+| Contract | Purpose |
+|---|---|
+| `mockup({ description, constraints? })` | description → HTML/Tailwind mockup |
+| `design({ screenshot, instructions })` | vision-based design iteration → HTML |
+| `extract({ text, schema })` | text → JSON validated against a **Zod schema** (retries once) |
+| `classify({ text, labels })` | zero-shot → `{ label, confidence }` |
+| `rerank({ query, items })` | relevance → `{ ranked: [{item, score}] }` |
+
+```ts
+import { z } from "zod";
+const { data } = await ai.contracts.extract({
+  text: "Sanne is 40 in Blokhus",
+  schema: z.object({ name: z.string(), age: z.number(), city: z.string() }),
+});
+```
+
+---
+
+## 5. Cost & budget in practice
+
+```ts
+import { createAI, multiSink, upmetricsSink, sqliteSink, BudgetExceededError } from "@broberg/ai-sdk";
+
+const ai = createAI({
+  budget: { perCallUsd: 0.05, rollingUsd: 5 },
+  costSink: multiSink([
+    upmetricsSink({ baseUrl: "https://upmetrics.org", apiKey: KEY, agentName: "my-app" }),
+    sqliteSink({ dbPath: "./ai-cost.db" }),
+  ]),
+});
+
+try {
+  const { text, usage } = await ai.chat({ prompt: "…", purpose: "summarize-ticket" });
+  console.log(usage.costUsd, usage.inputTokens, usage.outputTokens);
+} catch (e) {
+  if (e instanceof BudgetExceededError) console.warn(`over budget: ${e.requested} > ${e.limit}`);
+}
+```
+
+`purpose` is a free-text label that rides into the sink (`agent_runs.purpose`)
+for per-feature cost attribution.
+
+---
+
+## 6. Known limitations (v1)
+
+- **`CallOptions.fallback` is a typed stub** — the client does not yet execute a
+  fallback chain. Wrap your own try/catch if you need failover today.
+- **fal.ai + Whisper cost = 0** — those are priced per-image / per-minute, not
+  per-token; `costUsd` is 0 for now (tokens/latency still tracked).
+- **In-memory rolling budget** — `BudgetGuard`'s rolling total lives on the
+  `createAI` instance; it does not persist across processes.
+
+---
+
+*Version: `SDK_TAG` (e.g. `@broberg/ai-sdk@0.1.1`). Source: `broberg-ai/ai-sdk`.*
