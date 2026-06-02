@@ -1,6 +1,7 @@
 // @broberg/ai-sdk — public entry barrel.
 // The facade is the only public surface; provider SDKs never leak through it.
 export { createAI } from "./client.js";
+export { toProviderTools, fromProviderToolCall } from "./providers/tools.js";
 export {
   anthropicApiAdapter,
   anthropicSubprocessAdapter,
