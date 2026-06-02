@@ -15,7 +15,6 @@ The biggest cross-provider pain is **tool/function-calling** — each provider h
 
 ## Non-goals
 - No fal.ai adapter here (F5)
-- No Anthropic adapter here (F2 covers the stubs; Anthropic via subprocess is F2.4)
 - No streaming in v1 — all calls are request/response
 
 ## Stories
@@ -27,6 +26,20 @@ The biggest cross-provider pain is **tool/function-calling** — each provider h
 | F4.3 | DeepInfra adapter |
 | F4.4 | OpenRouter adapter (+ MiniMax M2.7) |
 | F4.5 | Normalized tool/function-calling contract |
+| F4.6 | **Anthropic adapter (http /v1/messages + subprocess)** |
+
+### F4.6 — Anthropic adapter (real)
+F2.5 shipped only a *stub* anthropic adapter; this story makes it real. Required
+for the xrt81 vision pilot (xrt81 calls `api.anthropic.com/v1/messages` directly
+today — see AI-INVENTORY.md §2). Implements `ProviderAdapter` for provider
+`anthropic` with both transports:
+- **http** — POST `https://api.anthropic.com/v1/messages` (`x-api-key`,
+  `anthropic-version`), chat + vision (image content blocks), real token counts
+  from `usage` (incl. `cache_read_input_tokens`/`cache_creation_input_tokens`) →
+  `freshUsage` + `computeCost`.
+- **subprocess** — delegates to `subprocessTransport` (`claude -p`), costUsd 0.
+Tool-calling normalized via F4.5. The default registry's `anthropic` key points
+here once real.
 
 ## Acceptance criteria
 1. OpenAI, Gemini, DeepInfra, OpenRouter adapters implement `ProviderAdapter`
