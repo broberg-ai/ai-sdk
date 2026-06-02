@@ -171,7 +171,18 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
 
-All accept `CallOptions`: `{ tier?, override?, fallback?, purpose? }`.
+All accept `CallOptions`: `{ tier?, override?, fallback?, purpose?, labels? }`.
+
+**Attribution labels** — `labels?: Record<string,string>` rides each call into the
+cost sink for per-tenant/per-customer cost breakdown (one upmetrics project, many
+tenants). The `upmetricsSink` merges them into the agent-run `tags` (SDK-owned keys
+`capability`/`transport`/`sdk` always win), so a multi-tenant engine attributes spend
+without one account per tenant:
+
+```ts
+await ai.chat({ prompt, labels: { tenantId: "sanne", kbId: "kb_42" } });
+// → agent_runs.tags = { capability, transport, sdk, tenantId, kbId }
+```
 
 **Failover** — `fallback` is an ordered list of routes (a `Tier` or a full
 `{provider, model, transport}`) tried if the primary call errors:
@@ -302,7 +313,9 @@ for per-feature cost attribution.
 *(Resolved across v0.1.2 → v0.2.0: `CallOptions.fallback` executes a real failover
 chain (§4); fal per-image cost; Whisper per-minute cost; pluggable persistent
 budget store. v0.3.0: `ai.chatStream` streaming (all chat providers) + tool-loop
-threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (F010).)*
+threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (F010).
+v0.3.1: anthropic tool_use/tool_result threading. v0.4.0: per-call attribution
+`labels` for multi-tenant cost (F011).)*
 
 ---
 

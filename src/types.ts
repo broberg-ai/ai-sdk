@@ -93,6 +93,9 @@ export interface Usage {
   latencyMs: number;
   capability: Capability;
   purpose?: string;
+  /** Consumer-defined attribution dimensions (e.g. {tenantId}) for per-tenant
+   *  cost breakdown — the sink forwards these (F011). */
+  labels?: Record<string, string>;
   ts: string;
   subprocess?: true;
 }
@@ -133,6 +136,9 @@ export interface CallOptions {
    *  cms/trail/sanne/xrt81 all hand-roll this — make it first-class). */
   fallback?: (Tier | TierSpec)[];
   purpose?: string;
+  /** Consumer-defined attribution dimensions (e.g. {tenantId}) carried onto
+   *  Usage and forwarded by the cost sink for per-tenant cost breakdown (F011). */
+  labels?: Record<string, string>;
 }
 
 export interface ChatRequest {
