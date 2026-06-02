@@ -81,9 +81,37 @@ export function anthropicAdapter(
     for (const m of req.messages as Message[]) {
       if (m.role === "system") {
         system.push(typeof m.content === "string" ? m.content : "");
-      } else {
-        messages.push({ role: m.role === "assistant" ? "assistant" : "user", content: contentBlocks(m.content) });
+        continue;
       }
+      // tool-result turn → a user message carrying a tool_result block (F8.7).
+      if (m.role === "tool") {
+        messages.push({
+          role: "user",
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: m.toolCallId ?? "",
+              content: typeof m.content === "string" ? m.content : "",
+            },
+          ],
+        });
+        continue;
+      }
+      // assistant turn that called tools → text blocks + tool_use blocks (F8.7).
+      if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
+        const blocks: unknown[] = [];
+        if (typeof m.content === "string") {
+          if (m.content.length > 0) blocks.push({ type: "text", text: m.content });
+        } else {
+          blocks.push(...(contentBlocks(m.content) as unknown[]));
+        }
+        for (const tc of m.toolCalls) {
+          blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments });
+        }
+        messages.push({ role: "assistant", content: blocks });
+        continue;
+      }
+      messages.push({ role: m.role === "assistant" ? "assistant" : "user", content: contentBlocks(m.content) });
     }
     const body: Record<string, unknown> = {
       model: req.spec.model,
