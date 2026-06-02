@@ -38,8 +38,9 @@ bun add @broberg/ai-sdk     # or: npm i @broberg/ai-sdk / pnpm add
 ```
 
 - **ESM-only.** Your app must be `"type": "module"` (or import dynamically).
-- **Runs on Node and Bun.** `bun:sqlite` (used only by `sqliteSink`) is loaded
-  lazily, so importing the package never breaks a Node consumer.
+- **Runs on Node and Bun.** `bun:sqlite` (used only by `sqliteSink` /
+  `sqliteBudgetStore`) is loaded lazily, so importing the package never breaks a
+  Node consumer.
 - **No keys in code.** Each adapter reads its key from the environment at call
   time. Set what you use:
 
@@ -144,7 +145,8 @@ spawns the local `claude -p` CLI (Max plan, `costUsd 0`, flagged
 - **`computeCost` + pricing** — versioned per-`(provider, model)` table
   (`getPrice`). Unknown model → 0 (the call still completes).
 - **`BudgetGuard`** — pre-flight estimate; throws `BudgetExceededError`
-  (`{ kind, limit, spent, requested }`) *before* the request fires.
+  (`{ kind, limit, spent, requested }`) *before* the request fires. Backed by a
+  pluggable `BudgetStore` (default in-memory; `sqliteBudgetStore` for persistent).
 - **`CostSink`** — `record(usage)`. A failing sink never crashes a call.
   Built-ins: **`upmetricsSink`** (canonical — forwards to upmetrics
   `/api/agent`), `discordSink`, `sqliteSink` (+ `getCostSummary`), `multiSink`
@@ -166,7 +168,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
 | `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
-| `ai.transcribe` | `{ audio: string\|Uint8Array, language? }` | `{ text, usage }` | openai whisper-1 |
+| `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
 
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose? }`.
 
@@ -249,8 +251,9 @@ for per-feature cost attribution.
   });
   ```
 
-  Implement the `BudgetStore` interface (`getSpent` / `addSpent`) to back it with
-  redis or any shared store.
+  `sqliteBudgetStore` needs Bun (like `sqliteSink`). On Node, implement the
+  `BudgetStore` interface (`getSpent` / `addSpent`) yourself to back it with
+  redis, Postgres, or any shared store.
 
 *(Resolved across v0.1.2 → v0.2.0: `CallOptions.fallback` executes a real failover
 chain (§4); fal per-image cost; Whisper per-minute cost; pluggable persistent
@@ -258,4 +261,4 @@ budget store.)*
 
 ---
 
-*Version: `SDK_TAG` (e.g. `@broberg/ai-sdk@0.1.2`). Source: `broberg-ai/ai-sdk`. Model menu: [docs/runbooks/AI-MODELS.md](./runbooks/AI-MODELS.md).*
+*Version: `SDK_TAG` (e.g. `@broberg/ai-sdk@0.2.0`). Source: `broberg-ai/ai-sdk`. Model menu: [docs/runbooks/AI-MODELS.md](./runbooks/AI-MODELS.md).*
