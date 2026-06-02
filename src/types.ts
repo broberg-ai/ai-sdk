@@ -161,6 +161,18 @@ export interface EmbeddingResult {
   usage: Usage;
 }
 
+export interface TranscribeRequest {
+  /** Raw audio bytes (the client resolves a URL to bytes before calling). */
+  audio: Uint8Array;
+  language?: string;
+  spec: TierSpec;
+}
+
+export interface TranscribeResult {
+  text: string;
+  usage: Usage;
+}
+
 /** The thin contract every provider implements (F4). A provider need only
  *  support the capabilities it offers — `chat` is the baseline; vision/image/
  *  embedding are optional and absence is a typed capability gap. */
@@ -173,6 +185,7 @@ export interface ProviderAdapter {
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
   embedding?(req: EmbeddingRequest): Promise<EmbeddingResult>;
+  transcribe?(req: TranscribeRequest): Promise<TranscribeResult>;
 }
 
 // ── Client config ──────────────────────────────────────────────────────────

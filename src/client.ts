@@ -8,6 +8,7 @@ import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
 import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
+import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
 import {
   aiConfigSchema,
@@ -16,6 +17,7 @@ import {
   translateInputSchema,
   imageInputSchema,
   embeddingInputSchema,
+  transcribeInputSchema,
 } from "./schema/inputs.js";
 import type {
   AiConfig,
@@ -25,11 +27,13 @@ import type {
   TranslateInput,
   ImageInput,
   EmbeddingInput,
+  TranscribeInput,
 } from "./schema/inputs.js";
 import type {
   ChatResult,
   ImageResult,
   EmbeddingResult,
+  TranscribeResult,
   TranslateResult,
   ProviderAdapter,
   Message,
@@ -209,6 +213,23 @@ export function createAI(config: AiConfig = {}): AiClient {
       const t0 = performance.now();
       const res = await adapter.embedding({ input: text, spec });
       enrich(res.usage, "embedding", input.tier ?? EMBEDDING_DEFAULT_TIER, input.purpose, performance.now() - t0);
+      settle(res.usage);
+      await report(res.usage);
+      return res;
+    },
+
+    async transcribe(input: TranscribeInput): Promise<TranscribeResult> {
+      input = transcribeInputSchema.parse(input);
+      const spec: TierSpec = { ...DEFAULT_TRANSCRIBE_SPEC, ...input.override };
+      const adapter = pickProvider(spec.provider);
+      if (!adapter.transcribe) {
+        throw new Error(`createAI: provider "${spec.provider}" does not support transcribe`);
+      }
+      const audio = await resolveAudio(input.audio);
+      preflight(spec, 0, 0);
+      const t0 = performance.now();
+      const res = await adapter.transcribe({ audio, language: input.language, spec });
+      enrich(res.usage, "transcribe", undefined, input.purpose, performance.now() - t0);
       settle(res.usage);
       await report(res.usage);
       return res;

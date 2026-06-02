@@ -109,4 +109,6 @@ export type {
   TranslateInput,
   ImageInput,
   EmbeddingInput,
+  TranscribeInput,
 } from "./schema/inputs.js";
+export type { TranscribeRequest, TranscribeResult } from "./types.js";

@@ -10,6 +10,7 @@ import type {
   ChatResult,
   ImageResult,
   EmbeddingResult,
+  TranscribeResult,
 } from "../types.js";
 import type { Contracts } from "../capabilities/contracts/types.js";
 
@@ -106,6 +107,13 @@ export const embeddingInputSchema = z.object({
   ...callOptions,
 });
 
+export const transcribeInputSchema = z.object({
+  /** Audio URL or raw bytes. */
+  audio: z.union([z.string(), z.instanceof(Uint8Array)]),
+  language: z.string().optional(),
+  ...callOptions,
+});
+
 // ── Client config ──────────────────────────────────────────────────────────
 
 export const budgetSchema = z.object({
@@ -129,6 +137,7 @@ export type VisionInput = z.infer<typeof visionInputSchema>;
 export type TranslateInput = z.infer<typeof translateInputSchema>;
 export type ImageInput = z.infer<typeof imageInputSchema>;
 export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
+export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 
 /** The public facade. Defined here because it depends on the derived inputs. */
@@ -138,6 +147,7 @@ export interface AiClient {
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;
+  transcribe(input: TranscribeInput): Promise<TranscribeResult>;
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
 }
