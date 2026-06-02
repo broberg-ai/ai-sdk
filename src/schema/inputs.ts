@@ -8,6 +8,7 @@ import type {
   CostSink,
   TranslateResult,
   ChatResult,
+  ChatStreamEvent,
   ImageResult,
   EmbeddingResult,
   TranscribeResult,
@@ -78,6 +79,8 @@ export const chatInputSchema = z.object({
   tools: z.array(toolSchema).optional(),
   maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
+  /** "json" requests JSON-object output (OpenAI-compatible response_format). */
+  responseFormat: z.enum(["json", "text"]).optional(),
   ...callOptions,
 });
 
@@ -145,6 +148,9 @@ export type AiConfig = z.infer<typeof aiConfigSchema>;
 /** The public facade. Defined here because it depends on the derived inputs. */
 export interface AiClient {
   chat(input: ChatInput): Promise<ChatResult>;
+  /** Streaming chat (F8) — same input as chat; yields ChatStreamEvents. The
+   *  caller owns the tool-loop (per-turn engine, not an agent runtime). */
+  chatStream(input: ChatInput): AsyncIterable<ChatStreamEvent>;
   vision(input: VisionInput): Promise<ChatResult>;
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;

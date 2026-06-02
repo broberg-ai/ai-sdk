@@ -31,6 +31,7 @@ import type {
 } from "./schema/inputs.js";
 import type {
   ChatResult,
+  ChatStreamEvent,
   ImageResult,
   EmbeddingResult,
   TranscribeResult,
@@ -152,6 +153,85 @@ export function createAI(config: AiConfig = {}): AiClient {
     throw lastErr;
   }
 
+  /** Whether a pre-first-token streaming error should fall back to the next
+   *  route. Eligible: network/timeout/parse (no status) + 429 + 5xx. Hard 4xx
+   *  bubbles up (no silent re-route) — sa contract #2565. */
+  function eligibleForFallback(e: unknown): boolean {
+    const status = (e as { status?: number } | null)?.status;
+    if (status === undefined) return true;
+    return status === 429 || status >= 500;
+  }
+
+  function errorEvent(e: unknown): ChatStreamEvent {
+    const ev: ChatStreamEvent = {
+      type: "error",
+      message: e instanceof Error ? e.message : String(e),
+    };
+    const status = (e as { status?: number } | null)?.status;
+    if (status !== undefined) ev.status = status;
+    return ev;
+  }
+
+  /** Streaming chat with pre-stream fallback (F8.1). Yields ChatStreamEvents as
+   *  the turn unfolds. Fallback re-routes only BEFORE the first text/tool_call
+   *  event (deltas can't be un-emitted); once streaming has begun, an error is
+   *  surfaced as an error event and the stream ends. Budget breaches propagate. */
+  async function* chatStreamImpl(input: ChatInput): AsyncIterable<ChatStreamEvent> {
+    input = chatInputSchema.parse(input);
+    const tier = input.tier ?? "smart";
+    const messages = toMessages(input);
+    const estIn = messages.reduce(
+      (n, m) => n + estTokens(typeof m.content === "string" ? m.content : JSON.stringify(m.content)),
+      0,
+    );
+    const estOut = input.maxTokens ?? 512;
+    const routes: TierSpec[] = [
+      resolveTier(tier, input.override, cfg.defaults),
+      ...(input.fallback ?? []).map((f) =>
+        typeof f === "string" ? resolveTier(f, undefined, cfg.defaults) : f,
+      ),
+    ];
+
+    let lastErr: unknown;
+    for (let i = 0; i < routes.length; i++) {
+      const spec = routes[i]!;
+      await preflight(spec, estIn, estOut); // BudgetExceededError propagates
+      const adapter = pickProvider(spec.provider);
+      if (!adapter.chatStream) {
+        throw new Error(`createAI: provider "${spec.provider}" does not support streaming`);
+      }
+      const t0 = performance.now();
+      let emitted = false;
+      try {
+        for await (const ev of adapter.chatStream({
+          messages,
+          spec,
+          tools: input.tools,
+          maxTokens: input.maxTokens,
+          temperature: input.temperature,
+          responseFormat: input.responseFormat,
+        })) {
+          if (ev.type === "text" || ev.type === "tool_call") emitted = true;
+          if (ev.type === "usage") {
+            enrich(ev.usage, "chat", i === 0 ? tier : undefined, input.purpose, performance.now() - t0);
+            await settle(ev.usage);
+            await report(ev.usage);
+          }
+          yield ev;
+        }
+        return; // stream completed cleanly
+      } catch (e) {
+        lastErr = e;
+        if (emitted || !eligibleForFallback(e)) {
+          yield errorEvent(e); // mid-stream or hard error → surface + stop
+          return;
+        }
+        // pre-first-token eligible error → try the next route
+      }
+    }
+    yield errorEvent(lastErr);
+  }
+
   const client: AiClient = {
     async chat(input: ChatInput): Promise<ChatResult> {
       input = chatInputSchema.parse(input);
@@ -172,10 +252,12 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
-          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature });
+          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, responseFormat: input.responseFormat });
         },
       });
     },
+
+    chatStream: chatStreamImpl,
 
     async vision(input: VisionInput): Promise<ChatResult> {
       input = visionInputSchema.parse(input);

@@ -141,6 +141,8 @@ export interface ChatRequest {
   tools?: Tool[];
   maxTokens?: number;
   temperature?: number;
+  /** "json" → request JSON-object output where the provider supports it (F009). */
+  responseFormat?: "json" | "text";
 }
 
 export interface ChatResult {
@@ -148,6 +150,17 @@ export interface ChatResult {
   toolCalls?: ToolCall[];
   usage: Usage;
 }
+
+/** A single event from `ai.chatStream` / `adapter.chatStream` (F8). A streamed
+ *  turn yields `text`/`tool_call` events as they arrive, one `usage` event when
+ *  the provider reports totals, and a terminal `finish` (or `error`). Tool calls
+ *  are emitted COMPLETE — accumulated across wire fragments, never partial. */
+export type ChatStreamEvent =
+  | { type: "text"; delta: string }
+  | { type: "tool_call"; id: string; name: string; args: Record<string, unknown> }
+  | { type: "usage"; costUsd: number; model: string; usage: Usage }
+  | { type: "finish"; reason: "end_turn" | "tool_calls" | "length" | "stop" }
+  | { type: "error"; message: string; status?: number };
 
 export interface ImageRequest {
   prompt: string;
@@ -194,6 +207,9 @@ export interface ProviderAdapter {
    *  (e.g. fal does image only). The client guards each call and throws a clear
    *  "provider X does not support Y" when a capability is absent. */
   chat?(req: ChatRequest): Promise<ChatResult>;
+  /** Streaming chat (F8). Optional — absence is a typed "no streaming support".
+   *  Same request shape as chat; yields ChatStreamEvents as the turn unfolds. */
+  chatStream?(req: ChatRequest): AsyncIterable<ChatStreamEvent>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
   embedding?(req: EmbeddingRequest): Promise<EmbeddingResult>;
