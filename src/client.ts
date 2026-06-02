@@ -6,6 +6,7 @@ import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
+import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -155,26 +156,17 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async translate(input: TranslateInput): Promise<TranslateResult> {
       input = translateInputSchema.parse(input);
-      const spec = resolveTier(input.tier ?? "fast", input.override, cfg.defaults);
+      const spec = resolveTier(input.tier ?? TRANSLATE_DEFAULT_TIER, input.override, cfg.defaults);
       const adapter = pickProvider(spec.provider);
       if (!adapter.chat) {
         throw new Error(`createAI: provider "${spec.provider}" does not support chat (translate routes through chat)`);
       }
-      const fromClause = input.from ? ` from ${input.from}` : "";
-      const messages: Message[] = [
-        {
-          role: "system",
-          content:
-            "You are a translation engine. Translate the user's text only. " +
-            "Return the translation and nothing else — no preamble, no quotes.",
-        },
-        { role: "user", content: `Translate${fromClause} to ${input.to}:\n\n${input.text}` },
-      ];
+      const messages: Message[] = buildTranslateMessages(input);
       const estIn = estTokens(input.text) + 40;
       preflight(spec, estIn, estIn);
       const t0 = performance.now();
       const res = await adapter.chat({ messages, spec });
-      enrich(res.usage, "translate", input.tier ?? "fast", input.purpose, performance.now() - t0);
+      enrich(res.usage, "translate", input.tier ?? TRANSLATE_DEFAULT_TIER, input.purpose, performance.now() - t0);
       settle(res.usage);
       await report(res.usage);
       return { text: res.text, usage: res.usage };
