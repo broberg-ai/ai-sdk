@@ -2,6 +2,9 @@
 // The facade is the only public surface; provider SDKs never leak through it.
 export { createAI } from "./client.js";
 export { toProviderTools, fromProviderToolCall } from "./providers/tools.js";
+export { openaiAdapter } from "./providers/openai.js";
+export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
+export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
 export {
   anthropicApiAdapter,
   anthropicSubprocessAdapter,
