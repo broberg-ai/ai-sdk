@@ -167,7 +167,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
-| `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync) |
+| `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync); gemini via `override` |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
 
@@ -293,6 +293,9 @@ for per-feature cost attribution.
   routes (primary *or* fallback) never log `$0` for an unpriced model.
 - **fal.ai images** use a per-image USD **estimate** per model
   (`config.pricePerImage` overrides) since fal returns no price.
+- **Gemini images** — `ai.image({ override:{ provider:"gemini", model:"gemini-3-pro-image-preview", transport:"http" } })`
+  returns the inline image as a `data:<mime>;base64,…` URL (Gemini sends bytes, not
+  a hosted URL); priced per image ($0.039 for nano-banana models, `pricePerImage` overrides).
 - **Whisper** is per-minute: pass `durationSec` to `ai.transcribe` and it prices
   `(durationSec/60) × $0.006`. Omit it → `costUsd 0` (the API returns no duration).
 - **Persistent / shared budget.** By default `BudgetGuard`'s rolling total is
@@ -315,7 +318,8 @@ chain (§4); fal per-image cost; Whisper per-minute cost; pluggable persistent
 budget store. v0.3.0: `ai.chatStream` streaming (all chat providers) + tool-loop
 threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (F010).
 v0.3.1: anthropic tool_use/tool_result threading. v0.4.0: per-call attribution
-`labels` for multi-tenant cost (F011).)*
+`labels` for multi-tenant cost (F011). v0.4.1: dated model-id pricing (F012).
+v0.5.0: Gemini image generation (F013).)*
 
 ---
 

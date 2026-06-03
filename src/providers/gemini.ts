@@ -11,10 +11,20 @@ import type {
   ChatRequest,
   ChatResult,
   ChatStreamEvent,
+  ImageRequest,
+  ImageResult,
   Message,
   ContentPart,
   ToolCall,
 } from "../types.js";
+
+/** Per-image USD price for Gemini image-gen models (generateContent image output
+ *  is billed per image, not per token). nano-banana = $0.039. Overridable via
+ *  geminiAdapter config.pricePerImage. */
+const GEMINI_IMAGE_PRICE_PER_IMAGE: Record<string, number> = {
+  "gemini-3-pro-image-preview": 0.039,
+  "gemini-2.5-flash-image": 0.039,
+};
 
 interface GeminiPart {
   text?: string;
@@ -40,7 +50,7 @@ function partsFrom(content: string | ContentPart[]): GeminiPart[] {
 }
 
 export function geminiAdapter(
-  config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
+  config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerImage?: number } = {},
 ): ProviderAdapter {
   const baseUrl = config.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta";
 
@@ -174,7 +184,71 @@ export function geminiAdapter(
     };
   }
 
-  return { name: "gemini", chat, chatStream, vision: chat };
+  // Image generation (F013) via generateContent with IMAGE response modality.
+  // Gemini returns the image inline as base64 (not a hosted URL like fal), so we
+  // hand it back as a data: URL. Built to match cms's nano-banana request.
+  async function image(req: ImageRequest): Promise<ImageResult> {
+    const apiKey = resolveKey();
+    // Direct fetch (injectable for tests) — generateContent is JSON in/out but
+    // we read inline image bytes, so we don't route through httpTransport here.
+    const fetchImpl = config.fetch ?? fetch;
+    const res = await fetchImpl(`${baseUrl}/models/${req.spec.model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: req.prompt }] }],
+        // The multimodal image model can return text + image; ask for both.
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`gemini image ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as GeminiResponse & {
+      candidates?: { content?: { parts?: GeminiImagePart[] } }[];
+      promptFeedback?: { blockReason?: string };
+    };
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`gemini image blocked: ${data.promptFeedback.blockReason}`);
+    }
+    let url: string | undefined;
+    for (const p of data.candidates?.[0]?.content?.parts ?? []) {
+      // Some responses use camelCase inlineData, others snake_case inline_data.
+      const inline = p.inlineData ?? p.inline_data;
+      const mime = inline?.mimeType ?? inline?.mime_type;
+      const b64 = inline?.data;
+      if (mime && b64) {
+        url = `data:${mime};base64,${b64}`;
+        break;
+      }
+    }
+    if (!url) throw new Error("gemini image: response contained no inline image data");
+    const usage = freshUsage({
+      provider: "gemini",
+      model: req.spec.model,
+      transport: "http",
+      capability: "image",
+      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+    });
+    usage.costUsd = config.pricePerImage ?? GEMINI_IMAGE_PRICE_PER_IMAGE[req.spec.model] ?? 0;
+    return { url, usage };
+  }
+
+  return { name: "gemini", chat, chatStream, image, vision: chat };
+}
+
+/** Image part shape on a generateContent response (camel + snake aliases). */
+interface GeminiInline {
+  mimeType?: string;
+  mime_type?: string;
+  data?: string;
+}
+interface GeminiImagePart {
+  text?: string;
+  inlineData?: GeminiInline;
+  inline_data?: GeminiInline;
 }
 
 /** Map Gemini finishReason → the SDK's ChatStreamEvent finish reason. */
