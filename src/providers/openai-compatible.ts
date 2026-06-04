@@ -63,8 +63,9 @@ export function toOpenAIMessage(m: Message): Record<string, unknown> {
   const content = m.content.map((p) => {
     if (p.type === "text") return { type: "text", text: p.text };
     if (p.type === "video") {
-      // F019.3 — OpenRouter video models. Mirrors image_url; exact shape is
-      // unverified pending an OPENROUTER_API_KEY (confirm vs OpenRouter docs).
+      // F019.3 — OpenRouter video models. `video_url` mirrors `image_url`;
+      // VERIFIED live 2026-06-04 against gemma-4 + nvidia-nemotron (both described
+      // a real 2MB clip sent inline as a base64 data-URL).
       const url =
         typeof p.video === "string"
           ? p.video
