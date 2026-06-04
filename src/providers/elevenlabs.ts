@@ -3,10 +3,25 @@
 // "instant podcast" primitive. Also single-voice TTS + voice listing. Audio out
 // is MP3 bytes; billed per character. Key from ELEVENLABS_API_KEY.
 import { freshUsage } from "../cost/usage.js";
-import type { ProviderAdapter, DialogueRequest, PodcastResult } from "../types.js";
+import type { ProviderAdapter, DialogueRequest, TtsRequest, PodcastResult } from "../types.js";
 
 /** USD per 1000 characters (ElevenLabs bills per char; API overage ≈ $0.10–0.18/1k). */
 const ELEVENLABS_PRICE_PER_1K_CHARS = 0.15;
+
+/** Curated Danish voices (F020.3) — friendly name → ElevenLabs voiceId. Apps can
+ *  pass these names to `ai.podcast`/`ai.tts` instead of raw IDs. */
+export const ELEVENLABS_DANISH_VOICES: Record<string, string> = {
+  soren: "xj6X4BCUsv9oxohm1E8o",
+  jesper: "Bl1YwS3uJac5zEOSNESn",
+  mads: "BIWC0507fYMfhPcAEIRP",
+  noam: "V34B5u5UbLdNJVEkcgXp",
+  camilla: "4RklGmuxoAskAbGXplXN",
+};
+
+/** Resolve a curated voice name to its voiceId; pass a raw voiceId through unchanged. */
+export function resolveVoice(nameOrId: string): string {
+  return ELEVENLABS_DANISH_VOICES[nameOrId] ?? nameOrId;
+}
 
 export interface ElevenLabsVoice {
   voiceId: string;
@@ -18,7 +33,6 @@ export function elevenlabsAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePer1kChars?: number } = {},
 ): ProviderAdapter & {
   listVoices(): Promise<ElevenLabsVoice[]>;
-  tts(req: { text: string; voiceId: string; model?: string }): Promise<PodcastResult>;
 } {
   const baseUrl = config.baseUrl ?? "https://api.elevenlabs.io/v1";
   const fetchImpl = config.fetch ?? fetch;
@@ -63,8 +77,8 @@ export function elevenlabsAdapter(
   }
 
   // Single-voice TTS. POST /text-to-speech/{voice_id}.
-  async function tts(req: { text: string; voiceId: string; model?: string }): Promise<PodcastResult> {
-    const model = req.model ?? "eleven_multilingual_v2";
+  async function tts(req: TtsRequest): Promise<PodcastResult> {
+    const model = req.spec.model;
     const res = await fetchImpl(`${baseUrl}/text-to-speech/${req.voiceId}`, {
       method: "POST",
       headers: { "xi-api-key": key(), "content-type": "application/json", accept: "audio/mpeg" },

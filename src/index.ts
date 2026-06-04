@@ -22,7 +22,7 @@ export { geminiAdapter } from "./providers/gemini.js";
 export { deepinfraAdapter } from "./providers/deepinfra.js";
 export { openrouterAdapter } from "./providers/openrouter.js";
 export { mistralAdapter } from "./providers/mistral.js";
-export { elevenlabsAdapter } from "./providers/elevenlabs.js";
+export { elevenlabsAdapter, ELEVENLABS_DANISH_VOICES, resolveVoice } from "./providers/elevenlabs.js";
 export { falAdapter } from "./providers/fal.js";
 export type { FalAdapterConfig } from "./providers/fal.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
@@ -122,6 +122,7 @@ export type {
   OcrInput,
   ModerationInput,
   PodcastInput,
+  TtsInput,
 } from "./schema/inputs.js";
 export type {
   TranscribeRequest,
@@ -135,4 +136,5 @@ export type {
   DialogueTurn,
   DialogueRequest,
   PodcastResult,
+  TtsRequest,
 } from "./types.js";

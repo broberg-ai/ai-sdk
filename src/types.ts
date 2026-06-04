@@ -40,6 +40,7 @@ export type Capability =
   | "ocr"
   | "moderation"
   | "podcast"
+  | "tts"
   | "mockup"
   | "design"
   | "extract"
@@ -261,6 +262,13 @@ export interface PodcastResult {
   usage: Usage;
 }
 
+// Single-voice TTS (F020.4) — text → audio in one voice. ElevenLabs.
+export interface TtsRequest {
+  text: string;
+  voiceId: string;
+  spec: TierSpec;
+}
+
 /** The thin contract every provider implements (F4). A provider need only
  *  support the capabilities it offers — `chat` is the baseline; vision/image/
  *  embedding are optional and absence is a typed capability gap. */
@@ -281,6 +289,8 @@ export interface ProviderAdapter {
   moderate?(req: ModerationRequest): Promise<ModerationResult>;
   /** Multi-voice dialogue → one audio episode (F020). ElevenLabs. */
   dialogue?(req: DialogueRequest): Promise<PodcastResult>;
+  /** Single-voice TTS (F020.4) → audio. ElevenLabs. */
+  tts?(req: TtsRequest): Promise<PodcastResult>;
 }
 
 // ── Client config ──────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/t
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
+import { resolveVoice } from "./providers/elevenlabs.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -23,6 +24,7 @@ import {
   ocrInputSchema,
   moderationInputSchema,
   podcastInputSchema,
+  ttsInputSchema,
 } from "./schema/inputs.js";
 import type {
   AiConfig,
@@ -37,6 +39,7 @@ import type {
   OcrInput,
   ModerationInput,
   PodcastInput,
+  TtsInput,
 } from "./schema/inputs.js";
 import type {
   ChatResult,
@@ -68,6 +71,8 @@ const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-la
 const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" };
 /** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
+/** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
+const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_multilingual_v2", transport: "http" };
 
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
@@ -406,9 +411,9 @@ export function createAI(config: AiConfig = {}): AiClient {
       input = podcastInputSchema.parse(input);
       // Map each manuscript turn to a {text, voiceId} dialogue input.
       const inputs = input.script.map((turn) => {
-        const voiceId = input.voices[turn.speaker];
-        if (!voiceId) throw new Error(`ai.podcast: no voice mapped for speaker "${turn.speaker}"`);
-        return { text: turn.text, voiceId };
+        const mapped = input.voices[turn.speaker];
+        if (!mapped) throw new Error(`ai.podcast: no voice mapped for speaker "${turn.speaker}"`);
+        return { text: turn.text, voiceId: resolveVoice(mapped) }; // curated name → voiceId
       });
       const chars = input.script.reduce((n, t) => n + t.text.length, 0);
       return runCapability({
@@ -423,6 +428,24 @@ export function createAI(config: AiConfig = {}): AiClient {
           const adapter = pickProvider(spec.provider);
           if (!adapter.dialogue) throw new Error(`createAI: provider "${spec.provider}" does not support podcast/dialogue`);
           return adapter.dialogue({ inputs, format: input.format, spec });
+        },
+      });
+    },
+
+    async tts(input: TtsInput): Promise<PodcastResult> {
+      input = ttsInputSchema.parse(input);
+      return runCapability({
+        primary: { ...DEFAULT_TTS_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "tts",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: input.text.length, // per-character cost
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.tts) throw new Error(`createAI: provider "${spec.provider}" does not support tts`);
+          return adapter.tts({ text: input.text, voiceId: resolveVoice(input.voice), spec });
         },
       });
     },

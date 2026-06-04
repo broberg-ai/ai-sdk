@@ -159,6 +159,13 @@ export const podcastInputSchema = z.object({
   ...callOptions,
 });
 
+// Single-voice TTS (F020.4) — text → audio. `voice` is a curated name or a voiceId.
+export const ttsInputSchema = z.object({
+  text: z.string(),
+  voice: z.string(),
+  ...callOptions,
+});
+
 // ── Client config ──────────────────────────────────────────────────────────
 
 export const budgetSchema = z.object({
@@ -187,6 +194,7 @@ export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
 export type ModerationInput = z.infer<typeof moderationInputSchema>;
 export type PodcastInput = z.infer<typeof podcastInputSchema>;
+export type TtsInput = z.infer<typeof ttsInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 
 /** The public facade. Defined here because it depends on the derived inputs. */
@@ -208,6 +216,8 @@ export interface AiClient {
   moderate(input: ModerationInput): Promise<ModerationResult>;
   /** Podcast (F020) — a finished manuscript → one multi-voice audio episode. ElevenLabs. */
   podcast(input: PodcastInput): Promise<PodcastResult>;
+  /** Single-voice TTS (F020.4) — text → audio. `voice` = curated name or voiceId. ElevenLabs. */
+  tts(input: TtsInput): Promise<PodcastResult>;
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
 }

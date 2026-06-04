@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { elevenlabsAdapter } from "./elevenlabs.js";
+import { elevenlabsAdapter, ELEVENLABS_DANISH_VOICES } from "./elevenlabs.js";
 import { createAI } from "../client.js";
 
 /** Fake fetch returning audio bytes + capturing the request. */
@@ -62,4 +62,26 @@ test("ai.podcast throws a clear error for an unmapped speaker", async () => {
   await expect(
     ai.podcast({ script: [{ speaker: "ukendt", text: "hej" }], voices: { "vært": "x" } }),
   ).rejects.toThrow(/no voice mapped for speaker "ukendt"/);
+});
+
+test("ai.podcast resolves curated Danish voice NAMES → voiceIds (F020.3)", async () => {
+  const { f, seen } = audioFetch();
+  const ai = createAI({ providers: { elevenlabs: elevenlabsAdapter({ apiKey: "k", fetch: f }) } });
+  await ai.podcast({
+    script: [{ speaker: "vært", text: "Hej" }],
+    voices: { "vært": "noam" }, // friendly name, not a raw id
+  });
+  expect(seen[0]!.body.inputs[0].voice_id).toBe(ELEVENLABS_DANISH_VOICES.noam);
+});
+
+test("ai.tts single-voice posts to /text-to-speech/{voiceId} with model_id (F020.4)", async () => {
+  const { f, seen } = audioFetch();
+  const ai = createAI({ providers: { elevenlabs: elevenlabsAdapter({ apiKey: "k", fetch: f }) } });
+  const { audio, usage } = await ai.tts({ text: "Goddag og velkommen.", voice: "camilla" });
+  expect(seen[0]!.url).toBe(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_DANISH_VOICES.camilla}`);
+  expect(seen[0]!.body.model_id).toBe("eleven_multilingual_v2");
+  expect(seen[0]!.body.text).toBe("Goddag og velkommen.");
+  expect(audio).toBeInstanceOf(Uint8Array);
+  expect(usage.capability).toBe("tts");
+  expect(usage.costUsd).toBeGreaterThan(0);
 });
