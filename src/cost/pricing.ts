@@ -75,6 +75,23 @@ export const PRICING: Record<string, PricingEntry> = {
   // usage.provider + the override.provider callers pass. (Image-gen models are
   // priced per-image in the adapter, not here.)
   "gemini:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+
+  // Mistral (direct, La Plateforme). Prices cross-referenced from OpenRouter's
+  // live catalogue (2026-06-04) — Mistral's own API returns no cost field, so the
+  // F014 cron can't confirm these against the provider directly; reconfirm against
+  // mistral.ai/pricing if exact direct rates matter. NB: medium-3.5 is a premium
+  // tier ($1.5/$7.5), well above medium-3 ($0.4/$2).
+  "mistral:mistral-large-latest": { inputPer1M: 0.5, outputPer1M: 1.5, version: "2026-06-04-or-xref" },
+  "mistral:mistral-large-2512": { inputPer1M: 0.5, outputPer1M: 1.5, version: "2026-06-04-or-xref" },
+  "mistral:mistral-medium-latest": { inputPer1M: 1.5, outputPer1M: 7.5, version: "2026-06-04-or-xref" },
+  "mistral:mistral-medium-3.5": { inputPer1M: 1.5, outputPer1M: 7.5, version: "2026-06-04-or-xref" },
+  "mistral:mistral-medium-3": { inputPer1M: 0.4, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
+  "mistral:mistral-small-latest": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-06-04-or-xref" },
+  "mistral:mistral-small-2603": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-06-04-or-xref" },
+  "mistral:ministral-8b-latest": { inputPer1M: 0.15, outputPer1M: 0.15, version: "2026-06-04-or-xref" },
+  "mistral:ministral-3b-latest": { inputPer1M: 0.1, outputPer1M: 0.1, version: "2026-06-04-or-xref" },
+  "mistral:codestral-latest": { inputPer1M: 0.3, outputPer1M: 0.9, version: "2026-06-04-or-xref" },
+  "mistral:open-mistral-nemo": { inputPer1M: 0.02, outputPer1M: 0.03, version: "2026-06-04-or-xref" },
 };
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {

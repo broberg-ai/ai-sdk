@@ -6,6 +6,7 @@ import { openaiAdapter } from "./openai.js";
 import { geminiAdapter } from "./gemini.js";
 import { deepinfraAdapter } from "./deepinfra.js";
 import { openrouterAdapter } from "./openrouter.js";
+import { mistralAdapter } from "./mistral.js";
 import { falAdapter } from "./fal.js";
 import type { ProviderAdapter } from "../types.js";
 
@@ -15,5 +16,6 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   gemini: geminiAdapter(),
   deepinfra: deepinfraAdapter(),
   openrouter: openrouterAdapter(),
+  mistral: mistralAdapter(),
   fal: falAdapter(),
 };
