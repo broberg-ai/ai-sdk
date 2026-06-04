@@ -12,6 +12,14 @@
 | Compat | `src/compat/` | `webhouse-ai.ts` shim for `@webhouse/ai` migration (F6.1) |
 | Docs | `docs/` | `PLAN.md`, `TRAVERSE-PROMPT.md` (F1 traversal), `features/F<n>-<slug>.md` plan-docs |
 
+## Provider notes — Mistral is the GDPR/EU provider for personal data
+
+Per Christian's 2026-06-04 Mistral assessment (CD report), **Mistral (Paris-hosted, full DPA, no Schrems II exposure) is the designated EU/GDPR-safe provider for any workload touching client or personal data** — across FysioDK Aalborg, LHD, and Web House SaaS. Reached via `override:{provider:"mistral", model, transport:"http"}` (F015). The `mistral:` entries in `src/cost/pricing.ts` are the **official** mistral.ai/pricing numbers (not estimates).
+
+- Because personal/health data flows through these paths, **Mistral routes must be tested thoroughly before production** (the application owns that; the SDK must keep the adapter + cost correct).
+- Model picking: **Mistral Large 3** (`mistral-large-latest`, $0.5/$1.5) is the cheap frontier general-purpose default; **medium-3.5** ($1.5/$7.5) is the premium coding tier (don't reach for it by default); **Small 4** (`mistral-small-latest`, $0.1/$0.3) is the volume workhorse; **Magistral** = reasoning-with-audit-trail for clinical modules.
+- Capability gaps the "all-AI-through-the-SDK" rule implies for Mistral specialties (not yet built, candidate future F-numbers): batch API (50% discount), OCR (`mistral-ocr`), Voxtral audio (transcribe/TTS), moderation.
+
 ## Releasing / publishing to npm
 
 **Never `npm publish` by hand.** Publishing runs through the GitHub Actions
