@@ -56,14 +56,19 @@ export const PRICING: Record<string, PricingEntry> = {
   // (F5.6) computes its own cost. Listed as 0 so token-based compute never charges it.
   "openai:whisper-1": { inputPer1M: 0, outputPer1M: 0, version: V },
 
-  // OpenRouter (meta-router — model slugs include the upstream vendor).
-  "openrouter:anthropic/claude-sonnet-4-6": { inputPer1M: 3.0, outputPer1M: 15.0, version: V },
-  "openrouter:anthropic/claude-haiku-4-5": { inputPer1M: 0.8, outputPer1M: 4.0, version: V },
+  // OpenRouter (meta-router — model slugs include the upstream vendor). Slugs use
+  // dots (claude-sonnet-4.6) to match OpenRouter's live ids; the dashed forms
+  // never matched a real call. Caught by the F014 catalogue research.
+  "openrouter:anthropic/claude-sonnet-4.6": { inputPer1M: 3.0, outputPer1M: 15.0, version: V },
+  // OpenRouter ground-truth $1/$5 — a markup over Anthropic-direct's $0.8/$4
+  // (the `anthropic:` entry above). Was masked while the slug used dashes.
+  "openrouter:anthropic/claude-haiku-4.5": { inputPer1M: 1.0, outputPer1M: 5.0, version: "2026-06-04" },
   "openrouter:google/gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+  // Ground-truth from OpenRouter /api/v1/models (was a 0.3 estimate; now 0.279).
   "openrouter:minimax/minimax-m2.7": {
-    inputPer1M: 0.3,
+    inputPer1M: 0.279,
     outputPer1M: 1.2,
-    version: `${V}-estimate`,
+    version: "2026-06-04",
   },
 
   // Google Gemini (direct). Provider key is "gemini" — matches the adapter's

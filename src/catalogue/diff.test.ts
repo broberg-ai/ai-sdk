@@ -29,8 +29,8 @@ test("missingPrice — every shipped DEFAULT_TIER_MAP route stays priced (health
 
 test("priceChanged — an OpenRouter price drift past the threshold is flagged", () => {
   const fetched: CatalogueModel[] = [
-    { provider: "openrouter", model: "anthropic/claude-sonnet-4-6", inputPer1M: 3.0, outputPer1M: 15.0 }, // unchanged
-    { provider: "openrouter", model: "anthropic/claude-haiku-4-5", inputPer1M: 0.8, outputPer1M: 4.0 }, // unchanged
+    { provider: "openrouter", model: "anthropic/claude-sonnet-4.6", inputPer1M: 3.0, outputPer1M: 15.0 }, // unchanged
+    { provider: "openrouter", model: "anthropic/claude-haiku-4.5", inputPer1M: 0.8, outputPer1M: 4.0 }, // unchanged
     { provider: "openrouter", model: "google/gemini-2.5-flash", inputPer1M: 0.6, outputPer1M: 2.5 }, // input 0.3→0.6
   ];
   const { priceChanged } = diffCatalogue(fetched, { fetchedProviders: ["openrouter"] });
@@ -38,13 +38,13 @@ test("priceChanged — an OpenRouter price drift past the threshold is flagged",
   expect(changed).toBeDefined();
   expect(changed?.upstreamInputPer1M).toBe(0.6);
   expect(changed?.ourInputPer1M).toBe(0.3);
-  expect(priceChanged.map((p) => p.key)).not.toContain("openrouter:anthropic/claude-sonnet-4-6");
+  expect(priceChanged.map((p) => p.key)).not.toContain("openrouter:anthropic/claude-sonnet-4.6");
 });
 
 test("removedUpstream — a priced model no longer in a fetched provider's list is flagged", () => {
   const fetched: CatalogueModel[] = [
-    { provider: "openrouter", model: "anthropic/claude-sonnet-4-6", inputPer1M: 3.0, outputPer1M: 15.0 },
-    { provider: "openrouter", model: "anthropic/claude-haiku-4-5", inputPer1M: 0.8, outputPer1M: 4.0 },
+    { provider: "openrouter", model: "anthropic/claude-sonnet-4.6", inputPer1M: 3.0, outputPer1M: 15.0 },
+    { provider: "openrouter", model: "anthropic/claude-haiku-4.5", inputPer1M: 0.8, outputPer1M: 4.0 },
     { provider: "openrouter", model: "google/gemini-2.5-flash", inputPer1M: 0.3, outputPer1M: 2.5 },
     // openrouter:minimax/minimax-m2.7 deliberately omitted
   ];
