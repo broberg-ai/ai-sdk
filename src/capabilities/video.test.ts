@@ -1,7 +1,11 @@
 import { expect, test, afterEach } from "bun:test";
 import { createAI } from "../client.js";
+import { geminiAdapter } from "../providers/gemini.js";
 import { buildVideoMessages, VIDEO_DEFAULT_TIER } from "./video.js";
 import { DEFAULT_TIER_MAP } from "../routing/tier-map.js";
+
+// Register gemini with an explicit key so the test never depends on env (CI has none).
+const aiWithGemini = () => createAI({ providers: { gemini: geminiAdapter({ apiKey: "test-key" }) } });
 
 const realFetch = globalThis.fetch;
 afterEach(() => {
@@ -39,7 +43,7 @@ test("ai.video sends the video inline to Gemini + prices the call", async () => 
     candidates: [{ content: { parts: [{ text: "a cat playing" }] } }],
     usageMetadata: { promptTokenCount: 5000, candidatesTokenCount: 12 },
   });
-  const ai = createAI();
+  const ai = aiWithGemini();
   const { text, usage } = await ai.video({
     video: new Uint8Array([1, 2, 3]),
     prompt: "What's in this video?",
@@ -58,9 +62,8 @@ test("ai.video sends the video inline to Gemini + prices the call", async () => 
 
 test("ai.video works without an override via the default video tier", async () => {
   mockFetch({ candidates: [{ content: { parts: [{ text: "ok" }] } }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 2 } });
-  // default video tier → gemini; provide the gemini key via env-less override-free path
-  const ai = createAI();
-  process.env.GEMINI_API_KEY ??= "test-key";
+  // default video tier → gemini (keyed adapter, no env dependency)
+  const ai = aiWithGemini();
   const { text } = await ai.video({ video: "data:video/mp4;base64,QQ", prompt: "describe" });
   expect(text).toBe("ok");
 });
