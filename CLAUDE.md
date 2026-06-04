@@ -12,6 +12,24 @@
 | Compat | `src/compat/` | `webhouse-ai.ts` shim for `@webhouse/ai` migration (F6.1) |
 | Docs | `docs/` | `PLAN.md`, `TRAVERSE-PROMPT.md` (F1 traversal), `features/F<n>-<slug>.md` plan-docs |
 
+## Releasing / publishing to npm
+
+**Never `npm publish` by hand.** Publishing runs through the GitHub Actions
+`publish.yml` workflow using OIDC Trusted Publishing (no token, no secret — npm
+mints provenance from the workflow identity `broberg-ai/ai-sdk`).
+
+To ship a change:
+
+1. Bump `version` in `package.json`.
+2. Commit, then `git tag vX.Y.Z` (tag MUST equal package.json version — a CI
+   guard rejects a mismatch) and `git push --follow-tags` (or push the tag).
+3. The `v*` tag push triggers `publish.yml`: build → test → guards (tag==version,
+   version-not-already-on-npm) → `npm publish --access public --provenance`.
+
+A `workflow_dispatch` manual run is also available. One-time bootstrap (v0.1.0
+hand-publish + npmjs.com Trusted Publisher config) is already done — every
+release after that is just bump + tag + push.
+
 ## Working with cardmem
 
 > **Canonical section per F057 multi-project convention.** Every cardmem-compatible repo gets this same block, copied verbatim (the URLs and F-number rules are universal). The `## Project layout` table above is what differs per repo.

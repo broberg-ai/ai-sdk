@@ -13,6 +13,14 @@ test("MiniMax M2.7 is priced via openrouter", () => {
   expect(getPrice("openrouter", "minimax/minimax-m2.7")).toBeDefined();
 });
 
+test("gemini-direct is priced under provider 'gemini' (not 'google')", () => {
+  // The gemini adapter stamps usage.provider = "gemini"; the pricing key must
+  // match or every gemini-direct call silently logs $0. Regression: was keyed
+  // "google:" → getPrice("gemini", …) missed → cost under-counted.
+  expect(getPrice("gemini", "gemini-2.5-flash")).toBeDefined();
+  expect(computeCost("gemini", "gemini-2.5-flash", 1000, 500)).toBeCloseTo(0.00155, 9);
+});
+
 test("computeCost — sonnet 1M in + 1M out = $18.00", () => {
   expect(computeCost("anthropic", "claude-sonnet-4-6", 1_000_000, 1_000_000)).toBeCloseTo(
     18.0,

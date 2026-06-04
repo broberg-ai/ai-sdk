@@ -65,8 +65,10 @@ const PRICING: Record<string, PricingEntry> = {
     version: `${V}-estimate`,
   },
 
-  // Google Gemini (direct). Image-gen model used by cms.
-  "google:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+  // Google Gemini (direct). Provider key is "gemini" — matches the adapter's
+  // usage.provider + the override.provider callers pass. (Image-gen models are
+  // priced per-image in the adapter, not here.)
+  "gemini:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
 };
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {
