@@ -10,8 +10,8 @@ test("dated anthropic snapshot prices as its base model (F012)", () => {
 });
 
 test("dated openrouter slug normalizes to its base", () => {
-  const base = getPrice("openrouter", "anthropic/claude-haiku-4-5");
-  const dated = getPrice("openrouter", "anthropic/claude-haiku-4-5-20251001");
+  const base = getPrice("openrouter", "anthropic/claude-haiku-4.5");
+  const dated = getPrice("openrouter", "anthropic/claude-haiku-4.5-20251001");
   expect(dated).toEqual(base!);
 });
 
