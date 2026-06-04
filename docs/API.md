@@ -166,6 +166,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature?, responseFormat? }` | `{ text, toolCalls?, usage }` | `smart` |
 | `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
+| `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
 | `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync); gemini via `override` |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
@@ -194,6 +195,28 @@ await ai.vision({
   fallback: [{ provider: "openrouter", model: "anthropic/claude-sonnet-4-6", transport: "http" }],
 });
 ```
+
+### Video Vision — `ai.video` (F019)
+
+Analyze a video natively (e.g. "what's in the first 30 seconds?"). Same shape as
+`ai.vision` but with a `video` payload (URL, data-URL, or raw bytes). Default tier
+`video` → `gemini-2.5-flash-lite`.
+
+```ts
+const { text, usage } = await ai.video({
+  video: bytes,                 // Uint8Array | URL | data-URL
+  mimeType: "video/mp4",
+  prompt: "Describe what happens in this video.",
+  // gemma-4 is a cheap, reliable option via OpenRouter:
+  override: { provider: "openrouter", model: "google/gemma-4-26b-a4b-it", transport: "http" },
+});
+```
+
+Live-verified on a real ~15s clip: `gemini-2.5-flash-lite` (~$0.0005), `gemma-4`
+(~$0.0003), `nvidia/nemotron-nano-12b-v2-vl:free` ($0). Gemini sends the clip inline
+as base64 — **clips over ~20MB need the Gemini Files API** (not yet handled); compress
+or route via an OpenRouter video model. `ai.video` reuses the provider `vision` path,
+so any video-capable provider works via `override`.
 
 A **budget breach is not a fallback trigger** — it throws immediately (you asked
 not to spend, so the SDK won't quietly retry on a pricier route).
@@ -319,7 +342,8 @@ budget store. v0.3.0: `ai.chatStream` streaming (all chat providers) + tool-loop
 threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (F010).
 v0.3.1: anthropic tool_use/tool_result threading. v0.4.0: per-call attribution
 `labels` for multi-tenant cost (F011). v0.4.1: dated model-id pricing (F012).
-v0.5.0: Gemini image generation (F013).)*
+v0.5.0: Gemini image generation (F013). v0.5.1: gemini-direct $0-cost fix (F012-class).
+v0.6.0: `ai.video` native video vision (F019) + official Mistral provider + prices (F015).)*
 
 ---
 
