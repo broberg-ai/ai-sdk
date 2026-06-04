@@ -21,8 +21,9 @@ export interface PricingEntry {
 // price page — flagged in its version string.
 const V = "2026-06-02";
 
-/** Keyed `${provider}:${model}`. */
-const PRICING: Record<string, PricingEntry> = {
+/** Keyed `${provider}:${model}`. Exported so the catalogue-research job (F014)
+ *  can enumerate every priced entry and diff it against the live provider lists. */
+export const PRICING: Record<string, PricingEntry> = {
   // Anthropic (direct API). DEFAULT_TIER_MAP: fast/cheap=haiku, smart/vision=sonnet, powerful=opus.
   "anthropic:claude-haiku-4-5": {
     inputPer1M: 0.8,
