@@ -62,6 +62,15 @@ export function toOpenAIMessage(m: Message): Record<string, unknown> {
   }
   const content = m.content.map((p) => {
     if (p.type === "text") return { type: "text", text: p.text };
+    if (p.type === "video") {
+      // F019.3 — OpenRouter video models. Mirrors image_url; exact shape is
+      // unverified pending an OPENROUTER_API_KEY (confirm vs OpenRouter docs).
+      const url =
+        typeof p.video === "string"
+          ? p.video
+          : `data:${p.mimeType ?? "video/mp4"};base64,${Buffer.from(p.video).toString("base64")}`;
+      return { type: "video_url", video_url: { url } };
+    }
     const url =
       typeof p.image === "string"
         ? p.image

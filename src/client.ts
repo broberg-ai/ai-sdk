@@ -6,6 +6,7 @@ import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
+import { buildVideoMessages, VIDEO_DEFAULT_TIER } from "./capabilities/video.js";
 import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
@@ -14,6 +15,7 @@ import {
   aiConfigSchema,
   chatInputSchema,
   visionInputSchema,
+  videoInputSchema,
   translateInputSchema,
   imageInputSchema,
   embeddingInputSchema,
@@ -24,6 +26,7 @@ import type {
   AiClient,
   ChatInput,
   VisionInput,
+  VideoInput,
   TranslateInput,
   ImageInput,
   EmbeddingInput,
@@ -279,6 +282,28 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.vision) throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
+          return adapter.vision({ messages, spec });
+        },
+      });
+    },
+
+    async video(input: VideoInput): Promise<ChatResult> {
+      input = videoInputSchema.parse(input);
+      const tier = input.tier ?? VIDEO_DEFAULT_TIER;
+      const messages: Message[] = buildVideoMessages(input);
+      return runCapability({
+        primary: resolveTier(tier, input.override, cfg.defaults),
+        fallback: input.fallback,
+        capability: "video",
+        tier,
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: estTokens(input.prompt) + 4000, // prompt + video tokens (native video ≈ frames)
+        estOut: 512,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          // Video routes through the vision method — same multimodal message path.
+          if (!adapter.vision) throw new Error(`createAI: provider "${spec.provider}" does not support video`);
           return adapter.vision({ messages, spec });
         },
       });

@@ -18,6 +18,7 @@ export type Tier =
   | "powerful"
   | "cheap"
   | "vision"
+  | "video"
   | "embedding";
 
 /** The concrete routing target a Tier (or a per-call override) resolves to. */
@@ -31,6 +32,7 @@ export interface TierSpec {
 export type Capability =
   | "chat"
   | "vision"
+  | "video"
   | "translate"
   | "image"
   | "embedding"
@@ -48,7 +50,8 @@ export type Role = "system" | "user" | "assistant" | "tool";
 /** A piece of message content. Text everywhere; image parts feed vision. */
 export type ContentPart =
   | { type: "text"; text: string }
-  | { type: "image"; image: string | Uint8Array; mimeType?: string };
+  | { type: "image"; image: string | Uint8Array; mimeType?: string }
+  | { type: "video"; video: string | Uint8Array; mimeType?: string };
 
 export interface Message {
   role: Role;

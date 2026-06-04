@@ -12,6 +12,8 @@ export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
   powerful: { provider: "anthropic", model: "claude-opus-4-8", transport: "http" },
   cheap: { provider: "anthropic", model: "claude-haiku-4-5", transport: "subprocess" },
   vision: { provider: "anthropic", model: "claude-sonnet-4-6", transport: "http" },
+  // Native video understanding — Gemini leads; flash-lite is the cheap default (F019).
+  video: { provider: "gemini", model: "gemini-2.5-flash-lite", transport: "http" },
   embedding: { provider: "openai", model: "text-embedding-3-small", transport: "http" },
 };
 

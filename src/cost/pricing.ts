@@ -77,6 +77,8 @@ export const PRICING: Record<string, PricingEntry> = {
   // usage.provider + the override.provider callers pass. (Image-gen models are
   // priced per-image in the adapter, not here.)
   "gemini:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+  // flash-lite is the default `video` tier (F019) — cheap native video understanding.
+  "gemini:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
 
   // Mistral (direct, La Plateforme). Official prices from mistral.ai/pricing
   // (2026-06-04, per Christian's CD report). EU/Paris-hosted — the designated

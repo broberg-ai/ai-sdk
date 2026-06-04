@@ -25,6 +25,7 @@ export const tierSchema = z.enum([
   "powerful",
   "cheap",
   "vision",
+  "video",
   "embedding",
 ]);
 
@@ -94,6 +95,15 @@ export const visionInputSchema = z.object({
   ...callOptions,
 });
 
+// F019 — analyze a video natively (e.g. "what's in the first 30s?"). Same shape
+// as vision but with a video payload (URL, data-URL, or raw bytes).
+export const videoInputSchema = z.object({
+  video: z.union([z.string(), z.instanceof(Uint8Array)]),
+  prompt: z.string(),
+  mimeType: z.string().optional(),
+  ...callOptions,
+});
+
 export const translateInputSchema = z.object({
   text: z.string(),
   to: z.string(),
@@ -142,6 +152,7 @@ export const aiConfigSchema = z.object({
 
 export type ChatInput = z.infer<typeof chatInputSchema>;
 export type VisionInput = z.infer<typeof visionInputSchema>;
+export type VideoInput = z.infer<typeof videoInputSchema>;
 export type TranslateInput = z.infer<typeof translateInputSchema>;
 export type ImageInput = z.infer<typeof imageInputSchema>;
 export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
@@ -155,6 +166,8 @@ export interface AiClient {
    *  caller owns the tool-loop (per-turn engine, not an agent runtime). */
   chatStream(input: ChatInput): AsyncIterable<ChatStreamEvent>;
   vision(input: VisionInput): Promise<ChatResult>;
+  /** Video Vision (F019) — analyze a video natively. Default tier: "video". */
+  video(input: VideoInput): Promise<ChatResult>;
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;

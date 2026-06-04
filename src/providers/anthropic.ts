@@ -39,6 +39,11 @@ function contentBlocks(content: string | ContentPart[]): unknown {
   if (typeof content === "string") return content;
   return content.map((p) => {
     if (p.type === "text") return { type: "text", text: p.text };
+    // Anthropic has no native video input — route video via a video-capable
+    // provider (Gemini, F019) instead.
+    if (p.type === "video") {
+      throw new Error("anthropic adapter: video input is not supported — use a video provider (e.g. gemini)");
+    }
     if (typeof p.image === "string" && /^https?:\/\//.test(p.image)) {
       return { type: "image", source: { type: "url", url: p.image } };
     }

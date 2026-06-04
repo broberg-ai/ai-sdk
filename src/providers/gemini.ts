@@ -41,6 +41,15 @@ function partsFrom(content: string | ContentPart[]): GeminiPart[] {
   if (typeof content === "string") return [{ text: content }];
   return content.map((p): GeminiPart => {
     if (p.type === "text") return { text: p.text };
+    // Video (F019) and image both go inline as base64 — Gemini accepts video mime
+    // types natively. (Clips over ~20MB need the Files API — not handled here.)
+    if (p.type === "video") {
+      const data =
+        typeof p.video === "string"
+          ? p.video.replace(/^data:[^;]+;base64,/, "")
+          : Buffer.from(p.video).toString("base64");
+      return { inlineData: { mimeType: p.mimeType ?? "video/mp4", data } };
+    }
     const data =
       typeof p.image === "string"
         ? p.image.replace(/^data:[^;]+;base64,/, "")

@@ -113,6 +113,7 @@ export type {
   AiClient,
   ChatInput,
   VisionInput,
+  VideoInput,
   TranslateInput,
   ImageInput,
   EmbeddingInput,
