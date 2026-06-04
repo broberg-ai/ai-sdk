@@ -14,6 +14,7 @@ import type {
   TranscribeResult,
   OcrResult,
   ModerationResult,
+  PodcastResult,
 } from "../types.js";
 import type { Contracts } from "../capabilities/contracts/types.js";
 
@@ -149,6 +150,15 @@ export const moderationInputSchema = z.object({
   ...callOptions,
 });
 
+// Podcast (F020) — a finished manuscript (speaker turns) + a speaker→voiceId map →
+// one finished multi-voice audio episode (ElevenLabs Text-to-Dialogue).
+export const podcastInputSchema = z.object({
+  script: z.array(z.object({ speaker: z.string(), text: z.string() })).min(1),
+  voices: z.record(z.string(), z.string()),
+  format: z.string().optional(),
+  ...callOptions,
+});
+
 // ── Client config ──────────────────────────────────────────────────────────
 
 export const budgetSchema = z.object({
@@ -176,6 +186,7 @@ export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
 export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
 export type ModerationInput = z.infer<typeof moderationInputSchema>;
+export type PodcastInput = z.infer<typeof podcastInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 
 /** The public facade. Defined here because it depends on the derived inputs. */
@@ -195,6 +206,8 @@ export interface AiClient {
   ocr(input: OcrInput): Promise<OcrResult>;
   /** Moderation (F016.4) — classify text against safety categories. Mistral. */
   moderate(input: ModerationInput): Promise<ModerationResult>;
+  /** Podcast (F020) — a finished manuscript → one multi-voice audio episode. ElevenLabs. */
+  podcast(input: PodcastInput): Promise<PodcastResult>;
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
 }

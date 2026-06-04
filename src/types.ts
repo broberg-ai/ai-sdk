@@ -39,6 +39,7 @@ export type Capability =
   | "transcribe"
   | "ocr"
   | "moderation"
+  | "podcast"
   | "mockup"
   | "design"
   | "extract"
@@ -241,6 +242,25 @@ export interface ModerationResult {
   usage: Usage;
 }
 
+// Podcast / multi-voice dialogue (F020) — a manuscript of speaker turns → one
+// finished multi-voice audio episode. ElevenLabs Text-to-Dialogue, billed per char.
+export interface DialogueTurn {
+  text: string;
+  voiceId: string;
+}
+export interface DialogueRequest {
+  inputs: DialogueTurn[];
+  /** Output container, e.g. "mp3" (default). */
+  format?: string;
+  spec: TierSpec;
+}
+export interface PodcastResult {
+  /** Episode audio bytes. */
+  audio: Uint8Array;
+  mimeType: string;
+  usage: Usage;
+}
+
 /** The thin contract every provider implements (F4). A provider need only
  *  support the capabilities it offers — `chat` is the baseline; vision/image/
  *  embedding are optional and absence is a typed capability gap. */
@@ -259,6 +279,8 @@ export interface ProviderAdapter {
   transcribe?(req: TranscribeRequest): Promise<TranscribeResult>;
   ocr?(req: OcrRequest): Promise<OcrResult>;
   moderate?(req: ModerationRequest): Promise<ModerationResult>;
+  /** Multi-voice dialogue → one audio episode (F020). ElevenLabs. */
+  dialogue?(req: DialogueRequest): Promise<PodcastResult>;
 }
 
 // ── Client config ──────────────────────────────────────────────────────────

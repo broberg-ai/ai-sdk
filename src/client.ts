@@ -22,6 +22,7 @@ import {
   transcribeInputSchema,
   ocrInputSchema,
   moderationInputSchema,
+  podcastInputSchema,
 } from "./schema/inputs.js";
 import type {
   AiConfig,
@@ -35,6 +36,7 @@ import type {
   TranscribeInput,
   OcrInput,
   ModerationInput,
+  PodcastInput,
 } from "./schema/inputs.js";
 import type {
   ChatResult,
@@ -44,6 +46,7 @@ import type {
   TranscribeResult,
   OcrResult,
   ModerationResult,
+  PodcastResult,
   TranslateResult,
   ProviderAdapter,
   Message,
@@ -63,6 +66,8 @@ const DEFAULT_IMAGE_SPEC: TierSpec = {
 /** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
 const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
 const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" };
+/** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
+const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
@@ -393,6 +398,31 @@ export function createAI(config: AiConfig = {}): AiClient {
           const adapter = pickProvider(spec.provider);
           if (!adapter.moderate) throw new Error(`createAI: provider "${spec.provider}" does not support moderation`);
           return adapter.moderate({ input: items, spec });
+        },
+      });
+    },
+
+    async podcast(input: PodcastInput): Promise<PodcastResult> {
+      input = podcastInputSchema.parse(input);
+      // Map each manuscript turn to a {text, voiceId} dialogue input.
+      const inputs = input.script.map((turn) => {
+        const voiceId = input.voices[turn.speaker];
+        if (!voiceId) throw new Error(`ai.podcast: no voice mapped for speaker "${turn.speaker}"`);
+        return { text: turn.text, voiceId };
+      });
+      const chars = input.script.reduce((n, t) => n + t.text.length, 0);
+      return runCapability({
+        primary: { ...DEFAULT_PODCAST_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "podcast",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: chars, // per-character cost (not token-based)
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.dialogue) throw new Error(`createAI: provider "${spec.provider}" does not support podcast/dialogue`);
+          return adapter.dialogue({ inputs, format: input.format, spec });
         },
       });
     },
