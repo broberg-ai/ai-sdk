@@ -345,7 +345,8 @@ threading (F008); `responseFormat:"json"` (F009); OpenRouter ground-truth cost (
 v0.3.1: anthropic tool_use/tool_result threading. v0.4.0: per-call attribution
 `labels` for multi-tenant cost (F011). v0.4.1: dated model-id pricing (F012).
 v0.5.0: Gemini image generation (F013). v0.5.1: gemini-direct $0-cost fix (F012-class).
-v0.6.0: `ai.video` native video vision (F019) + official Mistral provider + prices (F015).)*
+v0.6.0: `ai.video` native video vision (F019) + official Mistral provider + prices (F015).
+v0.7.0: `ai.ocr` (per-page) + `ai.moderate` (per-token) via Mistral (F016.2 + F016.4).)*
 
 ---
 
