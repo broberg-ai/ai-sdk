@@ -100,6 +100,8 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:devstral-latest": { inputPer1M: 0.4, outputPer1M: 2.0, version: MS },
   "mistral:codestral-latest": { inputPer1M: 0.3, outputPer1M: 0.9, version: MS },
   "mistral:open-mistral-nemo": { inputPer1M: 0.15, outputPer1M: 0.15, version: MS },
+  // Moderation (F016.4) — per input token; output 0. (OCR is per-page in the adapter.)
+  "mistral:mistral-moderation-latest": { inputPer1M: 0.1, outputPer1M: 0, version: MS },
 };
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {

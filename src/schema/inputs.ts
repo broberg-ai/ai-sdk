@@ -12,6 +12,8 @@ import type {
   ImageResult,
   EmbeddingResult,
   TranscribeResult,
+  OcrResult,
+  ModerationResult,
 } from "../types.js";
 import type { Contracts } from "../capabilities/contracts/types.js";
 
@@ -132,6 +134,21 @@ export const transcribeInputSchema = z.object({
   ...callOptions,
 });
 
+// OCR (F016.2) — document/image → structured markdown text, billed per page.
+export const ocrInputSchema = z.object({
+  /** A URL, data-URL, or raw bytes of the document/image. */
+  document: z.union([z.string(), z.instanceof(Uint8Array)]),
+  /** image/* → routed as an image; anything else → a document (PDF etc.). */
+  mimeType: z.string().optional(),
+  ...callOptions,
+});
+
+// Moderation (F016.4) — classify text against safety categories, billed per token.
+export const moderationInputSchema = z.object({
+  input: z.union([z.string(), z.array(z.string())]),
+  ...callOptions,
+});
+
 // ── Client config ──────────────────────────────────────────────────────────
 
 export const budgetSchema = z.object({
@@ -157,6 +174,8 @@ export type TranslateInput = z.infer<typeof translateInputSchema>;
 export type ImageInput = z.infer<typeof imageInputSchema>;
 export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
 export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
+export type OcrInput = z.infer<typeof ocrInputSchema>;
+export type ModerationInput = z.infer<typeof moderationInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
 
 /** The public facade. Defined here because it depends on the derived inputs. */
@@ -172,6 +191,10 @@ export interface AiClient {
   image(input: ImageInput): Promise<ImageResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;
   transcribe(input: TranscribeInput): Promise<TranscribeResult>;
+  /** OCR (F016.2) — document/image → structured markdown, billed per page. Mistral. */
+  ocr(input: OcrInput): Promise<OcrResult>;
+  /** Moderation (F016.4) — classify text against safety categories. Mistral. */
+  moderate(input: ModerationInput): Promise<ModerationResult>;
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
 }

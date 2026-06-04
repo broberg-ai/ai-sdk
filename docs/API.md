@@ -171,6 +171,8 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync); gemini via `override` |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
+| `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
+| `ai.moderate` | `{ input: string \| string[] }` | `{ results: {flagged,categories,categoryScores}[], usage }` | mistral-moderation (per-token) |
 
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose?, labels? }`.
 

@@ -37,6 +37,8 @@ export type Capability =
   | "image"
   | "embedding"
   | "transcribe"
+  | "ocr"
+  | "moderation"
   | "mockup"
   | "design"
   | "extract"
@@ -207,6 +209,38 @@ export interface TranscribeResult {
   usage: Usage;
 }
 
+// OCR (F016.2) — document/image → structured text, billed per page.
+export interface OcrRequest {
+  /** A URL, data-URL, or raw bytes of the document/image. */
+  document: string | Uint8Array;
+  mimeType?: string;
+  spec: TierSpec;
+}
+export interface OcrPage {
+  index: number;
+  markdown: string;
+}
+export interface OcrResult {
+  pages: OcrPage[];
+  usage: Usage;
+}
+
+// Moderation (F016.4) — classify text against safety categories, billed per token.
+export interface ModerationRequest {
+  input: string[];
+  spec: TierSpec;
+}
+export interface ModerationItem {
+  /** True if any category tripped. */
+  flagged: boolean;
+  categories: Record<string, boolean>;
+  categoryScores: Record<string, number>;
+}
+export interface ModerationResult {
+  results: ModerationItem[];
+  usage: Usage;
+}
+
 /** The thin contract every provider implements (F4). A provider need only
  *  support the capabilities it offers — `chat` is the baseline; vision/image/
  *  embedding are optional and absence is a typed capability gap. */
@@ -223,6 +257,8 @@ export interface ProviderAdapter {
   image?(req: ImageRequest): Promise<ImageResult>;
   embedding?(req: EmbeddingRequest): Promise<EmbeddingResult>;
   transcribe?(req: TranscribeRequest): Promise<TranscribeResult>;
+  ocr?(req: OcrRequest): Promise<OcrResult>;
+  moderate?(req: ModerationRequest): Promise<ModerationResult>;
 }
 
 // ── Client config ──────────────────────────────────────────────────────────

@@ -118,5 +118,16 @@ export type {
   ImageInput,
   EmbeddingInput,
   TranscribeInput,
+  OcrInput,
+  ModerationInput,
 } from "./schema/inputs.js";
-export type { TranscribeRequest, TranscribeResult } from "./types.js";
+export type {
+  TranscribeRequest,
+  TranscribeResult,
+  OcrRequest,
+  OcrResult,
+  OcrPage,
+  ModerationRequest,
+  ModerationResult,
+  ModerationItem,
+} from "./types.js";

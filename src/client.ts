@@ -20,6 +20,8 @@ import {
   imageInputSchema,
   embeddingInputSchema,
   transcribeInputSchema,
+  ocrInputSchema,
+  moderationInputSchema,
 } from "./schema/inputs.js";
 import type {
   AiConfig,
@@ -31,6 +33,8 @@ import type {
   ImageInput,
   EmbeddingInput,
   TranscribeInput,
+  OcrInput,
+  ModerationInput,
 } from "./schema/inputs.js";
 import type {
   ChatResult,
@@ -38,6 +42,8 @@ import type {
   ImageResult,
   EmbeddingResult,
   TranscribeResult,
+  OcrResult,
+  ModerationResult,
   TranslateResult,
   ProviderAdapter,
   Message,
@@ -53,6 +59,10 @@ const DEFAULT_IMAGE_SPEC: TierSpec = {
   model: "fal-ai/flux/schnell",
   transport: "http",
 };
+
+/** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
+const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
+const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" };
 
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
@@ -346,6 +356,43 @@ export function createAI(config: AiConfig = {}): AiClient {
           const adapter = pickProvider(spec.provider);
           if (!adapter.image) throw new Error(`createAI: provider "${spec.provider}" does not support image`);
           return adapter.image({ prompt: input.prompt, spec, width: input.width, height: input.height });
+        },
+      });
+    },
+
+    async ocr(input: OcrInput): Promise<OcrResult> {
+      input = ocrInputSchema.parse(input);
+      return runCapability({
+        primary: { ...DEFAULT_OCR_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "ocr",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: 0, // OCR cost is per-page, not token-based
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.ocr) throw new Error(`createAI: provider "${spec.provider}" does not support ocr`);
+          return adapter.ocr({ document: input.document, mimeType: input.mimeType, spec });
+        },
+      });
+    },
+
+    async moderate(input: ModerationInput): Promise<ModerationResult> {
+      input = moderationInputSchema.parse(input);
+      const items = Array.isArray(input.input) ? input.input : [input.input];
+      return runCapability({
+        primary: { ...DEFAULT_MODERATION_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "moderation",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: items.reduce((n, s) => n + estTokens(s), 0),
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.moderate) throw new Error(`createAI: provider "${spec.provider}" does not support moderation`);
+          return adapter.moderate({ input: items, spec });
         },
       });
     },
