@@ -1,67 +1,75 @@
 # F018 — Model-Selection Narrative Knowledge Base (Trail)
 
-> **REVISED 2026-06-04 per Trail's expert verdict (intercom #3103).** Original idea was to mirror the F017 inventory *table* into Trail; Trail correctly rejected that (deterministic price data must not go through RAG; monthly refresh would spam the contradiction-lint). Revised scope: keep the JSON as the authoritative source, and use Trail for what it's actually good at — a **curated, accumulating free-text knowledge base of model-selection wisdom** (philosophy, provider quirks, lessons-learned) that the advisor consults for the "why" layer. Tier: tooling/integration. Effort: S–M. Status: planned (light dependency on Trail's `.mcp.json` snippet, requested in #3112).
+> **REVISED 2026-06-04 per Trail (#3103 scope, #3134 mechanics).** Keep the F017 `inventory.json` as the authoritative deterministic source; use Trail for a **curated, accumulating free-text KB of model-selection wisdom** (philosophy, provider quirks, lessons-learned) that the advisor consults for the "why" layer. Tier: tooling/integration. Effort: S. Status: planned (Trail provisioning the "Model Selection" KB + delivering a scoped key, per #3157).
 
-## Why the pivot (Trail #3103, verbatim gist)
-- **JSON stays source-of-truth.** 346 entries with precise numbers (price/token, context, GDPR-region) are *deterministic* data. RAG retrieves text-chunks → an LLM could paraphrase/round a price wrong, and `recommendModel()` must never build on a guess.
-- **Monthly refresh would be noise.** Every price change would trip Trail's contradiction-lint as a "contradiction" — pure churn on every run. Trail shines on *accumulating* knowledge, not a fast-changing catalogue.
-- **"Chatting with the inventory" needs no Trail.** 346 entries fit in a context window → the `model-advisor` skill already injects `inventory.json` directly. No vector/RAG needed for table queries.
-- **Where Trail adds real value:** a slowly-changing *narrative* KB about model-selection — a different artifact from the table.
+## Why the pivot (Trail #3103)
+- **JSON stays source-of-truth.** 346 entries with precise numbers are deterministic data; RAG could round a price wrong, and `recommendModel()` must never build on a guess.
+- **Monthly refresh would be noise** — every price change trips Trail's contradiction-lint. Trail shines on *accumulating* knowledge, not a fast-changing catalogue.
+- **"Chatting with the inventory" needs no Trail** — 346 entries fit a context window; the `model-advisor` skill injects `inventory.json` directly.
+- **Trail's real value:** a slowly-changing *narrative* KB — a different artifact from the table.
+
+## ⚠️ Mechanics correction (Trail #3134)
+**Trail MCP is stdio-local — it spawns a local process and CANNOT reach the cloud-hosted KB.** So a `.mcp.json` with URL+key does NOT work to read/write cloud-Trail from this session or from GHA. Use the **cloud REST API** instead:
+- **Write:** `POST {TRAIL_CLOUD_API}/api/v1/knowledge-bases/:kbId/wiki-write` — body `{command:"create"|"str_replace"|"append", path, title, content, tags}`. (Or `POST /api/v1/queue/candidates` `{kind:"external-feed"}` for pending-review.)
+- **Chat (RAG):** `POST /api/v1/knowledge-bases/:kbId/chat`.
+- **Headers:** `Authorization: Bearer <TRAIL_API_KEY>` + `X-Trail-Tenant: broberg-ai`.
+- **Key:** least-privilege, scoped to the one KB; delivered to this repo's gitignored `.env` as `TRAIL_API_KEY` via Trail's daemon-provisioning (sa-PILOT pattern) — never over intercom.
+- **Paths:** `/neurons/concepts/` for philosophy, `/neurons/heuristics/` for rules-of-thumb.
 
 ## Motivation
 
-F017 answers *what* (the deterministic table + `recommendModel()`). But there's real, accumulating wisdom that isn't a number and doesn't belong in a JSON row: "medium-3.5 is a premium coding tier — don't default to it"; "OpenRouter slugs use dots, the dashed forms silently mismatch"; "GDPR is a hard gate for personal data, not a preference"; "Mistral Large 3 is the cheap frontier default now". This is free-text that grows over time as we learn — Trail's sweet spot. Captured there, the advisor (and other repos) can consult the *why/philosophy* layer on top of the *what* numbers.
+F017 answers *what* (the deterministic table + `recommendModel()`). But real, accumulating wisdom isn't a number and doesn't belong in a JSON row: "medium-3.5 is a premium coding tier — don't default to it"; "OpenRouter slugs use dots, dashed forms silently mismatch"; "GDPR is a hard gate for personal data". Free-text that grows over time → Trail's sweet spot. Captured there, the advisor (and other repos) consult the *why* layer on top of the *what* numbers.
 
 ## Solution
 
-A dedicated Trail knowledge base ("model-selection") holding curated, free-text lessons-learned + provider quirks + selection philosophy. The `model-advisor` skill consults it for the qualitative layer, while `inventory.json` + `recommendModel()` remain the authoritative quantitative source. New lessons are written to Trail as they emerge (via `mcp__trail__write`). No table mirroring; no per-model Neurons.
+A dedicated Trail cloud KB ("Model Selection", broberg-ai tenant) holding curated free-text lessons + provider quirks + selection philosophy, written via the cloud REST `wiki-write` API. The `model-advisor` skill consults it (via `/chat` RAG) for the qualitative layer, while `inventory.json` + `recommendModel()` remain the authoritative quantitative source. No table mirroring; no per-model Neurons.
 
 ## Scope
 
 ### In scope
-- Trail MCP wired into ai-sdk `.mcp.json` (`mcp__trail__write` + `mcp__trail__search`) — config from Trail (#3112).
-- Seed the narrative KB with the lessons we already have (see below).
-- The `model-advisor` skill consults the Trail narrative KB for the "why" layer, complementary to the JSON.
-- A lightweight habit/step: when the monthly run or a session surfaces a new model-selection lesson, write it to the KB.
+- A tiny Trail REST client in this repo (`src/catalogue/trail-kb.ts` or a script): `wiki-write` + `chat` against the cloud API, key from `TRAIL_API_KEY`, `X-Trail-Tenant: broberg-ai`.
+- Seed the "Model Selection" KB with the lessons below.
+- The `model-advisor` skill consults the KB (`/chat`) for the "why" layer, complementary to the JSON.
+- A lightweight habit: when a new model-selection lesson surfaces, `wiki-write` it (`/neurons/concepts/` or `/neurons/heuristics/`).
 
-### Out of scope (explicitly — Trail rejected these)
-- Mirroring the 346-entry inventory *table* into Trail as Neurons.
-- Pushing the changing price/availability data into Trail from GHA (stays in `inventory.json`).
+### Out of scope (Trail rejected)
+- Mirroring the 346-entry inventory table into Trail as Neurons.
+- Pushing changing price/availability data into Trail from GHA (stays in `inventory.json`).
 - RAG/vector over the inventory numbers — the table fits in context; the skill injects it directly.
-- Trail as a source for `recommendModel()` — that function reads JSON only (deterministic).
+- Trail MCP via `.mcp.json` — stdio-local, can't reach the cloud KB (#3134).
+- Trail as a source for `recommendModel()` — that function reads JSON only.
 
 ## Architecture
-- **KB**: a `model-selection` KB under the broberg-ai tenant in Trail (free-text Neurons: one per lesson/quirk/philosophy note).
-- **Write**: `mcp__trail__write` from this session (and optionally a step in the monthly run when a new lesson is detected).
-- **Query**: the `model-advisor` skill calls `mcp__trail__search` for the qualitative layer ("any quirks/lessons for <model/provider>?"), then combines with the JSON numbers for the final recommendation.
-- **Boundary**: numbers → JSON (authoritative); narrative → Trail (advisory). The advisor never lets a Trail-retrieved sentence override a JSON price.
+- **KB**: "Model Selection" in the broberg-ai tenant (Trail provisions; gives KB-id + base URL).
+- **Write**: `wiki-write` REST from this session (and optionally a monthly-run step when a new lesson is detected). Paths `/neurons/concepts/` (philosophy) + `/neurons/heuristics/` (rules-of-thumb).
+- **Query**: the `model-advisor` skill calls `/chat` for the qualitative layer, then combines with the JSON numbers.
+- **Boundary**: numbers → JSON (authoritative); narrative → Trail (advisory). The advisor never lets a Trail sentence override a JSON price.
 
 ## Seed lessons (initial KB content)
-- medium-3.5 is a premium coding tier ($1.5/$7.5); Large 3 ($0.5/$1.5) is the cheaper frontier default.
-- OpenRouter slugs use dots (`claude-haiku-4.5`); dashed forms silently mismatch → $0 cost (F014 finding).
-- GDPR is a hard gate for personal/client data → EU-hosted (Mistral) only ([[mistral-is-gdpr-provider]]).
-- Mistral OCR is per-page, EU-hosted — right for patient documents.
-- Voxtral = the GDPR-safe audio path (transcribe + TTS).
-- F010 ground-truth cost overrides the table for OpenRouter routes.
+- `/neurons/heuristics/`: medium-3.5 is a premium coding tier ($1.5/$7.5) — default to Large 3 ($0.5/$1.5) instead.
+- `/neurons/heuristics/`: OpenRouter slugs use dots (`claude-haiku-4.5`); dashed forms silently mismatch → $0 cost (F014 finding).
+- `/neurons/concepts/`: GDPR is a hard gate for personal/client data → EU-hosted (Mistral) only ([[mistral-is-gdpr-provider]]).
+- `/neurons/concepts/`: Mistral OCR is per-page, EU-hosted — right for patient documents; Voxtral = the GDPR-safe audio path.
+- `/neurons/concepts/`: F010 ground-truth cost overrides the table for OpenRouter routes.
 
 ## Stories
-- **F018.1** — Wire Trail MCP into ai-sdk `.mcp.json` (write + search), config from Trail (#3112); verify the session can read/write the `model-selection` KB.
-- **F018.2** — Seed the narrative KB with the lessons above via `mcp__trail__write`.
-- **F018.3** — `model-advisor` skill consults the Trail KB (`mcp__trail__search`) for the qualitative "why" layer, combined with the JSON numbers; numbers always authoritative.
-- **F018.4** — Capture-new-lessons habit: a documented step (manual + optionally in the monthly run) to write a new model-selection lesson to the KB when one surfaces.
+- **F018.1** — Trail cloud REST client (`wiki-write` + `chat`, `TRAIL_API_KEY` in `.env`, `X-Trail-Tenant: broberg-ai`); verify read/write against the provisioned "Model Selection" KB.
+- **F018.2** — Seed the KB with the lessons above (correct `/neurons/concepts/` vs `/neurons/heuristics/` paths).
+- **F018.3** — `model-advisor` skill consults the KB (`/chat`) for the "why" layer, combined with JSON numbers; numbers always authoritative.
+- **F018.4** — Capture-new-lessons habit: documented step (manual + optional monthly-run hook) to `wiki-write` a new lesson when one surfaces.
 
 ## Acceptance criteria
-1. Trail MCP is wired in ai-sdk; the session can `mcp__trail__write` + `mcp__trail__search` the `model-selection` KB (live-verified).
-2. The KB is seeded with the lessons above; a search for e.g. "mistral medium 3.5" returns the premium-tier lesson.
-3. The `model-advisor` skill cites a relevant Trail lesson alongside the JSON numbers when one exists — and the numbers always come from JSON, never Trail.
+1. The Trail REST client can `wiki-write` + `/chat` the "Model Selection" KB (live-verified with the scoped `TRAIL_API_KEY`).
+2. The KB is seeded; a `/chat` query for "mistral medium 3.5" returns the premium-tier lesson.
+3. The `model-advisor` skill cites a relevant Trail lesson alongside the JSON numbers when one exists — numbers always from JSON, never Trail.
 4. The JSON inventory + `recommendModel()` are unchanged and still authoritative.
 
 ## Dependencies
 - **F017** (JSON inventory + advisor skill) — F018 layers narrative on top.
-- **Trail** — `.mcp.json` config (URL+key) requested in #3112; the ingest/RAG table approach is explicitly dropped per #3103.
+- **Trail** — provisions the "Model Selection" KB + delivers `TRAIL_API_KEY` via daemon-.env-write (#3157). REST mechanics per #3134; MCP/table-mirror dropped.
 
 ## Rollout
-Additive + low-risk — the JSON path is untouched. Phase: wire MCP → seed KB → skill consults it → capture-habit. Rollback = unwire MCP; nothing else depends on it.
+Additive + low-risk — the JSON path is untouched. Phase: REST client → seed KB → skill consults it → capture-habit. Rollback = stop writing / drop the key; nothing else depends on it.
 
 ## Effort estimate
-**S–M** — ~1 day once Trail's `.mcp.json` snippet lands (mostly seeding + a skill tweak). Smaller than the original table-mirror idea precisely because we're not fighting RAG over deterministic data.
+**S** — ~1 day once the KB + key land (a thin REST client + seeding + a skill tweak). Smaller than the table-mirror idea because we're not fighting RAG over deterministic data.
