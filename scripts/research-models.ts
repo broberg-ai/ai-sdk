@@ -20,6 +20,11 @@ const diff = diffCatalogue(models, { fetchedProviders: fetched });
 if (json) {
   console.log(JSON.stringify({ fetched, errors, modelCount: models.length, diff }, null, 2));
 } else {
+  // F014.5 — loud drift alert when a priced model has vanished upstream (we'd keep
+  // pricing a model that no longer exists).
+  if (diff.removedUpstream.length > 0) {
+    console.log(`⚠️ DRIFT: ${diff.removedUpstream.length} priced model(s) GONE UPSTREAM — ${diff.removedUpstream.join(", ")}\n`);
+  }
   console.log(renderReport(diff, { models: models.length, fetched, errors }));
 }
 

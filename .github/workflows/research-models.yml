@@ -1,0 +1,58 @@
+name: model-research
+
+# F014.4 + F017.5 — monthly model-catalogue research. Fetches the live catalogue
+# (OpenRouter is public — no key needed), diffs it against the pricing table, and
+# rebuilds inventory.json. If anything changed, opens a PR with the diff report as
+# the body for a human to review (we PROPOSE, never auto-merge pricing).
+on:
+  schedule:
+    - cron: "0 3 1 * *" # 03:00 UTC on the 1st of each month
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+
+      # Drift report (exit 1 on drift is fine — capture it either way).
+      - name: Model-research report
+        run: bun run scripts/research-models.ts > /tmp/report.md 2>&1 || true
+
+      # Rebuild inventory.json from the live catalogue + curated overlay (F017.5).
+      - name: Rebuild inventory
+        run: bun run scripts/build-inventory.ts
+
+      - name: Open PR if the inventory changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ignore the generatedAt timestamp — only open a PR for SUBSTANTIVE changes
+          # (new models, prices, tags), not a fresh run-stamp.
+          if git diff -I '"generatedAt"' --quiet inventory.json; then
+            echo "inventory.json unchanged (only the timestamp) — no PR."
+            git checkout inventory.json
+            exit 0
+          fi
+          BRANCH="model-research/$(date +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add inventory.json
+          git commit -m "chore(inventory): monthly model-research refresh"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "Monthly model-research refresh ($(date +%Y-%m-%d))" \
+            --body-file /tmp/report.md \
+            --base main --head "$BRANCH"
