@@ -174,6 +174,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
 | `ai.moderate` | `{ input: string \| string[] }` | `{ results: {flagged,categories,categoryScores}[], usage }` | mistral-moderation (per-token) |
 | `ai.podcast` | `{ script: {speaker,text}[], voices: {speaker→voiceId} }` | `{ audio, mimeType, usage }` | elevenlabs eleven_v3 (per-char) |
+| `ai.tts` | `{ text, voice }` | `{ audio, mimeType, usage }` | elevenlabs eleven_multilingual_v2 (per-char) |
 
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose?, labels? }`.
 
@@ -223,6 +224,37 @@ so any video-capable provider works via `override`.
 
 A **budget breach is not a fallback trigger** — it throws immediately (you asked
 not to spend, so the SDK won't quietly retry on a pricier route).
+
+### Podcast & speech — `ai.podcast` / `ai.tts` (F020)
+
+`ai.podcast` turns a finished multi-speaker manuscript into **one** cohesive
+multi-voice MP3 in a single ElevenLabs Text-to-Dialogue call (`eleven_v3`) —
+auto speaker-transitions, emotion, inline audio tags (`[laughs]`, `[whispers]`).
+Your app owns the script; the SDK does the transcript→audio half. Danish-capable.
+
+```ts
+const { audio, mimeType, usage } = await ai.podcast({
+  script: [
+    { speaker: "host",  text: "Velkommen til podcasten! [laughs]" },
+    { speaker: "guest", text: "Tak — dejligt at være her." },
+  ],
+  voices: { host: "noam", guest: "camilla" },   // friendly names OR raw voiceIds
+});
+// audio: Uint8Array (audio/mpeg), usage.costUsd per-character non-zero
+```
+
+`ai.tts` is the single-voice cousin (ElevenLabs `eleven_multilingual_v2`) — better
+Danish than Voxtral:
+
+```ts
+const { audio } = await ai.tts({ text: "Hej, det her er en test.", voice: "soren" });
+```
+
+**Named Danish voices** (`ELEVENLABS_DANISH_VOICES`, also exported) resolve friendly
+names → voiceIds, so apps never hardcode raw IDs: `soren`, `jesper`, `mads`, `noam`,
+`camilla`. Pass a name anywhere a `voice` / `voices` value is expected, or a raw
+ElevenLabs voiceId to use any other voice. **Library (named) voices require a paid
+ElevenLabs plan** — the free tier 402s on them; the 25 default voices speak Danish too.
 
 ### Streaming — `ai.chatStream`
 
