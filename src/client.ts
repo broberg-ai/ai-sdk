@@ -50,6 +50,9 @@ import type {
   OcrResult,
   ModerationResult,
   PodcastResult,
+  BatchRequestItem,
+  BatchJob,
+  BatchResultItem,
   TranslateResult,
   ProviderAdapter,
   Message,
@@ -73,6 +76,8 @@ const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
 const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_multilingual_v2", transport: "http" };
+/** Batch route (F016.1) — Mistral batch jobs (50% cost), cheap default model. */
+const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-latest", transport: "http" };
 
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
@@ -488,6 +493,27 @@ export function createAI(config: AiConfig = {}): AiClient {
           return adapter.transcribe({ audio, language: input.language, durationSec: input.durationSec, spec });
         },
       });
+    },
+
+    batch: {
+      async submit(input: { requests: BatchRequestItem[]; override?: TierSpec }): Promise<BatchJob> {
+        const spec = { ...DEFAULT_BATCH_SPEC, ...input.override };
+        const adapter = pickProvider(spec.provider);
+        if (!adapter.batchSubmit) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
+        return adapter.batchSubmit({ items: input.requests, spec });
+      },
+      async status(jobId: string, override?: TierSpec): Promise<BatchJob> {
+        const spec = { ...DEFAULT_BATCH_SPEC, ...override };
+        const adapter = pickProvider(spec.provider);
+        if (!adapter.batchStatus) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
+        return adapter.batchStatus({ jobId, spec });
+      },
+      async results(jobId: string, override?: TierSpec): Promise<BatchResultItem[]> {
+        const spec = { ...DEFAULT_BATCH_SPEC, ...override };
+        const adapter = pickProvider(spec.provider);
+        if (!adapter.batchResults) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
+        return adapter.batchResults({ jobId, spec });
+      },
     },
 
     // Replaced below with the real prompt-contracts (needs the client itself).

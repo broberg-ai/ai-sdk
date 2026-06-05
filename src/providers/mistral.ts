@@ -16,6 +16,10 @@ import type {
   EmbeddingResult,
   TranscribeRequest,
   TranscribeResult,
+  BatchRequestItem,
+  BatchJob,
+  BatchResultItem,
+  TierSpec,
 } from "../types.js";
 
 /** Per-page USD for Mistral OCR ($2 / 1000 pages). Overridable via config. */
@@ -179,5 +183,59 @@ export function mistralAdapter(
     return { text: data.text ?? "", usage };
   }
 
-  return { ...base, ocr, moderate, embedding, transcribe };
+  // Batch (F016.1) — async chat at 50% cost. Upload a JSONL of requests → create
+  // a job → poll status → download results. Each line: {custom_id, body:{model,messages}}.
+  async function batchSubmit(req: { items: BatchRequestItem[]; spec: TierSpec }): Promise<BatchJob> {
+    const jsonl = req.items
+      .map((it) =>
+        JSON.stringify({
+          custom_id: it.customId,
+          body: { model: req.spec.model, messages: [{ role: "user", content: it.prompt }] },
+        }),
+      )
+      .join("\n");
+    // Upload the input file (multipart, purpose=batch).
+    const form = new FormData();
+    form.append("purpose", "batch");
+    form.append("file", new Blob([jsonl], { type: "application/jsonl" }), "batch.jsonl");
+    const up = await fetchImpl(`${baseUrl}/files`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key()}` },
+      body: form,
+    });
+    if (!up.ok) throw new Error(`mistral batch upload ${up.status}: ${(await up.text().catch(() => "")).slice(0, 200)}`);
+    const fileId = ((await up.json()) as { id?: string }).id;
+    // Create the batch job.
+    const job = await fetchImpl(`${baseUrl}/batch/jobs`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key()}` },
+      body: JSON.stringify({ input_files: [fileId], model: req.spec.model, endpoint: "/v1/chat/completions" }),
+    });
+    if (!job.ok) throw new Error(`mistral batch job ${job.status}: ${(await job.text().catch(() => "")).slice(0, 200)}`);
+    const data = (await job.json()) as { id?: string; status?: string; total_requests?: number };
+    return { jobId: data.id ?? "", status: data.status ?? "queued", total: data.total_requests };
+  }
+
+  async function batchStatus(req: { jobId: string; spec: TierSpec }): Promise<BatchJob> {
+    const res = await fetchImpl(`${baseUrl}/batch/jobs/${req.jobId}`, { headers: { authorization: `Bearer ${key()}` } });
+    if (!res.ok) throw new Error(`mistral batch status ${res.status}`);
+    const d = (await res.json()) as { id?: string; status?: string; total_requests?: number; succeeded_requests?: number };
+    return { jobId: d.id ?? req.jobId, status: d.status ?? "unknown", total: d.total_requests, completed: d.succeeded_requests };
+  }
+
+  async function batchResults(req: { jobId: string; spec: TierSpec }): Promise<BatchResultItem[]> {
+    const job = await fetchImpl(`${baseUrl}/batch/jobs/${req.jobId}`, { headers: { authorization: `Bearer ${key()}` } });
+    if (!job.ok) throw new Error(`mistral batch results ${job.status}`);
+    const outputFile = ((await job.json()) as { output_file?: string }).output_file;
+    if (!outputFile) throw new Error("mistral batch: job has no output_file yet (not finished)");
+    const content = await fetchImpl(`${baseUrl}/files/${outputFile}/content`, { headers: { authorization: `Bearer ${key()}` } });
+    if (!content.ok) throw new Error(`mistral batch download ${content.status}`);
+    const lines = (await content.text()).trim().split("\n").filter(Boolean);
+    return lines.map((line) => {
+      const row = JSON.parse(line) as { custom_id?: string; response?: { body?: { choices?: { message?: { content?: string } }[] } } };
+      return { customId: row.custom_id ?? "", text: row.response?.body?.choices?.[0]?.message?.content ?? "" };
+    });
+  }
+
+  return { ...base, ocr, moderate, embedding, transcribe, batchSubmit, batchStatus, batchResults };
 }

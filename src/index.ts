@@ -137,4 +137,7 @@ export type {
   DialogueRequest,
   PodcastResult,
   TtsRequest,
+  BatchRequestItem,
+  BatchJob,
+  BatchResultItem,
 } from "./types.js";

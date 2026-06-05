@@ -15,6 +15,10 @@ import type {
   OcrResult,
   ModerationResult,
   PodcastResult,
+  BatchRequestItem,
+  BatchJob,
+  BatchResultItem,
+  TierSpec,
 } from "../types.js";
 import type { Contracts } from "../capabilities/contracts/types.js";
 
@@ -218,6 +222,12 @@ export interface AiClient {
   podcast(input: PodcastInput): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) — text → audio. `voice` = curated name or voiceId. ElevenLabs. */
   tts(input: TtsInput): Promise<PodcastResult>;
+  /** Batch (F016.1) — submit many chat requests for async (≤24h) processing at 50% cost. Mistral. */
+  batch: {
+    submit(input: { requests: BatchRequestItem[]; override?: TierSpec }): Promise<BatchJob>;
+    status(jobId: string, override?: TierSpec): Promise<BatchJob>;
+    results(jobId: string, override?: TierSpec): Promise<BatchResultItem[]>;
+  };
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
 }

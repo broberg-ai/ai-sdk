@@ -269,6 +269,22 @@ export interface TtsRequest {
   spec: TierSpec;
 }
 
+// Batch (F016.1) — submit many chat requests for async (≤24h) processing at 50% cost.
+export interface BatchRequestItem {
+  customId: string;
+  prompt: string;
+}
+export interface BatchJob {
+  jobId: string;
+  status: string;
+  total?: number;
+  completed?: number;
+}
+export interface BatchResultItem {
+  customId: string;
+  text: string;
+}
+
 /** The thin contract every provider implements (F4). A provider need only
  *  support the capabilities it offers — `chat` is the baseline; vision/image/
  *  embedding are optional and absence is a typed capability gap. */
@@ -291,6 +307,10 @@ export interface ProviderAdapter {
   dialogue?(req: DialogueRequest): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) → audio. ElevenLabs. */
   tts?(req: TtsRequest): Promise<PodcastResult>;
+  /** Batch (F016.1) — async chat-request processing at 50% cost. Mistral. */
+  batchSubmit?(req: { items: BatchRequestItem[]; spec: TierSpec }): Promise<BatchJob>;
+  batchStatus?(req: { jobId: string; spec: TierSpec }): Promise<BatchJob>;
+  batchResults?(req: { jobId: string; spec: TierSpec }): Promise<BatchResultItem[]>;
 }
 
 // ── Client config ──────────────────────────────────────────────────────────
