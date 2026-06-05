@@ -5,7 +5,9 @@ import { createAI } from "../client.js";
 function jsonFetch(payload: unknown, status = 200) {
   const seen: { url: string; body: any }[] = [];
   const f = (async (url: string | URL, init?: RequestInit) => {
-    seen.push({ url: String(url), body: JSON.parse(init!.body as string) });
+    // JSON bodies parse; multipart (FormData, e.g. transcribe) passes through.
+    const body = typeof init!.body === "string" ? JSON.parse(init!.body) : init!.body;
+    seen.push({ url: String(url), body });
     return new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } });
   }) as unknown as typeof fetch;
   return { f, seen };
@@ -56,6 +58,32 @@ test("moderate flagged=false when no category trips", async () => {
   const { f } = jsonFetch({ results: [{ categories: { hate: false, sexual: false }, category_scores: {} }] });
   const { results } = await mistralAdapter({ apiKey: "k", fetch: f }).moderate!({ input: ["hej, fin besked"], spec: modSpec });
   expect(results[0]!.flagged).toBe(false);
+});
+
+test("embedding posts {model,input} to /embeddings and returns vectors (F016.5)", async () => {
+  const { f, seen } = jsonFetch({ data: [{ embedding: [0.1, 0.2, 0.3] }, { embedding: [0.4, 0.5, 0.6] }], usage: { prompt_tokens: 12 } });
+  const adapter = mistralAdapter({ apiKey: "k", fetch: f });
+  const { vectors, usage } = await adapter.embedding!({ input: ["a", "b"], spec: { provider: "mistral", model: "mistral-embed", transport: "http" } });
+  expect(seen[0]!.url).toBe("https://api.mistral.ai/v1/embeddings");
+  expect(seen[0]!.body).toEqual({ model: "mistral-embed", input: ["a", "b"] });
+  expect(vectors).toEqual([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]);
+  expect(usage.capability).toBe("embedding");
+  expect(usage.costUsd).toBeGreaterThan(0);
+});
+
+test("transcribe posts multipart to /audio/transcriptions, per-minute cost (F016.3)", async () => {
+  const { f, seen } = jsonFetch({ text: "hello world" });
+  const adapter = mistralAdapter({ apiKey: "k", fetch: f });
+  const { text, usage } = await adapter.transcribe!({
+    audio: new Uint8Array([1, 2, 3]),
+    durationSec: 120,
+    spec: { provider: "mistral", model: "voxtral-mini-latest", transport: "http" },
+  });
+  expect(seen[0]!.url).toBe("https://api.mistral.ai/v1/audio/transcriptions");
+  expect(text).toBe("hello world");
+  expect(usage.capability).toBe("transcribe");
+  // 120s = 2 min × $0.002/min = $0.004
+  expect(usage.costUsd).toBeCloseTo(0.004, 9);
 });
 
 test("ai.ocr + ai.moderate route to mistral by default (no override)", async () => {

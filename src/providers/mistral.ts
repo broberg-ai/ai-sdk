@@ -12,10 +12,21 @@ import type {
   ModerationRequest,
   ModerationResult,
   ModerationItem,
+  EmbeddingRequest,
+  EmbeddingResult,
+  TranscribeRequest,
+  TranscribeResult,
 } from "../types.js";
 
 /** Per-page USD for Mistral OCR ($2 / 1000 pages). Overridable via config. */
 const MISTRAL_OCR_PRICE_PER_PAGE = 0.002;
+
+/** Per-minute USD for Voxtral transcription models (F016.3). */
+const VOXTRAL_PRICE_PER_MIN: Record<string, number> = {
+  "voxtral-mini-latest": 0.002,
+  "voxtral-mini-2507": 0.002,
+  "voxtral-mini-2602": 0.002,
+};
 
 export function mistralAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerPage?: number } = {},
@@ -110,5 +121,63 @@ export function mistralAdapter(
     return { results, usage };
   }
 
-  return { ...base, ocr, moderate };
+  // Embeddings (F016.5) — POST /embeddings (OpenAI-compatible). Per-token input.
+  async function embedding(req: EmbeddingRequest): Promise<EmbeddingResult> {
+    const res = await fetchImpl(`${baseUrl}/embeddings`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key()}` },
+      body: JSON.stringify({ model: req.spec.model, input: req.input }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`mistral embeddings ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      data?: { embedding: number[] }[];
+      usage?: { prompt_tokens?: number; total_tokens?: number };
+    };
+    const vectors = (data.data ?? []).map((d) => d.embedding);
+    const usage = freshUsage({
+      provider: "mistral",
+      model: req.spec.model,
+      transport: "http",
+      capability: "embedding",
+      inputTokens: data.usage?.prompt_tokens ?? data.usage?.total_tokens ?? 0,
+      outputTokens: 0,
+    });
+    return { vectors, usage };
+  }
+
+  // Transcribe (F016.3) — Voxtral via OpenAI-compatible /audio/transcriptions
+  // (multipart). Per-minute cost when durationSec is supplied.
+  async function transcribe(req: TranscribeRequest): Promise<TranscribeResult> {
+    const form = new FormData();
+    form.append("file", new Blob([req.audio]), "audio");
+    form.append("model", req.spec.model);
+    if (req.language) form.append("language", req.language);
+    const res = await fetchImpl(`${baseUrl}/audio/transcriptions`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key()}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`mistral transcribe ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as { text?: string };
+    const usage = freshUsage({
+      provider: "mistral",
+      model: req.spec.model,
+      transport: "http",
+      capability: "transcribe",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    if (req.durationSec !== undefined) {
+      usage.costUsd = (req.durationSec / 60) * (VOXTRAL_PRICE_PER_MIN[req.spec.model] ?? 0);
+    }
+    return { text: data.text ?? "", usage };
+  }
+
+  return { ...base, ocr, moderate, embedding, transcribe };
 }
