@@ -9,3 +9,6 @@
 dist
 node_modules
 src/version.ts
+
+# local backup artifacts
+*.bak
