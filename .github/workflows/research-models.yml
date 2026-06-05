@@ -52,7 +52,14 @@ jobs:
           git add inventory.json
           git commit -m "chore(inventory): monthly model-research refresh"
           git push -u origin "$BRANCH"
+          # Try to open the PR; if the org disables Actions PR-creation, fall back to
+          # the pushed branch + a compare URL so a human opens it in one click.
           gh pr create \
             --title "Monthly model-research refresh ($(date +%Y-%m-%d))" \
             --body-file /tmp/report.md \
-            --base main --head "$BRANCH"
+            --base main --head "$BRANCH" \
+          || {
+            echo "::notice::PR auto-create blocked by org policy. Branch pushed — open a PR:"
+            echo "https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+            cat /tmp/report.md
+          }
