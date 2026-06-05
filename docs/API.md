@@ -348,7 +348,8 @@ v0.3.1: anthropic tool_use/tool_result threading. v0.4.0: per-call attribution
 v0.5.0: Gemini image generation (F013). v0.5.1: gemini-direct $0-cost fix (F012-class).
 v0.6.0: `ai.video` native video vision (F019) + official Mistral provider + prices (F015).
 v0.7.0: `ai.ocr` (per-page) + `ai.moderate` (per-token) via Mistral (F016.2 + F016.4).
-v0.8.0: `ai.podcast` (multi-voice episode) + `ai.tts` (single voice) via ElevenLabs, named Danish voices (F020).)*
+v0.8.0: `ai.podcast` (multi-voice episode) + `ai.tts` (single voice) via ElevenLabs, named Danish voices (F020).
+v0.9.0: Mistral embeddings + Voxtral transcribe + `ai.batch.*` (50% async); monthly model-research GHA + inventory enrichment (F016/F014/F017).)*
 
 ---
 
