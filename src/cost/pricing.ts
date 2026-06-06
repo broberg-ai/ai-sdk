@@ -72,6 +72,13 @@ export const PRICING: Record<string, PricingEntry> = {
     outputPer1M: 1.2,
     version: "2026-06-04",
   },
+  // DeepSeek V4 (CN-hosted — NOT GDPR-safe; non-personal-data workloads only).
+  // On 2026-05-22 DeepSeek made the "75% off" promo the permanent official price.
+  // V4-Pro $0.435/$0.87 is ~34x cheaper than GPT-5.5 on output; flash is cheaper
+  // still. Numbers match OpenRouter /api/v1/models 1:1 (no router markup). A strong
+  // cheap route for fleet background work once `claude -p` is API-billed (15 Jun).
+  "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.435, outputPer1M: 0.87, version: "2026-05-22-deepseek-official" },
+  "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.0983, outputPer1M: 0.1966, version: "2026-05-22-deepseek-official" },
 
   // Google Gemini (direct). Provider key is "gemini" — matches the adapter's
   // usage.provider + the override.provider callers pass. (Image-gen models are

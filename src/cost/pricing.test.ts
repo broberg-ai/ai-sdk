@@ -13,6 +13,16 @@ test("MiniMax M2.7 is priced via openrouter", () => {
   expect(getPrice("openrouter", "minimax/minimax-m2.7")).toBeDefined();
 });
 
+test("DeepSeek V4 is priced via openrouter (official permanent prices)", () => {
+  // CN-hosted, non-GDPR — but a strong cheap route post-15-Jun. Must not log $0.
+  expect(getPrice("openrouter", "deepseek/deepseek-v4-pro")).toBeDefined();
+  expect(computeCost("openrouter", "deepseek/deepseek-v4-pro", 1_000_000, 1_000_000)).toBeCloseTo(
+    1.305, // $0.435 in + $0.87 out
+    6,
+  );
+  expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toBeDefined();
+});
+
 test("gemini-direct is priced under provider 'gemini' (not 'google')", () => {
   // The gemini adapter stamps usage.provider = "gemini"; the pricing key must
   // match or every gemini-direct call silently logs $0. Regression: was keyed
