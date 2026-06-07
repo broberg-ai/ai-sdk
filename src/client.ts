@@ -19,6 +19,7 @@ import {
   videoInputSchema,
   translateInputSchema,
   imageInputSchema,
+  trainStyleInputSchema,
   embeddingInputSchema,
   transcribeInputSchema,
   ocrInputSchema,
@@ -34,6 +35,7 @@ import type {
   VideoInput,
   TranslateInput,
   ImageInput,
+  TrainStyleInput,
   EmbeddingInput,
   TranscribeInput,
   OcrInput,
@@ -45,6 +47,7 @@ import type {
   ChatResult,
   ChatStreamEvent,
   ImageResult,
+  TrainStyleResult,
   EmbeddingResult,
   TranscribeResult,
   OcrResult,
@@ -66,6 +69,18 @@ import type {
 const DEFAULT_IMAGE_SPEC: TierSpec = {
   provider: "fal",
   model: "fal-ai/flux/schnell",
+  transport: "http",
+};
+/** LoRA-inference route (F021) — used by ai.image when loras are supplied. */
+const DEFAULT_LORA_IMAGE_SPEC: TierSpec = {
+  provider: "fal",
+  model: "fal-ai/flux-lora",
+  transport: "http",
+};
+/** Style-LoRA training route (F021) — fal flux-lora-fast-training. */
+const DEFAULT_TRAINSTYLE_SPEC: TierSpec = {
+  provider: "fal",
+  model: "fal-ai/flux-lora-fast-training",
   transport: "http",
 };
 
@@ -359,8 +374,16 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async image(input: ImageInput): Promise<ImageResult> {
       input = imageInputSchema.parse(input);
+      // Normalize the `lora` shorthand into the loras array.
+      const loras = [
+        ...(input.loras ?? []),
+        ...(input.lora ? [{ path: input.lora }] : []),
+      ];
+      // LoRAs need an inference model that supports them — flux/schnell doesn't,
+      // so default to flux-lora when any LoRA is supplied (override still wins).
+      const base = loras.length > 0 ? DEFAULT_LORA_IMAGE_SPEC : DEFAULT_IMAGE_SPEC;
       return runCapability({
-        primary: { ...DEFAULT_IMAGE_SPEC, ...input.override },
+        primary: { ...base, ...input.override },
         fallback: input.fallback,
         capability: "image",
         purpose: input.purpose,
@@ -370,7 +393,39 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.image) throw new Error(`createAI: provider "${spec.provider}" does not support image`);
-          return adapter.image({ prompt: input.prompt, spec, width: input.width, height: input.height });
+          return adapter.image({
+            prompt: input.prompt,
+            spec,
+            width: input.width,
+            height: input.height,
+            loras: loras.length ? loras : undefined,
+          });
+        },
+      });
+    },
+
+    async trainStyle(input: TrainStyleInput): Promise<TrainStyleResult> {
+      input = trainStyleInputSchema.parse(input);
+      return runCapability({
+        primary: { ...DEFAULT_TRAINSTYLE_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "trainStyle",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: 0, // training is priced flat by fal, not token-based
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.trainStyle)
+            throw new Error(`createAI: provider "${spec.provider}" does not support trainStyle`);
+          return adapter.trainStyle({
+            images: input.images,
+            spec,
+            isStyle: input.isStyle,
+            triggerWord: input.triggerWord,
+            steps: input.steps,
+            createMasks: input.createMasks,
+          });
         },
       });
     },

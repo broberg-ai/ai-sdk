@@ -168,7 +168,8 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
-| `ai.image` | `{ prompt, width?, height? }` | `{ url, usage }` | fal.ai (sync); gemini via `override` |
+| `ai.image` | `{ prompt, width?, height?, loras?, lora? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given) |
+| `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
 | `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
@@ -224,6 +225,33 @@ so any video-capable provider works via `override`.
 
 A **budget breach is not a fallback trigger** — it throws immediately (you asked
 not to spend, so the SDK won't quietly retry on a pricier route).
+
+### Style LoRA training — `ai.trainStyle` + `ai.image` loras (F021)
+
+Train a reusable **brand/style LoRA** from a set of images, then generate new images
+that hit that style every time (instead of prompt-steered output that varies run-to-run).
+Backed by fal `fal-ai/flux-lora-fast-training` (train) + `fal-ai/flux-lora` (inference).
+
+```ts
+// 1) Train once. Pass image URLs (SDK zips them in-memory) OR a hosted archive URL.
+const { loraUrl, usage } = await ai.trainStyle({
+  images: ["https://.../a.png", "https://.../b.png", /* ... */],  // or "https://.../styleset.zip"
+  isStyle: true,            // default — style LoRA (no captioning/masks)
+  triggerWord: "SANNESTYLE",
+  steps: 1000,
+});
+// usage.costUsd ≈ $2 (flat). Takes a few minutes (fal queue). Keep loraUrl.
+
+// 2) Generate in that style — forever.
+const { url } = await ai.image({ prompt: "a treatment illustration of a back massage", lora: loraUrl });
+//   shorthand `lora` == `loras: [{ path: loraUrl, scale: 1 }]`; use `loras` for multiple / custom scale.
+```
+
+- **Reusable** — any repo with a set of brand images gets a consistent house style.
+- **Zip gotcha handled** — fal needs the training images as an archive on a fetchable URL;
+  `images: string[]` is fetched + zipped in-memory (node:zlib, no deps) and sent as a `data:` URI.
+  For very large sets, pre-host a zip and pass its URL as `images` (passthrough).
+- **Key** — fal reads `FAL_KEY` (or `FAL_API_KEY`).
 
 ### Podcast & speech — `ai.podcast` / `ai.tts` (F020)
 
@@ -382,7 +410,8 @@ v0.6.0: `ai.video` native video vision (F019) + official Mistral provider + pric
 v0.7.0: `ai.ocr` (per-page) + `ai.moderate` (per-token) via Mistral (F016.2 + F016.4).
 v0.8.0: `ai.podcast` (multi-voice episode) + `ai.tts` (single voice) via ElevenLabs, named Danish voices (F020).
 v0.9.0: Mistral embeddings + Voxtral transcribe + `ai.batch.*` (50% async); monthly model-research GHA + inventory enrichment (F016/F014/F017).
-v0.9.1: DeepSeek V4 pricing via OpenRouter — `deepseek/deepseek-v4-pro` ($0.435/$0.87) + `deepseek-v4-flash` ($0.098/$0.197), official permanent prices. CN-hosted (non-GDPR); cheap fleet-background route.)*
+v0.9.1: DeepSeek V4 pricing via OpenRouter — `deepseek/deepseek-v4-pro` ($0.435/$0.87) + `deepseek-v4-flash` ($0.098/$0.197), official permanent prices. CN-hosted (non-GDPR); cheap fleet-background route.
+v0.10.0: `ai.trainStyle` (fal LoRA style-training) + `ai.image` loras/lora — train a reusable brand-style LoRA, generate in that style every time (F021).)*
 
 ---
 
