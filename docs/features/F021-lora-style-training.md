@@ -49,6 +49,7 @@ Default route `{ provider:"fal", model:"fal-ai/flux-lora-fast-training", transpo
 - **F021.1** — types + schema + facade (`trainStyle`, `image` loras + shorthand).
 - **F021.2** — fal adapter: `trainStyle` (zip-build + queue + map) + `image` loras forwarding + `FAL_KEY ?? FAL_API_KEY`.
 - **F021.3** — offline tests (zip round-trip, request shapes) + docs + version bump + export.
+- **F021.4** (post-pilot follow-up) — `ai.image({ retryOnBlack:true })`: fal's NSFW safety-checker occasionally false-positives on clean LoRA output and returns a black image (`has_nsfw_concepts[0]=true`); re-roll once with a fresh seed, billing both generations. Raised by the sa pilot (~1/8 black). Live root cause for the data-URI bug also corrected here: fal rejects `data:` URIs for `images_data_url` ("URL too long"), so `images:string[]` is zipped and **uploaded to fal storage** (POST /storage/upload/initiate → PUT) and the returned `file_url` is sent — not a data URI.
 
 ## Acceptance criteria
 1. `ai.trainStyle({ images: string[] })` builds a valid zip (inflates back to identical input bytes — offline test) and submits it as `images_data_url` to `fal-ai/flux-lora-fast-training` with `is_style`/`trigger_word`/`steps`; returns `{ loraUrl, configUrl, usage }` with non-zero `usage.costUsd`.

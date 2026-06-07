@@ -399,6 +399,7 @@ export function createAI(config: AiConfig = {}): AiClient {
             width: input.width,
             height: input.height,
             loras: loras.length ? loras : undefined,
+            retryOnBlack: input.retryOnBlack,
           });
         },
       });

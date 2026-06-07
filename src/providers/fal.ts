@@ -15,6 +15,7 @@ import type {
 
 interface FalImagesResponse {
   images?: { url?: string }[];
+  has_nsfw_concepts?: boolean[];
   error?: unknown;
 }
 interface FalTrainResponse {
@@ -91,12 +92,21 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     }
 
     const mode = config.mode ?? "sync";
-    const url = await (mode === "sync"
-      ? runSync(req.spec.model, headers, body)
-      : runQueue(req.spec.model, headers, body));
+    const run = (b: Record<string, unknown>) =>
+      mode === "sync" ? runSync(req.spec.model, headers, b) : runQueue(req.spec.model, headers, b);
 
-    // fal returns no price; estimate per-image (one image per call) so usage.costUsd
-    // isn't silently 0. Override via config.pricePerImage.
+    let calls = 1;
+    let { url, flagged } = await run(body);
+    // F021.4 — fal's NSFW safety-checker occasionally false-positives on clean
+    // LoRA output and returns a fully BLACK image (has_nsfw_concepts[0]=true).
+    // When retryOnBlack is set, re-roll ONCE with a fresh seed.
+    if (flagged && req.retryOnBlack) {
+      calls++;
+      ({ url, flagged } = await run({ ...body, seed: Math.floor(Math.random() * 1e9) }));
+    }
+
+    // fal returns no price; estimate per-image so usage.costUsd isn't silently 0.
+    // A re-roll is a second billed generation → multiply by the call count.
     const usage = freshUsage({
       provider: "fal",
       model: req.spec.model,
@@ -105,7 +115,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = config.pricePerImage ?? FAL_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0;
+    usage.costUsd = (config.pricePerImage ?? FAL_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0) * calls;
     return { url, usage };
   }
 
@@ -198,11 +208,12 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     return file_url;
   }
 
+  /** Returns the image url + whether fal's safety-checker flagged it (→ black image). */
   async function runSync(
     model: string,
     headers: Record<string, string>,
     body: unknown,
-  ): Promise<string> {
+  ): Promise<{ url: string; flagged: boolean }> {
     const res = await doFetch(`${syncBase}/${model}`, {
       method: "POST",
       headers,
@@ -214,18 +225,18 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     const data = (await res.json()) as FalImagesResponse;
     const out = data.images?.[0]?.url;
     if (!out) throw new Error(`fal: no image url in response`);
-    return out;
+    return { url: out, flagged: data.has_nsfw_concepts?.[0] === true };
   }
 
   async function runQueue(
     model: string,
     headers: Record<string, string>,
     body: unknown,
-  ): Promise<string> {
+  ): Promise<{ url: string; flagged: boolean }> {
     const result = (await queueResult(model, headers, body, timeoutMs)) as FalImagesResponse;
     const out = result.images?.[0]?.url;
     if (!out) throw new Error("fal queue: no image url in result");
-    return out;
+    return { url: out, flagged: result.has_nsfw_concepts?.[0] === true };
   }
 
   /** Generic fal queue runner: submit → poll status → fetch+return the raw result JSON. */

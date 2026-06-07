@@ -191,6 +191,9 @@ export interface ImageRequest {
   height?: number;
   /** LoRAs to merge at inference (F021) — e.g. a trained brand/style LoRA. */
   loras?: LoraWeight[];
+  /** F021.4 — re-roll once with a fresh seed if fal's safety-checker false-positives
+   *  and returns a black image (has_nsfw_concepts). fal only. */
+  retryOnBlack?: boolean;
 }
 
 export interface ImageResult {

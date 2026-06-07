@@ -132,6 +132,8 @@ export const imageInputSchema = z.object({
   loras: z.array(loraWeightSchema).optional(),
   /** Shorthand for a single LoRA — normalized to loras:[{path, scale:1}]. */
   lora: z.string().optional(),
+  /** F021.4 — re-roll once if fal returns a black image (NSFW false-positive). */
+  retryOnBlack: z.boolean().optional(),
   ...callOptions,
 });
 

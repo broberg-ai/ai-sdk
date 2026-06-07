@@ -121,6 +121,40 @@ test("ai.image lora shorthand normalizes to loras:[{path, scale:1}] (F021.1)", a
   expect(seen[0]!.body.loras).toEqual([{ path: "https://brand.safetensors", scale: 1 }]);
 });
 
+test("ai.image retryOnBlack re-rolls once on an NSFW false-positive black image (F021.4)", async () => {
+  let call = 0;
+  const seen: any[] = [];
+  const f = (async (_url: string | URL, init?: RequestInit) => {
+    call++;
+    seen.push(init?.body ? JSON.parse(init.body as string) : undefined);
+    // first generation → flagged (black); the re-roll → clean
+    const flagged = call === 1;
+    return new Response(
+      JSON.stringify({ images: [{ url: flagged ? "https://black.png" : "https://good.png" }], has_nsfw_concepts: [flagged] }),
+    );
+  }) as unknown as typeof fetch;
+  const ai = createAI({ providers: { fal: falAdapter({ apiKey: "k", fetch: f }) } });
+
+  const r = await ai.image({ prompt: "x", lora: "https://l.safetensors", retryOnBlack: true });
+  expect(call).toBe(2); // re-rolled once
+  expect(typeof seen[1]!.seed).toBe("number"); // retry carried a fresh seed
+  expect(r.url).toBe("https://good.png"); // returns the clean re-roll
+  expect(r.usage.costUsd).toBeCloseTo(0.05, 6); // two billed generations (0.025 × 2)
+});
+
+test("ai.image without retryOnBlack returns the flagged image as-is, billed once (F021.4)", async () => {
+  let call = 0;
+  const f = (async () => {
+    call++;
+    return new Response(JSON.stringify({ images: [{ url: "https://black.png" }], has_nsfw_concepts: [true] }));
+  }) as unknown as typeof fetch;
+  const ai = createAI({ providers: { fal: falAdapter({ apiKey: "k", fetch: f }) } });
+  const r = await ai.image({ prompt: "x", lora: "https://l.safetensors" });
+  expect(call).toBe(1); // no re-roll
+  expect(r.url).toBe("https://black.png");
+  expect(r.usage.costUsd).toBeCloseTo(0.025, 6);
+});
+
 test("extractTrainedFiles is defensive across fal output-shape variance (F021.2)", () => {
   // documented shape
   expect(
