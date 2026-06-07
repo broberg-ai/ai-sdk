@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { inflateRawSync } from "node:zlib";
-import { falAdapter } from "./fal.js";
+import { falAdapter, extractTrainedFiles } from "./fal.js";
 import { createAI } from "../client.js";
 
 const spec = { provider: "fal", model: "fal-ai/flux-lora-fast-training", transport: "http" as const };
@@ -110,6 +110,46 @@ test("ai.image lora shorthand normalizes to loras:[{path, scale:1}] (F021.1)", a
   expect(seen[0]!.body.loras).toEqual([{ path: "https://brand.safetensors", scale: 1 }]);
 });
 
+test("extractTrainedFiles is defensive across fal output-shape variance (F021.2)", () => {
+  // documented shape
+  expect(
+    extractTrainedFiles({ diffusers_lora_file: { url: "a.safetensors" }, config_file: { url: "c.json" } }),
+  ).toEqual({ loraUrl: "a.safetensors", configUrl: "c.json" });
+  // renamed field
+  expect(extractTrainedFiles({ lora_file: { url: "b.safetensors" } }).loraUrl).toBe("b.safetensors");
+  // a `data` wrapper
+  expect(extractTrainedFiles({ data: { diffusers_lora_file: { url: "d.safetensors" } } }).loraUrl).toBe(
+    "d.safetensors",
+  );
+  // unknown field name → fall back to scanning for any *.safetensors url
+  expect(extractTrainedFiles({ outputs: [{ file: { url: "https://x/weights.safetensors" } }] }).loraUrl).toBe(
+    "https://x/weights.safetensors",
+  );
+  // genuinely absent
+  expect(extractTrainedFiles({ images: [{ url: "nope.png" }] }).loraUrl).toBeUndefined();
+});
+
+test("trainStyle resolves a renamed lora field + raises a raw-shape error otherwise (F021.2)", async () => {
+  const make = (trainBody: unknown) =>
+    (async (url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith("/fal-ai/flux-lora-fast-training"))
+        return new Response(JSON.stringify({ status_url: "https://q/s", response_url: "https://q/r" }));
+      if (u === "https://q/s") return new Response(JSON.stringify({ status: "COMPLETED" }));
+      if (u === "https://q/r") return new Response(JSON.stringify(trainBody));
+      return new Response("{}");
+    }) as unknown as typeof fetch;
+
+  // renamed field → still resolves
+  const ok = falAdapter({ apiKey: "k", fetch: make({ lora_file: { url: "https://x/w.safetensors" } }) });
+  const r = await ok.trainStyle!({ images: "https://cdn/z.zip", spec });
+  expect(r.loraUrl).toBe("https://x/w.safetensors");
+
+  // garbage → error carries the raw payload for diagnosis
+  const bad = falAdapter({ apiKey: "k", fetch: make({ unexpected: "boom" }) });
+  await expect(bad.trainStyle!({ images: "https://cdn/z.zip", spec })).rejects.toThrow(/unexpected.*boom/);
+});
+
 test("fal adapter resolves the key from FAL_API_KEY when FAL_KEY is absent (F021.2)", async () => {
   const prevKey = process.env.FAL_KEY;
   const prevApi = process.env.FAL_API_KEY;
@@ -118,7 +158,7 @@ test("fal adapter resolves the key from FAL_API_KEY when FAL_KEY is absent (F021
   try {
     let authSeen = "";
     const f = (async (_url: string | URL, init?: RequestInit) => {
-      authSeen = (init?.headers as Record<string, string>).Authorization;
+      authSeen = (init?.headers as Record<string, string>).Authorization ?? "";
       return new Response(JSON.stringify({ images: [{ url: "https://out.png" }] }));
     }) as unknown as typeof fetch;
     const adapter = falAdapter({ fetch: f }); // no apiKey → env fallback

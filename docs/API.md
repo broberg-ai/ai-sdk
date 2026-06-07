@@ -411,7 +411,8 @@ v0.7.0: `ai.ocr` (per-page) + `ai.moderate` (per-token) via Mistral (F016.2 + F0
 v0.8.0: `ai.podcast` (multi-voice episode) + `ai.tts` (single voice) via ElevenLabs, named Danish voices (F020).
 v0.9.0: Mistral embeddings + Voxtral transcribe + `ai.batch.*` (50% async); monthly model-research GHA + inventory enrichment (F016/F014/F017).
 v0.9.1: DeepSeek V4 pricing via OpenRouter — `deepseek/deepseek-v4-pro` ($0.435/$0.87) + `deepseek-v4-flash` ($0.098/$0.197), official permanent prices. CN-hosted (non-GDPR); cheap fleet-background route.
-v0.10.0: `ai.trainStyle` (fal LoRA style-training) + `ai.image` loras/lora — train a reusable brand-style LoRA, generate in that style every time (F021).)*
+v0.10.0: `ai.trainStyle` (fal LoRA style-training) + `ai.image` loras/lora — train a reusable brand-style LoRA, generate in that style every time (F021).
+v0.10.1: `ai.trainStyle` robustness (F021) — defensive trained-file extraction (any field/wrapper, *.safetensors fallback), non-OK queue-result errors surfaced, and the raw fal response included in a shape-mismatch error so a failed run is never wasted.)*
 
 ---
 

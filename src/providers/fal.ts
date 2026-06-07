@@ -129,8 +129,18 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       body,
       config.trainTimeoutMs ?? 600000,
     )) as FalTrainResponse;
-    const loraUrl = result.diffusers_lora_file?.url;
-    if (!loraUrl) throw new Error("fal trainStyle: no diffusers_lora_file.url in result");
+    // fal's LoRA trainers vary in output shape (field renames, wrappers, multiple
+    // trainer endpoints). Extract defensively across known/likely locations, then
+    // fall back to scanning for any *.safetensors url. If still nothing, surface the
+    // RAW response so a shape mismatch is diagnosable without a key on this side.
+    const { loraUrl, configUrl } = extractTrainedFiles(result);
+    if (!loraUrl) {
+      throw new Error(
+        `fal trainStyle: no LoRA file url in result — fal returned keys [${Object.keys(
+          (result as Record<string, unknown>) ?? {},
+        ).join(", ")}]: ${JSON.stringify(result).slice(0, 800)}`,
+      );
+    }
 
     const usage = freshUsage({
       provider: "fal",
@@ -141,7 +151,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       outputTokens: 0,
     });
     usage.costUsd = config.pricePerTraining ?? FAL_TRAIN_PRICE_ESTIMATE;
-    return { loraUrl, configUrl: result.config_file?.url ?? "", usage };
+    return { loraUrl, configUrl: configUrl ?? "", usage };
   }
 
   /** A hosted archive URL (or data: URI) passes straight through; an array of image
@@ -222,10 +232,65 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     }
 
     const resultRes = await doFetch(responseUrl, { headers });
+    if (!resultRes.ok) {
+      throw new Error(
+        `fal queue result ${resultRes.status}: ${(await resultRes.text().catch(() => "")).slice(0, 300)}`,
+      );
+    }
     return resultRes.json();
   }
 
   return { name: "fal", image, trainStyle };
+}
+
+// ── fal trained-file extraction (defensive against output-shape variance) ────
+
+function urlOf(v: unknown): string | undefined {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && typeof (v as { url?: unknown }).url === "string") {
+    return (v as { url: string }).url;
+  }
+  return undefined;
+}
+
+/** BFS the response for the first {url}/string url matching `match`. */
+function deepFindUrl(obj: unknown, match: (url: string) => boolean): string | undefined {
+  const stack: unknown[] = [obj];
+  while (stack.length) {
+    const cur = stack.pop();
+    if (typeof cur === "string") {
+      if (match(cur)) return cur;
+      continue;
+    }
+    if (cur && typeof cur === "object") {
+      const u = (cur as { url?: unknown }).url;
+      if (typeof u === "string" && match(u)) return u;
+      for (const v of Object.values(cur as Record<string, unknown>)) stack.push(v);
+    }
+  }
+  return undefined;
+}
+
+/** Find the LoRA + config urls across known field names, an optional data/response/
+ *  output wrapper, and — as a last resort — any *.safetensors / config *.json url
+ *  anywhere in the response. fal's LoRA trainers vary in output shape. */
+export function extractTrainedFiles(result: unknown): { loraUrl?: string; configUrl?: string } {
+  const r = result as Record<string, unknown> | null | undefined;
+  const root = (r?.data ?? r?.response ?? r?.output ?? r) as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const loraUrl =
+    urlOf(root?.diffusers_lora_file) ??
+    urlOf(root?.lora_file) ??
+    urlOf(root?.safetensors) ??
+    urlOf(root?.lora) ??
+    deepFindUrl(root, (u) => /\.safetensors(\?|$)/i.test(u));
+  const configUrl =
+    urlOf(root?.config_file) ??
+    urlOf(root?.config) ??
+    deepFindUrl(root, (u) => /config[^/]*\.json(\?|$)/i.test(u));
+  return { loraUrl, configUrl };
 }
 
 // ── In-memory ZIP (store via DEFLATE, node:zlib — zero new deps) ──────────────
