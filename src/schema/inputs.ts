@@ -10,6 +10,7 @@ import type {
   ChatResult,
   ChatStreamEvent,
   ImageResult,
+  TrainStyleResult,
   EmbeddingResult,
   TranscribeResult,
   OcrResult,
@@ -118,10 +119,30 @@ export const translateInputSchema = z.object({
   ...callOptions,
 });
 
+export const loraWeightSchema = z.object({
+  path: z.string(),
+  scale: z.number().optional(),
+});
+
 export const imageInputSchema = z.object({
   prompt: z.string(),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
+  /** LoRAs to merge at inference (F021). */
+  loras: z.array(loraWeightSchema).optional(),
+  /** Shorthand for a single LoRA — normalized to loras:[{path, scale:1}]. */
+  lora: z.string().optional(),
+  ...callOptions,
+});
+
+export const trainStyleInputSchema = z.object({
+  /** A hosted archive URL, or an array of image URLs the SDK zips in-memory. */
+  images: z.union([z.string(), z.array(z.string())]),
+  /** Style LoRA (disables captioning/masks). Default true. */
+  isStyle: z.boolean().optional(),
+  triggerWord: z.string().optional(),
+  steps: z.number().int().positive().optional(),
+  createMasks: z.boolean().optional(),
   ...callOptions,
 });
 
@@ -193,6 +214,7 @@ export type VisionInput = z.infer<typeof visionInputSchema>;
 export type VideoInput = z.infer<typeof videoInputSchema>;
 export type TranslateInput = z.infer<typeof translateInputSchema>;
 export type ImageInput = z.infer<typeof imageInputSchema>;
+export type TrainStyleInput = z.infer<typeof trainStyleInputSchema>;
 export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
 export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
@@ -212,6 +234,8 @@ export interface AiClient {
   video(input: VideoInput): Promise<ChatResult>;
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
+  /** Train a style/brand LoRA from images (F021) → { loraUrl, configUrl }. fal. */
+  trainStyle(input: TrainStyleInput): Promise<TrainStyleResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;
   transcribe(input: TranscribeInput): Promise<TranscribeResult>;
   /** OCR (F016.2) — document/image → structured markdown, billed per page. Mistral. */

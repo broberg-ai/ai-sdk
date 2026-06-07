@@ -41,6 +41,7 @@ export type Capability =
   | "moderation"
   | "podcast"
   | "tts"
+  | "trainStyle"
   | "mockup"
   | "design"
   | "extract"
@@ -175,15 +176,46 @@ export type ChatStreamEvent =
   | { type: "finish"; reason: "end_turn" | "tool_calls" | "length" | "stop" }
   | { type: "error"; message: string; status?: number };
 
+/** A trained LoRA to merge at inference time (F021). */
+export interface LoraWeight {
+  /** URL (or fal path) to the LoRA weights. */
+  path: string;
+  /** Scales the LoRA before merging (default 1). */
+  scale?: number;
+}
+
 export interface ImageRequest {
   prompt: string;
   spec: TierSpec;
   width?: number;
   height?: number;
+  /** LoRAs to merge at inference (F021) — e.g. a trained brand/style LoRA. */
+  loras?: LoraWeight[];
 }
 
 export interface ImageResult {
   url: string;
+  usage: Usage;
+}
+
+/** Style/brand LoRA training (F021) — fal fal-ai/flux-lora-fast-training. */
+export interface TrainStyleRequest {
+  /** A hosted archive URL, or an array of image URLs the SDK zips in-memory. */
+  images: string | string[];
+  spec: TierSpec;
+  /** Style LoRA (disables captioning/masks). Default true. */
+  isStyle?: boolean;
+  triggerWord?: string;
+  /** Training steps (~1000 typical). */
+  steps?: number;
+  createMasks?: boolean;
+}
+
+export interface TrainStyleResult {
+  /** URL to the trained LoRA weights — pass to ai.image({ lora }). */
+  loraUrl: string;
+  /** URL to the training config file. */
+  configUrl: string;
   usage: Usage;
 }
 
@@ -299,6 +331,8 @@ export interface ProviderAdapter {
   chatStream?(req: ChatRequest): AsyncIterable<ChatStreamEvent>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
+  /** Train a style/brand LoRA from images (F021). fal. */
+  trainStyle?(req: TrainStyleRequest): Promise<TrainStyleResult>;
   embedding?(req: EmbeddingRequest): Promise<EmbeddingResult>;
   transcribe?(req: TranscribeRequest): Promise<TranscribeResult>;
   ocr?(req: OcrRequest): Promise<OcrResult>;
