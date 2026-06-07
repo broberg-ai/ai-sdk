@@ -24,18 +24,28 @@ function readZip(zip: Uint8Array): { name: string; bytes: Uint8Array }[] {
   return out;
 }
 
-/** Fake fetch for trainStyle: serves image bytes, then the fal queue dance. */
+/** Fake fetch for trainStyle: serves image bytes, the fal storage upload (initiate
+ *  + PUT), then the fal queue dance. Captures the uploaded zip bytes. */
 function trainFetch() {
-  const seen: { url: string; method?: string; body?: any; headers?: any }[] = [];
+  const seen: { url: string; method?: string; body?: any }[] = [];
+  let uploadedZip: Uint8Array | undefined;
   const f = (async (url: string | URL, init?: RequestInit) => {
     const u = String(url);
-    seen.push({
-      url: u,
-      method: init?.method,
-      body: init?.body ? JSON.parse(init.body as string) : undefined,
-      headers: init?.headers,
-    });
+    const rec: { url: string; method?: string; body?: any } = { url: u, method: init?.method };
+    if (typeof init?.body === "string") {
+      try {
+        rec.body = JSON.parse(init.body);
+      } catch {
+        rec.body = init.body;
+      }
+    } else if (init?.body) {
+      uploadedZip = new Uint8Array(init.body as ArrayBuffer); // the storage PUT (zip bytes)
+    }
+    seen.push(rec);
     if (u.startsWith("https://img/")) return new Response(new Uint8Array([1, 2, 3, 4, 5]));
+    if (u.endsWith("/storage/upload/initiate"))
+      return new Response(JSON.stringify({ upload_url: "https://up/zip", file_url: "https://files.fal/styleset.zip" }));
+    if (u === "https://up/zip") return new Response("", { status: 200 }); // PUT ack
     if (u.endsWith("/fal-ai/flux-lora-fast-training"))
       return new Response(JSON.stringify({ status_url: "https://q/status", response_url: "https://q/response" }));
     if (u === "https://q/status") return new Response(JSON.stringify({ status: "COMPLETED" }));
@@ -45,25 +55,26 @@ function trainFetch() {
       );
     return new Response("{}");
   }) as unknown as typeof fetch;
-  return { f, seen };
+  return { f, seen, getZip: () => uploadedZip };
 }
 
-test("buildZip round-trips: trainStyle string[] → data-uri zip that inflates back to the source bytes (F021.1)", async () => {
-  const { f, seen } = trainFetch();
+test("trainStyle string[] → zip uploaded to fal storage; images_data_url is the file_url; zip round-trips (F021.2)", async () => {
+  const { f, seen, getZip } = trainFetch();
   const adapter = falAdapter({ apiKey: "k", fetch: f });
   const res = await adapter.trainStyle!({ images: ["https://img/a.png", "https://img/b.png"], spec });
 
+  // fal rejects data: URIs → SDK uploads the zip and sends the hosted file_url.
+  expect(seen.some((s) => s.url.endsWith("/storage/upload/initiate"))).toBe(true);
   const submit = seen.find((s) => s.url.endsWith("/fal-ai/flux-lora-fast-training"))!;
-  const dataUrl = submit.body.images_data_url as string;
-  expect(dataUrl.startsWith("data:application/zip;base64,")).toBe(true);
+  expect(submit.body.images_data_url).toBe("https://files.fal/styleset.zip");
 
-  const zip = new Uint8Array(Buffer.from(dataUrl.split(",")[1]!, "base64"));
-  const entries = readZip(zip);
+  // the uploaded zip inflates back to the source bytes
+  const entries = readZip(getZip()!);
   expect(entries.map((e) => e.name).sort()).toEqual(["a.png", "b.png"]);
-  expect([...entries[0]!.bytes]).toEqual([1, 2, 3, 4, 5]); // inflated === original
+  expect([...entries[0]!.bytes]).toEqual([1, 2, 3, 4, 5]);
   expect(res.loraUrl).toBe("https://lora.safetensors");
   expect(res.configUrl).toBe("https://cfg.json");
-  expect(res.usage.costUsd).toBe(2.0); // non-zero flat training estimate
+  expect(res.usage.costUsd).toBe(2.0);
 });
 
 test("trainStyle sends is_style + trigger_word + steps (F021.2)", async () => {

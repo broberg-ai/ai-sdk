@@ -115,7 +115,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     const headers = authHeaders(apiKey);
 
     const body: Record<string, unknown> = {
-      images_data_url: await resolveImagesDataUrl(req.images),
+      images_data_url: await resolveImagesUrl(req.images, apiKey),
       is_style: req.isStyle ?? true,
     };
     if (req.triggerWord !== undefined) body.trigger_word = req.triggerWord;
@@ -154,9 +154,11 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     return { loraUrl, configUrl: configUrl ?? "", usage };
   }
 
-  /** A hosted archive URL (or data: URI) passes straight through; an array of image
-   *  URLs is fetched and zipped in-memory into a data: URI fal can read. */
-  async function resolveImagesDataUrl(images: string | string[]): Promise<string> {
+  /** A hosted archive URL passes straight through; an array of image URLs is fetched,
+   *  zipped in-memory, and uploaded to fal storage. fal REJECTS data: URIs here
+   *  ("Invalid URL: URL too long") — images_data_url must be a real http URL it can
+   *  fetch, so we upload the zip and pass the returned file_url. */
+  async function resolveImagesUrl(images: string | string[], apiKey: string): Promise<string> {
     if (typeof images === "string") return images;
     const files = await Promise.all(
       images.map(async (url, i) => {
@@ -165,8 +167,35 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
         return { name: fileNameFromUrl(url, i), data: new Uint8Array(await res.arrayBuffer()) };
       }),
     );
-    const zip = buildZip(files);
-    return `data:application/zip;base64,${Buffer.from(zip).toString("base64")}`;
+    return uploadToFalStorage(buildZip(files), "application/zip", "styleset.zip", apiKey);
+  }
+
+  /** Upload bytes to fal storage: initiate (auth'd) → PUT to the returned signed url
+   *  → return the public file_url. fal CDN serves it back, fetchable by the trainer. */
+  async function uploadToFalStorage(
+    bytes: Uint8Array,
+    contentType: string,
+    fileName: string,
+    apiKey: string,
+  ): Promise<string> {
+    const initiate = await doFetch("https://rest.alpha.fal.ai/storage/upload/initiate", {
+      method: "POST",
+      headers: { Authorization: `Key ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ content_type: contentType, file_name: fileName }),
+    });
+    if (!initiate.ok) {
+      throw new Error(
+        `fal storage initiate ${initiate.status}: ${(await initiate.text().catch(() => "")).slice(0, 200)}`,
+      );
+    }
+    const { upload_url, file_url } = (await initiate.json()) as { upload_url: string; file_url: string };
+    const put = await doFetch(upload_url, {
+      method: "PUT",
+      headers: { "content-type": contentType },
+      body: bytes,
+    });
+    if (!put.ok) throw new Error(`fal storage upload PUT ${put.status}`);
+    return file_url;
   }
 
   async function runSync(
