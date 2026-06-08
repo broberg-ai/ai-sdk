@@ -153,7 +153,16 @@ export function createAI(config: AiConfig = {}): AiClient {
   }
 
   function toMessages(input: ChatInput): Message[] {
-    if (input.messages && input.messages.length > 0) return input.messages;
+    if (input.messages && input.messages.length > 0) {
+      // A top-level `system` must survive when `messages` is also supplied — prepend
+      // it (unless the caller already leads with a system message) instead of
+      // silently dropping it. Regression: system + messages → system was lost, so a
+      // "return ONLY JSON" system instruction never reached the model (cms #4234).
+      if (input.system && input.messages[0]?.role !== "system") {
+        return [{ role: "system", content: input.system }, ...input.messages];
+      }
+      return input.messages;
+    }
     const msgs: Message[] = [];
     if (input.system) msgs.push({ role: "system", content: input.system });
     msgs.push({ role: "user", content: input.prompt ?? "" });

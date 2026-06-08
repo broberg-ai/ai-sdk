@@ -417,7 +417,8 @@ v0.9.1: DeepSeek V4 pricing via OpenRouter — `deepseek/deepseek-v4-pro` ($0.43
 v0.10.0: `ai.trainStyle` (fal LoRA style-training) + `ai.image` loras/lora — train a reusable brand-style LoRA, generate in that style every time (F021).
 v0.10.1: `ai.trainStyle` robustness (F021) — defensive trained-file extraction (any field/wrapper, *.safetensors fallback), non-OK queue-result errors surfaced, and the raw fal response included in a shape-mismatch error so a failed run is never wasted.
 v0.10.2: `ai.trainStyle` LIVE-VERIFIED (F021) — fal rejects data: URIs ("URL too long"), so the SDK now uploads the zip to fal storage and passes the file_url. Full pipeline proven on a real run: train → loraUrl, then ai.image({lora}) → image.
-v0.10.3: `ai.image({ retryOnBlack:true })` (F021.4) — re-roll once when fal's NSFW checker false-positives and returns a black image (has_nsfw_concepts). Raised by the sa pilot.)*
+v0.10.3: `ai.image({ retryOnBlack:true })` (F021.4) — re-roll once when fal's NSFW checker false-positives and returns a black image (has_nsfw_concepts). Raised by the sa pilot.
+v0.10.4: FIX — a top-level `system` was silently dropped when `messages` was also supplied (it now prepends, unless the caller already leads with a system message). Affected every consumer passing both. Caught by cms.)*
 
 ---
 
