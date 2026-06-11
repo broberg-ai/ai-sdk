@@ -1,6 +1,6 @@
 {
   "name": "@broberg/ai-sdk",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "description": "Unified AI/LLM SDK — one facade, all providers, all capabilities, first-class cost control on every call.",
   "type": "module",
   "license": "FSL-1.1-Apache-2.0",

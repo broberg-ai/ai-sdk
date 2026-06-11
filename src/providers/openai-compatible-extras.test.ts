@@ -29,6 +29,32 @@ async function drainStream(it: AsyncIterable<{ type: string }>): Promise<{ type:
   return out;
 }
 
+// chat() uses the global-fetch http transport (config.fetch is streaming-only), so mock global.
+async function chatWithGlobalFetch(json: unknown): Promise<string> {
+  const real = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify(json), { status: 200 })) as unknown as typeof fetch;
+  try {
+    const adapter = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl: "https://x/v1", apiKey: "k" });
+    return (await adapter.chat!(baseReq)).text;
+  } finally {
+    globalThis.fetch = real;
+  }
+}
+
+test("chat() coerces array message.content to a string (reasoning models) (cms #4423)", async () => {
+  const text = await chatWithGlobalFetch({
+    choices: [{ message: { content: [{ type: "text", text: "Hello " }, { type: "text", text: "world" }] } }],
+    usage: { prompt_tokens: 5, completion_tokens: 2 },
+  });
+  expect(typeof text).toBe("string"); // never an array → no `text.replace is not a function`
+  expect(text).toBe("Hello world");
+});
+
+test("chat() returns '' (not null) when content is missing", async () => {
+  const text = await chatWithGlobalFetch({ choices: [{ message: { content: null } }], usage: {} });
+  expect(text).toBe("");
+});
+
 // ── F9.1: JSON mode ─────────────────────────────────────────────────────────
 
 test("responseFormat:'json' sets response_format on the body (chatStream)", async () => {

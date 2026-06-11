@@ -6,15 +6,16 @@ import type { Message, Tier } from "../types.js";
 
 export const VIDEO_DEFAULT_TIER: Tier = "video";
 
-/** Build the single-user message (video + prompt) for a video-analysis call. */
+/** Build the message(s) (optional system + video + prompt) for a video-analysis call. */
 export function buildVideoMessages(input: VideoInput): Message[] {
-  return [
-    {
-      role: "user",
-      content: [
-        { type: "video", video: input.video, mimeType: input.mimeType },
-        { type: "text", text: input.prompt },
-      ],
-    },
-  ];
+  const messages: Message[] = [];
+  if (input.system) messages.push({ role: "system", content: input.system });
+  messages.push({
+    role: "user",
+    content: [
+      { type: "video", video: input.video, mimeType: input.mimeType },
+      { type: "text", text: input.prompt },
+    ],
+  });
+  return messages;
 }

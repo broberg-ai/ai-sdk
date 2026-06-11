@@ -34,6 +34,13 @@ test("buildVisionMessages produces one user message with text + image parts", ()
   expect(parts.map((p) => p.type)).toEqual(["text", "image"]);
 });
 
+test("buildVisionMessages prepends a system message when `system` is set (cms #4423)", () => {
+  const msgs = buildVisionMessages({ image: "https://x/p.png", prompt: "what?", system: "Return ONLY JSON." });
+  expect(msgs).toHaveLength(2);
+  expect(msgs[0]).toEqual({ role: "system", content: "Return ONLY JSON." });
+  expect(msgs[1]?.role).toBe("user");
+});
+
 test("VISION_DEFAULT_TIER is 'vision'", () => {
   expect(VISION_DEFAULT_TIER).toBe("vision");
 });

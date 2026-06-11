@@ -114,7 +114,10 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     }
     const data = res.json as OAResponse;
     const msg = data.choices?.[0]?.message;
-    const text = msg?.content ?? "";
+    // Reasoning/multimodal models can return `content` as an array of blocks (or
+    // null) instead of a plain string — coerce so callers always get a string
+    // (was: `?? ""`, which left an array through → consumer `text.replace` crash).
+    const text = contentToText(msg?.content);
     const toolCalls: ToolCall[] | undefined = msg?.tool_calls?.map((tc) =>
       fromProviderToolCall(tc, "openai"),
     );
@@ -245,6 +248,22 @@ interface OAStreamChunk {
     finish_reason?: string | null;
   }[];
   usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
+}
+
+/** Coerce an OpenAI `message.content` to a string. Most providers return a string,
+ *  but reasoning/multimodal models can return an array of content blocks (or null). */
+function contentToText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((p) => {
+        if (typeof p === "string") return p;
+        const t = (p as { text?: unknown } | null)?.text;
+        return typeof t === "string" ? t : "";
+      })
+      .join("");
+  }
+  return "";
 }
 
 /** Map OpenAI finish_reason → the SDK's ChatStreamEvent finish reason. */

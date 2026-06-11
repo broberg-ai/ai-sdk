@@ -100,6 +100,9 @@ export const visionInputSchema = z.object({
   image: z.union([z.string(), z.instanceof(Uint8Array)]),
   prompt: z.string(),
   mimeType: z.string().optional(),
+  /** System instruction — drives instruction-following far better than stuffing
+   *  rules into `prompt` for instruction-heavy vision tasks (e.g. a JSON critic). */
+  system: z.string().optional(),
   ...callOptions,
 });
 
@@ -109,6 +112,8 @@ export const videoInputSchema = z.object({
   video: z.union([z.string(), z.instanceof(Uint8Array)]),
   prompt: z.string(),
   mimeType: z.string().optional(),
+  /** System instruction — same instruction-following benefit as on vision. */
+  system: z.string().optional(),
   ...callOptions,
 });
 

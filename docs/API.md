@@ -165,8 +165,8 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 |---|---|---|---|
 | `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature?, responseFormat? }` | `{ text, toolCalls?, usage }` | `smart` |
 | `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
-| `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `vision` |
-| `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
+| `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `vision` |
+| `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given) |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
@@ -418,7 +418,8 @@ v0.10.0: `ai.trainStyle` (fal LoRA style-training) + `ai.image` loras/lora — t
 v0.10.1: `ai.trainStyle` robustness (F021) — defensive trained-file extraction (any field/wrapper, *.safetensors fallback), non-OK queue-result errors surfaced, and the raw fal response included in a shape-mismatch error so a failed run is never wasted.
 v0.10.2: `ai.trainStyle` LIVE-VERIFIED (F021) — fal rejects data: URIs ("URL too long"), so the SDK now uploads the zip to fal storage and passes the file_url. Full pipeline proven on a real run: train → loraUrl, then ai.image({lora}) → image.
 v0.10.3: `ai.image({ retryOnBlack:true })` (F021.4) — re-roll once when fal's NSFW checker false-positives and returns a black image (has_nsfw_concepts). Raised by the sa pilot.
-v0.10.4: FIX — a top-level `system` was silently dropped when `messages` was also supplied (it now prepends, unless the caller already leads with a system message). Affected every consumer passing both. Caught by cms.)*
+v0.10.4: FIX — a top-level `system` was silently dropped when `messages` was also supplied (it now prepends, unless the caller already leads with a system message). Affected every consumer passing both. Caught by cms.
+v0.10.5: FIX — chat coerces array/non-string `message.content` (reasoning/multimodal models) to a string (no more `text.replace is not a function`); `ai.vision` + `ai.video` gain a `system?` field for strong instruction-following (a JSON critic, etc.). Caught by cms.)*
 
 ---
 
