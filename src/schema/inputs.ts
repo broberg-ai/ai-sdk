@@ -205,6 +205,14 @@ export const budgetSchema = z.object({
   rollingUsd: z.number().positive().optional(),
 });
 
+/** F022 — opt-in proactive availability gate. Off by default so existing call
+ *  sites are byte-identical. When autoResolve is on, a suspended primary model
+ *  is transparently swapped to `fallback` before dispatch (synchronous, no I/O). */
+export const availabilitySchema = z.object({
+  autoResolve: z.boolean().optional(),
+  fallback: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
 export const aiConfigSchema = z.object({
   defaults: z.record(tierSchema, tierSpecSchema).optional(),
   // Functions can't be deeply validated — z.custom asserts the TS type and
@@ -212,6 +220,7 @@ export const aiConfigSchema = z.object({
   providers: z.record(z.string(), z.custom<ProviderAdapter>()).optional(),
   costSink: z.custom<CostSink>().optional(),
   budget: budgetSchema.optional(),
+  availability: availabilitySchema.optional(),
 });
 
 // ── Derived types (z.infer is the single source) ───────────────────────────

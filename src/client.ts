@@ -2,6 +2,7 @@
 // delegates the call, stamps call-context metadata onto Usage, and reports to the
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
 import { resolveTier } from "./routing/tier-map.js";
+import { resolveModel } from "./availability/resolve.js";
 import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
@@ -169,6 +170,17 @@ export function createAI(config: AiConfig = {}): AiClient {
     return msgs;
   }
 
+  /** F022 — opt-in proactive availability gate. When cfg.availability.autoResolve
+   *  is set, swap a known-suspended primary model to its configured fallback
+   *  BEFORE dispatch (synchronous, registry-only — no I/O). Default off → the
+   *  spec is returned untouched and behaviour is byte-identical. This sits in
+   *  front of the reactive route-fallback below. */
+  function applyAvailability(spec: TierSpec): TierSpec {
+    if (!cfg.availability?.autoResolve) return spec;
+    const r = resolveModel(spec.model, { fallback: cfg.availability.fallback, provider: spec.provider });
+    return r.fellBack ? { ...spec, model: r.model } : spec;
+  }
+
   /** Run a capability with an optional fallback chain. Tries the primary route,
    *  then each fallback (Tier or TierSpec) in order if the call errors. A budget
    *  breach propagates immediately (not a fallback trigger). On the first
@@ -185,7 +197,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     invoke: (spec: TierSpec) => Promise<R>;
   }): Promise<R> {
     const routes: TierSpec[] = [
-      opts.primary,
+      applyAvailability(opts.primary),
       ...(opts.fallback ?? []).map((f) =>
         typeof f === "string" ? resolveTier(f, undefined, cfg.defaults) : f,
       ),

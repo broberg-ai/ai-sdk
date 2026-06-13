@@ -37,6 +37,18 @@ export {
 } from "./providers/stub.js";
 export { VERSION, SDK_TAG } from "./version.js";
 export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
+// F022 — Model Availability Harness: synchronous resolve + status read (spawn /
+// call hot path) and an async background refresh. One registry, two consumers.
+export { resolveModel, listModels, refreshAvailability, ModelUnavailableError, resetRegistry, resetRefreshState } from "./availability/index.js";
+export type {
+  ModelStatus,
+  ResolveResult,
+  AvailabilityStatus,
+  AvailabilitySource,
+  ResolveOptions,
+  RefreshOptions,
+  RefreshResult,
+} from "./availability/index.js";
 export { computeCost, freshUsage } from "./cost/usage.js";
 export { BudgetGuard, BudgetExceededError } from "./cost/budget.js";
 export { sqliteBudgetStore } from "./cost/budget-store.js";
