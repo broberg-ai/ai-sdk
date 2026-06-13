@@ -4,22 +4,34 @@
 
 ## Motivation
 
-On **2026-06-12** Anthropic disabled **Fable 5** and **Mythos 5** globally for all customers (US export-control directive, verified against anthropic.com/news/fable-mythos-access). Every app that had `fable` configured immediately threw a raw `"claude-fable-5 may not exist or you may not have access to it"` straight into the user-facing surface. Christian's line: *that must NEVER reach the user.*
+On **2026-06-12** Anthropic disabled **Fable 5** and **Mythos 5** globally for all customers (US export-control directive, verified against anthropic.com/news/fable-mythos-access). Every app/session that had `fable` configured immediately threw a raw `"claude-fable-5 may not exist or you may not have access to it"` straight into the user-facing surface. Christian's line: *that must NEVER reach the user.*
 
-Today `@broberg/ai-sdk` has only a **reactive** fallback (`runCapability` in `src/client.ts:176` tries the next route *after* a call errors). That helps when a fallback is configured, but: (a) it still pays a failed round-trip, (b) the caller learns nothing about *why* it degraded, and (c) if no fallback is set, the raw provider error propagates. There is no **proactive** liveness check and no **shared, queryable status** that a UI model-picker can read to grey out a dead tier. F022 adds exactly that — the safety-net plus one source of truth that trickles to both the SDK call path and external UI pickers.
+Two distinct consumers need the safety-net:
+
+1. **Spawn-time (the PRIMARY consumer, per cardmem #4842).** Even though the SDK cannot intercept a `/model` switch inside a *live* cc session, **session start-up is our own code** — buddy's launcher builds the `--model` flag. So the gate moves to spawn: the launcher calls `resolveModel(tier, { fallback })` *before* constructing `--model`, and a dead tier (fable today) spawns on its fallback instead of booting cc broken. This path is latency-sensitive and runs per spawn → `resolveModel()` MUST be synchronous and offline (cache-only, zero network on the hot path).
+2. **Runtime SDK calls.** Apps calling `ai.chat`/`ai.vision` etc. degrade transparently when their configured model is suspended.
+
+Today `@broberg/ai-sdk` has only a **reactive** fallback (`runCapability` in `src/client.ts:176` tries the next route *after* a call errors). That helps when a fallback is configured, but: (a) it still pays a failed round-trip, (b) the caller learns nothing about *why* it degraded, and (c) if no fallback is set, the raw provider error propagates. There is no **proactive** liveness check and no **shared, queryable status** that a UI model-picker can read to grey out a dead tier. F022 adds exactly that — the safety-net plus one source of truth that trickles to both the SDK/spawn call path and external UI pickers.
 
 ## Solution
 
-A small `src/availability/` module holding **one source** of model-availability truth: a curated default registry of known-live model ids + aliases (works offline), optionally refreshed from the provider's models-list endpoint (Anthropic `GET /v1/models`, TTL-cached) so overnight changes like 06-12 are caught automatically. On top of it: `resolveModel(requested, { fallback })` for the call path (structured catchable error AND/OR transparent fallback) and `listModels()` for a shared status read that UI pickers (cardmem Dialog) consume to grey-out suspended tiers with a friendly note. No full orchestration layer — just the net + the shared read.
+A small `src/availability/` module holding **one source** of model-availability truth: a curated default registry of known-live model ids + aliases (works offline), optionally refreshed in the background from the provider's models-list endpoint (Anthropic `GET /v1/models`, TTL-cached) so overnight changes like 06-12 are caught automatically. On top of it: a **synchronous, zero-I/O** `resolveModel(requested, { fallback })` for the spawn + call path (structured catchable error AND/OR transparent fallback) and a synchronous `listModels()` for a shared status read that UI pickers (cardmem Dialog) consume to grey-out suspended tiers with a friendly note. No full orchestration layer — just the net + the shared read.
+
+## Hot-path contract (per cardmem #4842 — buddy launcher depends on this)
+
+- `resolveModel()` and `listModels()` are **pure synchronous reads of the in-memory registry**. They perform **zero network I/O** and never `await`. Safe to call on a per-spawn hot path with no latency penalty.
+- Freshness comes from `refreshAvailability()` — an **async, background, TTL-cached** call the host runs out-of-band (on a timer / at idle). It mutates the shared registry overlay; the next synchronous `resolveModel()` sees the update. The resolve path never triggers a refresh itself.
+- Defaults are the durable floor: with no refresh ever run (offline, or refresh failed), `resolveModel()` still returns correct answers from the curated seed (incl. the Fable/Mythos suspension).
+- **Both** consumers read the **same** registry (Christian's one-source rule): spawn-resolve = consumer (a), Dialog picker grey-out = consumer (b).
 
 ## Scope
 
 ### In scope
 - New module `src/availability/`:
   - `types.ts` — `ModelStatus`, `ResolveResult`, `ModelUnavailableError`, `AvailabilitySource`.
-  - `registry.ts` — the curated **default registry** (known-live model ids + tier aliases + per-model `available`/`note`), seeded with the Fable 5 / Mythos 5 suspension note. The single source `listModels()` and `resolveModel()` both read.
-  - `resolve.ts` — `resolveModel(requested, opts)` (alias-aware preflight → `{ ok, model, requested, fellBack, status, reason }`; transparent fallback chain; optional `throwIfUnavailable` → `ModelUnavailableError`) and `listModels(opts?)` read.
-  - `refresh.ts` — `refreshAvailability(opts?)`: Anthropic `GET https://api.anthropic.com/v1/models`, in-memory TTL cache (default 1h), marks registry entries absent from the live list `available:false`. Injectable `fetch` for tests.
+  - `registry.ts` — the curated **default registry** (known-live model ids + tier aliases + per-model `available`/`note`), seeded with the Fable 5 / Mythos 5 suspension note. The single source `listModels()` and `resolveModel()` both read; the mutable overlay `refreshAvailability()` updates.
+  - `resolve.ts` — synchronous `resolveModel(requested, opts)` (alias-aware preflight → `{ ok, model, requested, fellBack, status, reason }`; transparent fallback chain; optional `throwIfUnavailable` → `ModelUnavailableError`) and synchronous `listModels(opts?)` read. **No I/O.**
+  - `refresh.ts` — async `refreshAvailability(opts?)`: Anthropic `GET https://api.anthropic.com/v1/models`, in-memory TTL cache (default 1h), marks registry entries absent from the live list `available:false`. Injectable `fetch` for tests. Off the hot path.
   - `index.ts` — barrel.
 - Public exports from `src/index.ts`: `resolveModel`, `listModels`, `refreshAvailability`, `ModelUnavailableError`, and the `ModelStatus` / `ResolveResult` types.
 - **Opt-in** client integration in `src/client.ts`: when `cfg.availability?.autoResolve` is set, the resolved primary tier-spec model is passed through `resolveModel` before dispatch (transparent fallback honoured). Default off → existing call sites are byte-identical.
@@ -31,7 +43,7 @@ A small `src/availability/` module holding **one source** of model-availability 
 - Refresh for non-Anthropic providers (OpenAI/Gemini/Mistral live-list polling) — defaults cover them offline; provider refresh beyond Anthropic is a future sub-story.
 - Persisting availability to disk / a DB. The cache is in-memory per process; defaults are the durable floor.
 - Changing the existing **reactive** `runCapability` fallback behaviour. F022 sits *in front of* it, not replacing it.
-- The cc-terminal path (cardmem/buddy Dialog → raw `/model fable` → cc). The SDK is not in that loop; F022's contribution there is **data only** — `listModels()` — which the picker reads. Wiring the grey-out is cardmem's side.
+- Wiring buddy's launcher / cardmem's Dialog picker — those are the consumers' side. F022 ships the **data + functions**; buddy calls `resolveModel` at spawn, cardmem reads `listModels()` for grey-out. Coordinated separately (intercom #4841/#4842).
 
 ## Architecture
 
@@ -80,7 +92,7 @@ A curated default keyed by model id, with alias + status + note. Seeded with cur
 ```
 Mutable overlay (module-level Map) that `refreshAvailability` updates; defaults are the floor when no refresh has run / refresh fails.
 
-### `src/availability/resolve.ts`
+### `src/availability/resolve.ts` (synchronous, zero-I/O)
 ```ts
 export function listModels(opts?: { provider?: string }): ModelStatus[];
 export function resolveModel(
@@ -93,7 +105,7 @@ export function resolveModel(
 - Unavailable + no usable fallback: `throwIfUnavailable` → throw `ModelUnavailableError`; else `{ ok:false, fellBack:false, model:requested, status, reason }` (caller decides).
 - Unknown id (not in registry) → `status:"unknown"`, treated as available (fail-open — never block a model we simply don't track).
 
-### `src/availability/refresh.ts`
+### `src/availability/refresh.ts` (async, off the hot path)
 ```ts
 export async function refreshAvailability(opts?: {
   provider?: "anthropic"; fetch?: typeof fetch; apiKey?: string; ttlMs?: number; now?: number;
@@ -105,28 +117,29 @@ Anthropic `GET /v1/models` (`x-api-key`, `anthropic-version` headers). Registry 
 `createAI` reads `cfg.availability?.autoResolve`. When true, after `resolveTier(...)` the primary spec's `model` is run through `resolveModel(spec.model, { fallback: <configured>, provider: spec.provider })`; a fallback swap rewrites `spec.model` before dispatch. Default/unset → no behaviour change.
 
 ## Stories
-- **F022.1** — Registry + types + `listModels()` shared status read (single source; Fable/Mythos suspended seed).
-- **F022.2** — `resolveModel()` + transparent fallback chain + `ModelUnavailableError`.
-- **F022.3** — `refreshAvailability()` (Anthropic `GET /v1/models`) + in-memory TTL cache.
-- **F022.4** — Public exports in `src/index.ts`, opt-in `cfg.availability.autoResolve` client wiring, `docs/API.md` + changelog; notify cardmem that the `listModels()` shape is locked.
+- **F022.1** — Registry + types + synchronous `listModels()` shared status read (single source; Fable/Mythos suspended seed).
+- **F022.2** — Synchronous, zero-I/O `resolveModel()` + transparent fallback chain + `ModelUnavailableError`.
+- **F022.3** — Async background `refreshAvailability()` (Anthropic `GET /v1/models`) + in-memory TTL cache.
+- **F022.4** — Public exports in `src/index.ts`, opt-in `cfg.availability.autoResolve` client wiring, `docs/API.md` + changelog; notify cardmem + buddy that the `resolveModel()`/`listModels()` shape is locked + on npm.
 
 ## Acceptance criteria
 1. `resolveModel("claude-fable-5", { fallback: "claude-opus-4-8" })` → `{ ok:false, fellBack:true, model:"claude-opus-4-8", status:"suspended", reason:<note> }` (transparent degrade, no throw). Unit test passes.
 2. `resolveModel("claude-fable-5", { throwIfUnavailable:true })` throws `ModelUnavailableError` with `.code === "model_unavailable"` and `.note` populated. Unit test passes.
 3. `resolveModel("fable", …)` (alias) resolves identically to the canonical id (alias-aware). Unit test passes.
 4. `resolveModel("claude-opus-4-8")` (known-live) → `{ ok:true, fellBack:false, model:"claude-opus-4-8" }` — zero false positives on live models. Unit test passes.
-5. `listModels()` returns a stable, documented array including `{ id:"claude-fable-5", alias:"fable", available:false, note:<suspended> }` and at least one `available:true` entry — the shape cardmem's Dialog picker reads.
-6. `refreshAvailability()` against a mocked Anthropic `/v1/models` that omits `claude-fable-5` marks it unavailable; an included model stays available; a second call within `ttlMs` does **not** re-fetch (assert fetch-call count). Injected-fetch unit test passes.
-7. New surface exported from `src/index.ts`; `bun test` full suite green; `tsc --noEmit` clean.
+5. `resolveModel()` and `listModels()` perform **zero network I/O** and are synchronous (not `async`) — verified by a test that runs them with `globalThis.fetch` replaced by a throwing stub and asserts they still return. (Spawn hot-path contract, cardmem #4842.)
+6. `listModels()` returns a stable, documented array including `{ id:"claude-fable-5", alias:"fable", available:false, note:<suspended> }` and at least one `available:true` entry — the shape cardmem's Dialog picker reads.
+7. `refreshAvailability()` against a mocked Anthropic `/v1/models` that omits `claude-fable-5` marks it unavailable; an included model stays available; a second call within `ttlMs` does **not** re-fetch (assert fetch-call count). Injected-fetch unit test passes.
+8. New surface exported from `src/index.ts`; `bun test` full suite green; `tsc --noEmit` clean.
 
 ## Dependencies
-- None hard. Complements F017 (Model Advisor / `inventory.json`) — F022 may cross-reference inventory ids but does not require it. Independent of F014 (monthly catalogue cron).
+- None hard. Complements F017 (Model Advisor / `inventory.json`) — F022 may cross-reference inventory ids but does not require it. Independent of F014 (monthly catalogue cron). Consumers (buddy launcher, cardmem Dialog) coordinate via intercom #4841/#4842.
 
 ## Rollout
-Additive, single-phase. New module + exports; no breaking change to existing call sites (client integration is opt-in, default off). Ship as a **minor** (0.11.0) via the standard OIDC `publish.yml` (bump → tag → push). Rollback = revert the minor; defaults are inert without the opt-in flag. Notify cardmem (reply to intercom #4841) the moment the `listModels()` shape lands on npm so they wire the Dialog grey-out against the same source.
+Additive, single-phase. New module + exports; no breaking change to existing call sites (client integration is opt-in, default off). Ship as a **minor** (0.11.0) via the standard OIDC `publish.yml` (bump → tag → push). Rollback = revert the minor; defaults are inert without the opt-in flag. Notify cardmem + buddy (reply to intercom #4841/#4842) the moment the `resolveModel()`/`listModels()` shape lands on npm so they wire spawn-resolve + the Dialog grey-out against the same source.
 
 ## Open Questions
-- **Auto-resolve default on or off?** Decided: **opt-in** (`cfg.availability.autoResolve`, default off) — honours the "no orchestration layer" scope discipline and keeps existing behaviour byte-identical.
+- **Auto-resolve default on or off?** Decided: **opt-in** (`cfg.availability.autoResolve`, default off) — honours the "no orchestration layer" scope discipline and keeps existing behaviour byte-identical. (Spawn-time resolve is an explicit launcher call regardless.)
 - **Refresh beyond Anthropic in v1?** Decided: **Anthropic only** in v1 (that's where the incident hit and it has a clean `GET /v1/models`). OpenAI/Gemini/Mistral live-refresh is a future sub-story; defaults cover them offline.
 
 ## Effort estimate
