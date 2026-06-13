@@ -144,3 +144,27 @@ Additive, single-phase. New module + exports; no breaking change to existing cal
 
 ## Effort estimate
 **M** — ~1.5 days. Self-contained module, injected-fetch tests, opt-in wiring; no provider-SDK or breaking surface changes.
+
+---
+
+## F022.5 addendum — browser-clean subpath export (`@broberg/ai-sdk/registry`)
+
+> Added 2026-06-13 (shipped v0.12.0) after cardmem **build-verified** (#4853) that the (b)-consumer goal was only half-met. Tier: infra/packaging. Effort: S (~1h).
+
+### Motivation
+The (b) consumer — UI pickers reading `listModels()` to grey out dead tiers — was specified as a **zero-fetch synchronous read**. But `import { listModels } from "@broberg/ai-sdk"` pulls the **root barrel**, which transitively imports `bun:sqlite` (`src/cost/budget-store.ts`, `src/cost/sinks/sqlite.ts`) and `node:zlib` (`src/providers/fal.ts`). A Vite/Rollup browser build hard-fails: *"Rollup failed to resolve import 'bun:sqlite'"*. So a browser UI could not import the read at all and was forced into a per-repo server bridge (`GET /api/models`) — a fetch, defeating the zero-fetch intent and risking the kind of per-repo drift the one-source rule exists to prevent. cardmem proved this by building, not assuming.
+
+### Solution
+A second, **browser-clean** package entry `@broberg/ai-sdk/registry` that re-exports ONLY the synchronous, zero-I/O read+resolve surface — with no path to `bun:sqlite`/`node:zlib`. The `src/availability/` module is already fully self-contained (imports only itself; uses global `fetch`), so the subpath is genuinely dependency-free for a bundler.
+
+### Scope
+**In:** new entry `src/registry.ts` (barrel: `listModels`, `resolveModel`, `ModelUnavailableError` + `ModelStatus`/`ResolveResult`/`AvailabilityStatus`/`AvailabilitySource`/`ResolveOptions` types); `tsup.config.ts` multi-entry (`{ index, registry }` → `dist/index.js` + `dist/registry.js`); `package.json` `exports["./registry"]`. **Out:** `refreshAvailability` (touches `fetch` + `process.env` → server/host concern; stays on the root entry only). No change to the root entry or any existing import.
+
+### Acceptance criteria
+1. `dist/registry.js` exists and contains **zero** `bun:sqlite` / `zlib` imports (asserted by grepping the built artifact).
+2. `import { listModels, resolveModel, ModelUnavailableError } from "@broberg/ai-sdk/registry"` resolves; the build smoke-imports it and gets the same Fable-suspended row as the root entry (one source, no drift).
+3. Root entry `@broberg/ai-sdk` is unchanged (existing consumers + cardmem's server bridge keep working); `bun test` green; `tsc --noEmit` clean.
+4. Shipped v0.12.0 via `publish.yml` (npm-verified); cardmem notified with the subpath name + a build proof that `dist/registry.js` is `bun:sqlite`-free.
+
+### Rollout
+Additive minor (0.12.0). Purely a new subpath — no breaking change. cardmem's bridge remains a valid interim; they switch to the direct import at their leisure once the subpath is live.

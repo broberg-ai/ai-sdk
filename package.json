@@ -1,6 +1,6 @@
 {
   "name": "@broberg/ai-sdk",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Unified AI/LLM SDK — one facade, all providers, all capabilities, first-class cost control on every call.",
   "type": "module",
   "license": "FSL-1.1-Apache-2.0",
@@ -20,6 +20,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js"
     }
   },
   "scripts": {
