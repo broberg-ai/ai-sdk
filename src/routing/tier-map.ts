@@ -4,13 +4,16 @@ import type { Tier, TierSpec } from "../types.js";
 
 /** Built-in defaults. Every entry is overridable via AiConfig.defaults or a
  *  per-call override. Model IDs are current at scaffold time; callers pin their
- *  own via config. `cheap` routes through the local `claude -p` subprocess
- *  (Max plan → costUsd 0); everything else is HTTP. */
+ *  own via config. `cheap` defaults to the cheapest-that's-good-enough cloud
+ *  model — Mistral Small (EU/Paris-hosted, GDPR-safe, ~$0.10/$0.30) — so even a
+ *  cost-tier call is safe for personal data by default; everything else is HTTP.
+ *  (The `claude -p` subprocess transport still exists for explicit override, but
+ *  is no longer a default route — the fleet's agent-CLI transport moved off it.) */
 export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
   fast: { provider: "anthropic", model: "claude-haiku-4-5", transport: "http" },
   smart: { provider: "anthropic", model: "claude-sonnet-4-6", transport: "http" },
   powerful: { provider: "anthropic", model: "claude-opus-4-8", transport: "http" },
-  cheap: { provider: "anthropic", model: "claude-haiku-4-5", transport: "subprocess" },
+  cheap: { provider: "mistral", model: "mistral-small-latest", transport: "http" },
   vision: { provider: "anthropic", model: "claude-sonnet-4-6", transport: "http" },
   // Native video understanding — Gemini leads; flash-lite is the cheap default (F019).
   video: { provider: "gemini", model: "gemini-2.5-flash-lite", transport: "http" },

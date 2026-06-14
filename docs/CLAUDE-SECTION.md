@@ -12,7 +12,9 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 ```
 
 **Route by tier, not by model-string.** Tiers → current model (overridable per call):
-`fast`=claude-haiku-4-5 · `smart`=claude-sonnet-4-6 · `powerful`=claude-opus-4-8 · `cheap`=claude-haiku-4-5 via `claude -p` ($0) · `vision`=claude-sonnet-4-6 · `video`=gemini-2.5-flash-lite · `embedding`=text-embedding-3-small.
+`fast`=claude-haiku-4-5 · `smart`=claude-sonnet-4-6 · `powerful`=claude-opus-4-8 · `cheap`=mistral-small-latest (cheapest GDPR-safe cloud model) · `vision`=claude-sonnet-4-6 · `video`=gemini-2.5-flash-lite · `embedding`=text-embedding-3-small.
+
+**Cost & provider policy.** Anthropic/Claude is what we **build and code with** (Claude Code) — it is *not* the reflexive API default. For cost-sensitive / high-volume cloud-API workloads, default to the **cheapest model that's good enough** (start cheap, only move up if a real test shows it's needed) — that's what the `cheap` tier is for. `claude -p` is retired as a route; don't reach for the Anthropic API just because it's familiar. The quality tiers (`smart`/`powerful`) resolve to Claude because that's the quality bar — override down for volume.
 
 **Model-availability gate (F022, v0.11+).** Before launching/spawning on a model, gate it — a suspended tier (e.g. Fable 5, globally disabled 2026-06-12) then degrades instead of erroring at the user:
 ```ts

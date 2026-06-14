@@ -7,8 +7,8 @@ test("DEFAULT_TIER_MAP covers all 6 tiers", () => {
   for (const t of tiers) expect(DEFAULT_TIER_MAP[t]).toBeDefined();
 });
 
-test("cheap tier routes through subprocess (Max plan, cost 0)", () => {
-  expect(DEFAULT_TIER_MAP.cheap.transport).toBe("subprocess");
+test("cheap tier defaults to the cheapest GDPR-safe cloud model over HTTP (claude -p retired)", () => {
+  expect(DEFAULT_TIER_MAP.cheap).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
 });
 
 test("resolveTier returns the default when nothing overrides", () => {

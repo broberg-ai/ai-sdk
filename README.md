@@ -56,8 +56,11 @@ await ai.chat({ prompt: "…", tier: "powerful" });
 await ai.chat({ prompt: "…", override: { provider: "openrouter", model: "minimax/minimax-m2.7" } });
 ```
 
-`cheap` routes through the local `claude -p` CLI (Max plan → `costUsd: 0`,
-flagged `subprocess: true`).
+`cheap` defaults to the cheapest-that's-good-enough cloud model — **Mistral Small**
+(EU/Paris-hosted, GDPR-safe, ~$0.10/$0.30) — so a cost-tier call is safe for
+personal data by default; override per call for an even cheaper non-personal route.
+(The `claude -p` subprocess transport is still available via explicit
+`override: { transport: "subprocess" }`, but is no longer a default route.)
 
 ## Cost, budget & sinks
 
