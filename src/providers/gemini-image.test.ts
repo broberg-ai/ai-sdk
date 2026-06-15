@@ -5,7 +5,7 @@ function jsonFetch(payload: unknown, status = 200): typeof fetch {
   return (async () => new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
 }
 
-const spec = { provider: "gemini", model: "gemini-3-pro-image-preview", transport: "http" as const };
+const spec = { provider: "gemini", model: "gemini-2.5-flash-image", transport: "http" as const };
 
 test("returns the inline image as a data URL + per-image cost (camelCase)", async () => {
   const adapter = geminiAdapter({

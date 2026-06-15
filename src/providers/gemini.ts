@@ -19,11 +19,16 @@ import type {
 } from "../types.js";
 
 /** Per-image USD price for Gemini image-gen models (generateContent image output
- *  is billed per image, not per token). nano-banana = $0.039. Overridable via
- *  geminiAdapter config.pricePerImage. */
+ *  is billed per image). Official ai.google.dev/gemini-api/docs/pricing, standard
+ *  paid tier, at the 1K/1024px output size (Google's per-image price rises with
+ *  resolution — 2K/4K cost more; we record the common 1K default). Overridable
+ *  per call via geminiAdapter config.pricePerImage. */
 const GEMINI_IMAGE_PRICE_PER_IMAGE: Record<string, number> = {
-  "gemini-3-pro-image-preview": 0.039,
-  "gemini-2.5-flash-image": 0.039,
+  "gemini-2.5-flash-image": 0.039, // "nano-banana" — 1024px = 1290 tok
+  "gemini-3.1-flash-image": 0.067, // 1K=$0.067, 2K=$0.101, 4K=$0.151
+  "gemini-3.1-flash-image-preview": 0.067,
+  "gemini-3-pro-image": 0.134, // premium — 1K/2K=$0.134, 4K=$0.24
+  "gemini-3-pro-image-preview": 0.134, // was $0.039 — wrong (that's the flash price); pro is $0.134
 };
 
 interface GeminiPart {
