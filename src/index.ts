@@ -25,6 +25,8 @@ export { mistralAdapter } from "./providers/mistral.js";
 export { elevenlabsAdapter, ELEVENLABS_DANISH_VOICES, resolveVoice } from "./providers/elevenlabs.js";
 export { falAdapter } from "./providers/fal.js";
 export type { FalAdapterConfig } from "./providers/fal.js";
+export { bflAdapter } from "./providers/bfl.js";
+export type { BflAdapterConfig } from "./providers/bfl.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
 export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
 export { defaultProviders } from "./providers/registry.js";

@@ -84,6 +84,13 @@ const DEFAULT_TRAINSTYLE_SPEC: TierSpec = {
   model: "fal-ai/flux-lora-fast-training",
   transport: "http",
 };
+/** EU-resident finetuned-portrait route (F023) — BFL, used by ai.image when a
+ *  `finetune` id is supplied. Hard-pinned to api.eu.bfl.ai inside the adapter. */
+const DEFAULT_BFL_FINETUNE_SPEC: TierSpec = {
+  provider: "bfl",
+  model: "flux-pro-1.1-ultra-finetuned",
+  transport: "http",
+};
 
 /** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
 const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
@@ -400,9 +407,14 @@ export function createAI(config: AiConfig = {}): AiClient {
         ...(input.loras ?? []),
         ...(input.lora ? [{ path: input.lora }] : []),
       ];
-      // LoRAs need an inference model that supports them — flux/schnell doesn't,
-      // so default to flux-lora when any LoRA is supplied (override still wins).
-      const base = loras.length > 0 ? DEFAULT_LORA_IMAGE_SPEC : DEFAULT_IMAGE_SPEC;
+      // Route by what's supplied (override still wins): a `finetune` id → the EU
+      // BFL finetuned-portrait endpoint (F023); LoRAs → flux-lora (F021, flux/schnell
+      // can't merge LoRAs); else the plain image route.
+      const base = input.finetune
+        ? DEFAULT_BFL_FINETUNE_SPEC
+        : loras.length > 0
+          ? DEFAULT_LORA_IMAGE_SPEC
+          : DEFAULT_IMAGE_SPEC;
       return runCapability({
         primary: { ...base, ...input.override },
         fallback: input.fallback,
@@ -420,6 +432,8 @@ export function createAI(config: AiConfig = {}): AiClient {
             width: input.width,
             height: input.height,
             loras: loras.length ? loras : undefined,
+            finetune: input.finetune,
+            finetuneStrength: input.finetuneStrength,
             retryOnBlack: input.retryOnBlack,
           });
         },

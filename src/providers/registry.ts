@@ -9,6 +9,7 @@ import { openrouterAdapter } from "./openrouter.js";
 import { mistralAdapter } from "./mistral.js";
 import { elevenlabsAdapter } from "./elevenlabs.js";
 import { falAdapter } from "./fal.js";
+import { bflAdapter } from "./bfl.js";
 import type { ProviderAdapter } from "../types.js";
 
 export const defaultProviders: Record<string, ProviderAdapter> = {
@@ -20,4 +21,5 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   mistral: mistralAdapter(),
   elevenlabs: elevenlabsAdapter(),
   fal: falAdapter(),
+  bfl: bflAdapter(),
 };

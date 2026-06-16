@@ -137,6 +137,11 @@ export const imageInputSchema = z.object({
   loras: z.array(loraWeightSchema).optional(),
   /** Shorthand for a single LoRA — normalized to loras:[{path, scale:1}]. */
   lora: z.string().optional(),
+  /** F023 — a BFL finetune id (subject trained in the BFL dashboard). Routes to the
+   *  EU-resident BFL finetuned-portrait endpoint. */
+  finetune: z.string().optional(),
+  /** F023 — BFL finetune_strength (~0–2; higher = stronger likeness). */
+  finetuneStrength: z.number().min(0).max(2).optional(),
   /** F021.4 — re-roll once if fal returns a black image (NSFW false-positive). */
   retryOnBlack: z.boolean().optional(),
   ...callOptions,

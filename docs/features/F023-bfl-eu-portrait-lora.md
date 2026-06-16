@@ -1,104 +1,100 @@
 # F023 — Person / Portrait LoRA via Black Forest Labs (EU)
 
-> A GDPR-safe, EU-resident route for finetuning FLUX on a *person's* likeness (consent-based dev-portraits), via Black Forest Labs' FLUX Pro Finetuning API pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Effort: L (~2 days). Status: **BLOCKED — see verification finding below.**
+> A GDPR-safe, EU-resident route for generating photorealistic portraits from a *person's* trained likeness (consent-based dev-portraits), via Black Forest Labs' FLUX Pro finetuned-inference pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Effort: M (~1 day, down from L). Status: **SHIPPED (delt flow) — EU inference live in the SDK; training is a one-time manual BFL-dashboard step (see SOP below). Decided by Christian 2026-06-16.**
 
-## ⚠️ Verification finding (2026-06-16) — BLOCKS the training half
+## ⚠️ Verification finding (2026-06-16) — why this is a "delt flow", not full automation
 
-Before writing the adapter, the live BFL API was probed (key in `.env`). Exhaustive result (all 24 paths on **api.eu.bfl.ai**, identical on global + us):
+Before writing the adapter, BFL's **live** API was probed (key in `.env`, never echoed). The rigorous test — POST with a valid key, `422 = endpoint exists` vs `404 = gone`:
 
-- ✅ **EU finetuned-INFERENCE works:** `POST /v1/flux-pro-1.1-ultra-finetuned` + `/v1/flux-pro-1.0-fill-finetuned` exist on `api.eu.bfl.ai` (auth `x-key` confirmed; poll shape `{id,status,result,progress,preview}` via `GET /v1/get_result`).
-- ✅ **Finetune MANAGEMENT on EU:** `GET /v1/my_finetunes`, `GET /v1/finetune_details`, `POST /v1/delete_finetune`.
-- ❌ **NO finetune-CREATE endpoint on ANY region.** `/v1/finetune` (the create/train step the F021 blog announced on the now-dead `api.us1.bfl.ai`) is **absent from the public OpenAPI on eu, us, AND global** (`api.{eu,us,}.bfl.ai` all 404 it; no create/train/submit path of any name in the 24-path spec). The `eu1`/`us1` hosts no longer resolve.
+- ✅ **EU finetuned-INFERENCE works:** `POST /v1/flux-pro-1.1-ultra-finetuned` on `api.eu.bfl.ai` → 422 "finetune_id required" (path live, `x-key` auth confirmed). Poll `GET /v1/get_result?id=…` → `{id,status,result,progress,preview}`.
+- ✅ **Finetune MANAGEMENT on EU:** `GET /v1/my_finetunes` → 200, plus `finetune_details` + `delete_finetune`.
+- ❌ **NO finetune-CREATE endpoint on ANY region.** Same valid key: `POST /v1/finetune` → **404 "Not Found"** on `api.eu/us/global.bfl.ai` (vs 422 on inference paths — proof the path is genuinely gone, not a method/auth error). The legacy dedicated finetune hosts `api.eu1/us1.bfl.ai` still resolve (stale Azure IPs) but **TCP-time-out** — decommissioned.
 
-**Implication:** BFL's *current public API* can run + manage EU-resident finetunes, but cannot **create** one programmatically. The finetunes that `my_finetunes` lists must be created via another channel (almost certainly the web dashboard `dashboard.bfl.ai`, or an enterprise path). So the planned fully-automated `ai.trainSubject` → `/v1/finetune` **cannot be built as specified** — the create endpoint does not exist.
+**Implication:** BFL's current public API can *run + manage* EU-resident finetunes, but cannot **create** one programmatically. Creation moved to the web dashboard (`dashboard.bfl.ai`) / enterprise. So a fully-automated `ai.trainSubject` **cannot be built** — but the EU-resident *inference* half can, and that is what shipped. **Lesson: live-probe a provider's API with the right method before planning an adapter — the docs/blog said finetuning exists; the live API says create is gone.**
 
-**Reframed options (Christian to decide — see intercom):**
-1. **Split flow:** finetune CREATED manually via `dashboard.bfl.ai` (one-time per person, with consent) → ai-sdk automates the **EU-resident inference** half (`ai.image({ finetune, override:{provider:"bfl"} })`). EU-clean *if* the dashboard upload is EU (to verify). Training not API-automated.
-2. **Self-host full EU** (Scaleway/OVH + ai-toolkit) — train + infer both self-hosted in EU; max automation + residency, biggest build. Note: a self-host LoRA cannot plug into BFL inference; self-host owns both halves.
-3. **fal-DPA** for create (US biometric) — previously rejected on GDPR.
-
-Until decided, F023 is **blocked**; only the inference-half (option 1) is buildable today.
+**Christian's decision (2026-06-16): delt flow.** Train the subject once in the BFL dashboard (EU, with consent); the SDK automates EU-resident generation thereafter. Self-host (full EU) and fal-DPA (US biometric) were the rejected alternatives.
 
 ## Motivation
 
-components (Christian's wish) wants ÉT endpoint that, from a set of a person's photos, trains a likeness model → then auto-generates **photorealistic portraits ~98% matching** (consent-based dev-portraits). F021 already wraps fal LoRA training — but two hard blockers make F021 the wrong tool here:
-
-1. **Style ≠ person.** F021's `ai.trainStyle` defaults to `fal-ai/flux-lora-fast-training` with `is_style:true` — built + proven for an artistic *style* (Sanne's pencil line). For a *face/subject* that config wrecks likeness; you need subject/character mode + captioning.
-2. **GDPR — biometric data.** A person's face is **biometric personal data** (GDPR's strictest category). fal.ai is **US-hosted with no EU residency** — training employee faces there = personal-data → US transfer + a third-party AI on biometrics. Our standing Mistral-EU rule covers *text*; faces are a stronger reason for EU residency.
-
-Christian chose the **EU-resident route**: Black Forest Labs (FLUX's own makers, Freiburg DE). Capability + residency are **confirmed** (see Architecture): BFL's finetuning supports a `character` (person) mode, and BFL exposes a **dedicated EU endpoint `api.eu.bfl.ai`** for GDPR. This F-number builds that route as a first-class ai-sdk capability so any fleet app gets consent-based person-LoRA without re-rolling provider plumbing — and without ever sending a face to the US.
+components (Christian's wish) wants one path that turns a person's photos into **photorealistic portraits ~98% matching** (consent-based dev-portraits) — without ever sending a face to the US. F021 (`ai.trainStyle`/fal) is the wrong tool: (1) its `is_style:true` is built for an artistic *style*, not a *face*; (2) a face is **biometric personal data** (GDPR's strictest category) and fal.ai is US-hosted with no EU residency. BFL (FLUX's makers, Freiburg DE) exposes a dedicated EU endpoint `api.eu.bfl.ai`, so the biometric inference is processed in the EU.
 
 ## Solution
 
-A new **BFL provider adapter** (`src/providers/bfl.ts`), hard-pinned to the EU endpoint, plus a first-class **`ai.trainSubject`** capability (person/character finetune → `finetuneId`) and a BFL **finetuned-inference** path on `ai.image` (`finetune` param). One EU-resident train→infer pipeline, cost-tracked like every other call. F021 (fal style-LoRA) stays unchanged for the *style* use-case.
+A new **BFL provider adapter** (`src/providers/bfl.ts`), hard-pinned to the EU endpoint, exposing BFL **finetuned-inference** through the existing `ai.image` capability via a new `finetune` param. A subject's likeness is trained **once, manually, in the BFL dashboard** (the public API has no create endpoint — see finding); the resulting `finetune_id` then flows into `ai.image({ finetune, override:{provider:"bfl"} })`, which generates EU-resident, cost-tracked like every other call. F021 (fal style-LoRA) stays unchanged for the *style* use-case.
 
 ## Governance (in scope — the frame around the whole feature)
 
-**Consent-based, operationally-sensible use ONLY. Never a deepfake of anyone without explicit sign-off.** The broberg.ai case is always a customer who *wants* their own face auto-generated in a photorealistic style (it's in their interest — saves them time) and has given explicit consent. "Do good, do no evil." This is documented as the capability's usage contract (a doc/README note + a one-line guard in the plan-doc and capability docstring) — it is policy, not code-enforceable, but it MUST be stated wherever the capability is described (incl. the Discovery catalogue entry).
+**Consent-based, operationally-sensible use ONLY. Never a deepfake of anyone without explicit sign-off.** The broberg.ai case is always a customer who *wants* their own face auto-generated (it saves them time) and has given explicit consent. "Do good, do no evil." This is the capability's usage contract — policy, not code-enforceable — and MUST be stated wherever the capability is described (docstring, `docs/API.md`, the Discovery catalogue entry).
 
 ## Scope
 
-### In scope
-- `src/providers/bfl.ts` — BFL adapter, **base URL hard-pinned to `https://api.eu.bfl.ai`** (never the global `api.bfl.ai`, which auto-failovers across regions and could route a face to the US). Auth header `x-key` from `BFL_API_KEY`. Methods: finetune-create (`POST /v1/finetune`), status-poll (`GET /v1/get_result`/`finetune_details`), finetuned-inference (`POST /v1/flux-pro-1.1-ultra-finetuned` or `/v1/flux-pro-finetuned`). In-memory image ZIP reuse from F021's `node:zlib` util (BFL accepts base64 ZIP in `file_data`).
-- `ai.trainSubject(input)` capability + `trainSubjectInputSchema` + `TrainSubjectRequest`/`TrainSubjectResult` types → `{ finetuneId, usage }`. Params: `images` (URLs/array → zipped), `mode` (`character`|`product`|`style`|`general`, default `character`), `triggerWord`, `iterations` (BFL min 100 / default 300), `captioning?`, `finetuneStrength?`.
-- `ai.image({ finetune, finetuneStrength?, override })` — BFL finetuned-inference path (alongside the existing fal `lora`). Routes to the BFL EU adapter.
-- Pricing: `bfl:` entries in `src/cost/pricing.ts` (finetune one-time + per-image) — **verified against BFL's official pricing before ship, never guessed**; `usage.costUsd` stamped.
-- Tests: `src/providers/bfl.test.ts` (incl. an EU-endpoint-pinned assertion + injected-fetch finetune/infer flow), `src/capabilities/trainSubject.test.ts`.
-- `docs/API.md` rows + changelog; the governance note; capability catalogue ping to components/Discovery.
+### In scope (shipped)
+- `src/providers/bfl.ts` — BFL adapter, **base URL hard-pinned to `https://api.eu.bfl.ai`** (never the global `api.bfl.ai`, which auto-failovers across regions and could route a face to the US). Auth header `x-key` from `BFL_API_KEY`. Finetuned-inference: `POST /v1/flux-pro-1.1-ultra-finetuned` → poll `GET /v1/get_result?id=…` until `Ready` → `result.sample` URL. Polls the **EU** get_result by id (not the returned `polling_url`) so a face-bearing response never transits a non-EU host. Per-image cost stamped in-adapter (BFL convention, like fal/gemini).
+- `ai.image({ finetune, finetuneStrength?, override })` — when `finetune` is set, routes to the BFL EU adapter (alongside the existing fal `lora` path). `width`/`height` derive `aspect_ratio` (gcd-reduced). Wired in `src/client.ts`, schema in `src/schema/inputs.ts`, fields on `ImageRequest` (`src/types.ts`).
+- Adapter registered in `src/providers/registry.ts`; exported from `src/index.ts`.
+- Tests: `src/providers/bfl.test.ts` — incl. the **GDPR-crux assertion** (every request pinned to `api.eu.bfl.ai`, never global/US), the submit→poll→Ready flow, body shape, moderated-status + missing-key/finetune errors, and client routing.
+- **Manual training SOP** (below) + `docs/API.md` rows + changelog + the governance note + Discovery ping.
 
 ### Out of scope
-- Changing F021 (`ai.trainStyle`/fal style-LoRA) — stays as-is for the style use-case.
-- A LoRA-weight *file* export (BFL returns a hosted `finetune_id` referenced on BFL inference, not a portable `.safetensors` like fal — different mechanic; not unified here).
-- Consent capture / DPA tooling — that's the consuming app's job; F023 ships the capability + the documented usage contract, not a consent UI.
-- Real employee faces in any test/calibration — fidelity calibration runs on **public/synthetic portraits only** until the consuming app has consent in place.
-- Self-hosted EU training (Scaleway/OVH) — BFL-EU is the chosen route; self-host stays a documented fallback if BFL proves insufficient.
+- **Automated `ai.trainSubject`** — BFL's public API has no finetune-create endpoint (verified). Training is the manual dashboard SOP below; if/when BFL re-exposes create, a follow-up F-number adds it.
+- Changing F021 (`ai.trainStyle`/fal style-LoRA) — stays as-is.
+- A portable LoRA-weight file (BFL returns a hosted `finetune_id`, not a `.safetensors`).
+- Consent capture / DPA tooling — the consuming app's job.
+- Real employee faces in any test/calibration — calibration runs on **public/synthetic portraits only** until the consuming app has consent in place.
+- Self-hosted EU training (Scaleway/OVH) — documented fallback if BFL proves insufficient.
+
+## Manual training SOP (the "delt" half — one-time per person, with consent)
+
+1. **Consent first.** Only a person who has signed off on their own likeness being generated.
+2. In **`dashboard.bfl.ai`** → Finetune → upload 1–20 photos (JPG/PNG/WebP, ≤1MP), `mode = character`, set a `trigger_word`, iterations ~300. **Select the EU region** if the dashboard offers a region choice (BFL's privacy policy states EU data residency + SCCs; confirm in the UI at upload time — this is the one residency point outside SDK control).
+3. When training completes, copy the **`finetune_id`** (also listed via `GET /v1/my_finetunes`).
+4. Generate via the SDK — fully automated, EU-resident:
+   ```ts
+   const { url, usage } = await ai.image({
+     prompt: "<trigger_word> as a professional headshot, studio light",
+     finetune: "<finetune_id>",
+     finetuneStrength: 1.2,
+     override: { provider: "bfl" },   // also auto-selected whenever `finetune` is set
+   });
+   ```
 
 ## Architecture
 
-### Capability-confirmed findings (researched, not assumed — 2026-06-16)
-- **Person training:** BFL FLUX Pro Finetuning trains on **1–20 user images** (JPG/PNG/WebP, ≤1MP) with a training-`mode` of **character | product | style | general** — `character` = person/likeness. Iterations min 100, default 300; learning-rate adjustable. (bfl.ai/blog/25-01-16-finetuning; the-decoder.com.)
-- **EU residency:** BFL exposes three endpoints — global `api.bfl.ai` (auto-failover), `api.us.bfl.ai`, and **`api.eu.bfl.ai` (dedicated GDPR/EU)**. (docs.bfl.ml/api_integration.) The adapter pins `api.eu.bfl.ai` → biometric face data is processed in the EU.
-
-### `src/providers/bfl.ts`
+### `src/providers/bfl.ts` (as built)
 ```ts
-const BFL_EU_BASE = "https://api.eu.bfl.ai"; // HARD-PINNED — never global/US (GDPR)
-// trainSubject → POST /v1/finetune { file_data: <base64 zip>, mode, trigger_word, iterations, ... }
-//   → { finetune_id }; poll GET /v1/get_result?id=… until READY.
-// image (finetuned) → POST /v1/flux-pro-1.1-ultra-finetuned { finetune_id, finetune_strength, prompt, ... }
-//   → polling id; GET /v1/get_result → image URL. Auth: header "x-key": BFL_API_KEY.
+const EU_BASE = "https://api.eu.bfl.ai"; // HARD-PINNED — never global/US (GDPR crux)
+// image(req) requires req.finetune. Body: { finetune_id, prompt, finetune_strength?, aspect_ratio? }
+// POST /v1/flux-pro-1.1-ultra-finetuned → { id }; poll GET /v1/get_result?id=… until "Ready"
+//   → result.sample (image URL). Auth header "x-key": BFL_API_KEY. Per-image cost in-adapter.
+// Moderated / Error / Task-not-found statuses throw a clear error. No finetune id → actionable throw.
 ```
 
-### `ai.trainSubject` (client.ts + schema)
-`{ finetuneId, configUrl?, usage }`. Default route `{ provider:"bfl", model:"flux-pro-finetune", transport:"http" }` (override-able). Cost = BFL finetune price (verified) in `usage.costUsd`.
-
-### `ai.image({ finetune })`
-When `finetune` is set → BFL EU finetuned-inference route; `finetuneStrength` (default ~1.1) controls likeness. Existing `lora` (fal) path untouched.
+### `ai.image({ finetune })` routing (client.ts)
+`input.finetune` → `DEFAULT_BFL_FINETUNE_SPEC` (`{provider:"bfl", model:"flux-pro-1.1-ultra-finetuned", transport:"http"}`); LoRAs → fal flux-lora; else plain image. Override always wins.
 
 ## Stories
-- **F023.1** — BFL EU provider adapter (`src/providers/bfl.ts`): finetune-create + status-poll + finetuned-inference, `x-key` auth, **EU-endpoint-pinned**, ZIP reuse. Registered in `src/providers/registry.ts`.
-- **F023.2** — `ai.trainSubject` capability + schema + types (character/subject finetune → `finetuneId`); governance docstring.
-- **F023.3** — `ai.image({ finetune, finetuneStrength })` BFL inference path + `bfl:` pricing (finetune + per-image, **verified**).
-- **F023.4** — Governance/usage-contract doc + `docs/API.md` + changelog; ship a minor; catalogue ping to components/Discovery; synthetic-face fidelity calibration (public images, not real employees).
+- **F023.1** — BFL EU provider adapter (`src/providers/bfl.ts`): finetuned-inference, `x-key` auth, **EU-endpoint-pinned**, submit→poll. Registered + exported. ✅ shipped
+- **F023.2** — `ai.image({ finetune, finetuneStrength })` BFL inference route + `finetune` field on `ImageRequest`/`imageInputSchema`/client wiring. ✅ shipped
+- **F023.3** — Tests (GDPR-crux pin, flow, errors, routing) + `docs/API.md` + changelog + governance note + manual-training SOP. ✅ shipped
+- **F023.4** — Ship a minor via `publish.yml`; Discovery catalogue ping; synthetic-face fidelity calibration (public images), then Christian's own face once he trains a finetune in the dashboard. ⏳ (calibration awaits a trained `finetune_id`)
 
 ## Acceptance criteria
-1. The BFL adapter's base URL is `https://api.eu.bfl.ai` — asserted by a unit test (`expect(...).toContain("api.eu.bfl.ai")`) and never the global/US host. (GDPR-critical.)
-2. `ai.trainSubject({ images:[…], mode:"character", triggerWord:"…" })` posts a base64 ZIP + `mode:"character"` to `/v1/finetune` and returns `{ finetuneId, usage }` — verified with an injected-fetch test (no live metered call in CI).
-3. `ai.image({ prompt, finetune:"<id>", override:{provider:"bfl"} })` calls the BFL finetuned-inference endpoint with the `finetune_id` and returns an image URL + `usage.costUsd` from the verified `bfl:` pricing.
-4. `BFL_API_KEY` is read lazily from env (ship-dark: adapter instantiates without the key; only a live call needs it) — consistent with the SDK's lazy-key convention.
-5. The consent-only / no-deepfake governance note appears in the capability docstring, `docs/API.md`, and the Discovery catalogue entry.
-6. `bun test` full suite green; `tsc --noEmit` clean; published as a minor via `publish.yml`.
-7. Live fidelity calibration on **public/synthetic** portraits demonstrates the train→infer pipeline end-to-end against `api.eu.bfl.ai` (documented result; real employee faces excluded until consuming-app consent exists).
+1. ✅ The BFL adapter pins `https://api.eu.bfl.ai` — a unit test asserts **every** request URL starts with it and never hits the global/US host. (GDPR-critical.)
+2. ✅ `ai.image({ prompt, finetune:"<id>", override:{provider:"bfl"} })` posts `finetune_id` to `/v1/flux-pro-1.1-ultra-finetuned`, polls `get_result`, and returns an image URL + `usage.costUsd` — injected-fetch test, no live metered call in CI.
+3. ✅ `BFL_API_KEY` read lazily from env (ship-dark: adapter instantiates without it; only a live call needs it).
+4. ✅ The consent-only / no-deepfake governance note appears in the docstring + `docs/API.md` + the Discovery entry.
+5. ✅ `bun test` full suite green; `tsc --noEmit` clean; published as a minor via `publish.yml`.
+6. ⏳ Live fidelity calibration on **public/synthetic** portraits against `api.eu.bfl.ai` (documented result), then Christian's own face — both gated on a `finetune_id` trained in the dashboard (real employee faces excluded until consuming-app consent exists).
 
 ## Dependencies
-- Reuses F021's in-memory ZIP util + the `ai.image` capability shape. Independent of F022. Needs `BFL_API_KEY` (Christian's test key already in the gitignored `.env`). BFL account = Christian's one SaaS-signup (done).
+- Reuses the `ai.image` capability shape. Independent of F021/F022. Needs `BFL_API_KEY` (Christian's test key in the gitignored `.env`) and — for calibration — a `finetune_id` trained once in `dashboard.bfl.ai`.
 
 ## Rollout
-Additive minor. New provider + capability; no change to F021/fal paths or existing call-sites. Ship via OIDC `publish.yml`. BFL pricing verified before the cost table lands. Rollback = revert the minor; the adapter is inert without `BFL_API_KEY`. Notify components when shipped so Discovery catalogues "person/portrait LoRA (EU)".
+Additive minor. New provider + one `ai.image` param; no change to F021/fal paths or existing call-sites. Ship via OIDC `publish.yml`. The adapter is inert without `BFL_API_KEY` (ship-dark). Rollback = revert the minor. Notify components when shipped so Discovery catalogues "person/portrait generation (EU, finetuned)".
 
 ## Open Questions
-- **Exact BFL finetuned-inference endpoint** (`/v1/flux-pro-1.1-ultra-finetuned` vs `/v1/flux-pro-finetuned`) + exact param names (`finetune_strength`, `trigger_word`, `captioning`) — confirm against docs.bfl.ml / a live probe during F023.1 (key is available).
-- **BFL pricing** (finetune one-time + per-MP inference) — fetch from BFL's official pricing before setting `bfl:` cost entries. Until then, `usage.costUsd` falls back to 0 with a logged note (never a fabricated number).
-- **`trainSubject` vs extending `trainStyle`** — decided: a **separate** `ai.trainSubject` (different provider + return shape `finetuneId` vs `loraUrl`) keeps both clean; do not overload `trainStyle`.
+- **Dashboard EU residency at upload time** — BFL's privacy policy claims EU data residency + SCCs and finetuning was historically EU-region-selectable, but the dashboard region choice can only be confirmed inside Christian's authenticated BFL account at training time. Flagged in the SOP; the SDK inference half is unambiguously EU-pinned regardless.
+- **BFL per-image pricing** — set to a $0.06 in-adapter estimate (flux-pro-1.1-ultra-finetuned), overridable via `config.pricePerImage`; confirm against bfl.ai/pricing and tighten if needed. Never a fabricated-precise number presented as official.
 
 ## Effort estimate
-**L** — ~2 days. New provider adapter (train + poll + infer), 2 capability surfaces, verified pricing, EU-pin + governance, injected-fetch tests + one live synthetic calibration.
+**M** — ~1 day (was L). Inference-only adapter + one `ai.image` param + tests + docs; the training automation that made it L is out (BFL API can't).

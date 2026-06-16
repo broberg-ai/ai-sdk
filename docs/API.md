@@ -168,7 +168,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `vision` |
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
-| `ai.image` | `{ prompt, width?, height?, loras?, lora?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given) |
+| `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `finetune` given |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
@@ -255,6 +255,35 @@ const { url } = await ai.image({ prompt: "a treatment illustration of a back mas
 - **Black-image guard** — `ai.image({ …, retryOnBlack: true })` re-rolls once with a fresh
   seed if fal's NSFW safety-checker false-positives and blanks the image
   (`has_nsfw_concepts`). The re-roll is a second billed generation.
+
+### Person / portrait generation — `ai.image({ finetune })`, EU-resident (F023)
+
+GDPR-safe, **EU-resident** photorealistic portraits from a person's trained
+likeness, via **Black Forest Labs** pinned to `api.eu.bfl.ai`. A face is biometric
+personal data, so the adapter **hard-pins the EU endpoint** (never the global
+`api.bfl.ai`, which can failover to the US) and polls the EU `get_result` directly.
+
+> **Governance — consent only.** Generate a person's likeness ONLY with their explicit
+> consent (a customer who *wants* their own portrait). Never a deepfake of anyone
+> without sign-off. "Do good, do no evil."
+
+**Delt flow** (BFL retired finetune-create from its public API — verified): train the
+subject **once, manually**, in `dashboard.bfl.ai` (1–20 photos, `mode = character`,
+pick the EU region), copy the `finetune_id`; the SDK then generates EU-resident:
+
+```ts
+const { url, usage } = await ai.image({
+  prompt: "<trigger_word> as a professional studio headshot",
+  finetune: "<finetune_id>",   // ← routes to the BFL EU adapter automatically
+  finetuneStrength: 1.2,        // ~0–2; higher = stronger likeness
+});
+// usage.costUsd ≈ $0.06/image (flux-pro-1.1-ultra-finetuned estimate; override via adapter config).
+```
+
+- **Key** — `BFL_API_KEY` (gitignored `.env`). Ship-dark: inert until set.
+- **Sizing** — `width`/`height` derive a gcd-reduced `aspect_ratio` (ultra takes a ratio, not px).
+- **Training is NOT API-automated** — the public BFL API has no finetune-create endpoint;
+  it's the one-time dashboard step above. `ai.trainStyle` (fal) is unrelated — that's *style*, US.
 
 ### Podcast & speech — `ai.podcast` / `ai.tts` (F020)
 
@@ -424,6 +453,7 @@ v0.11.0: Model Availability Harness (F022) — a runtime safety-net so a suspend
 v0.12.0: Browser-clean subpath `@broberg/ai-sdk/registry` (F022.5) — `import { listModels, resolveModel, ModelUnavailableError } from "@broberg/ai-sdk/registry"`. The root entry transitively pulls `bun:sqlite` + `node:zlib`, so importing the availability read from the root barrel hard-fails in a Vite/Rollup browser build. This subpath carries ONLY the synchronous zero-I/O read+resolve (no native deps) so UI pickers can import it directly (true zero-fetch). Same registry as the root → no drift; `refreshAvailability` stays root-only (server-side). Caught by cardmem (build-verified).
 v0.13.0: Policy — `cheap` tier no longer routes through `claude -p` (retired fleet-wide); it now defaults to **mistral-small-latest** over HTTP (cheapest-that's-good-enough, EU/Paris-hosted → GDPR-safe even for personal data by default). The `claude -p` subprocess transport still exists for explicit `override:{ transport:"subprocess" }` but is no longer a default route. Reflects Christian's policy: Anthropic/Claude is what we build/code with (Claude Code), not the reflexive API default; for cost-sensitive cloud-API workloads, start with the cheapest model that's good enough. Quality tiers (`smart`/`powerful`) still resolve to Claude. Other tiers unchanged.
 v0.13.1: Gemini image-gen pricing — added **gemini-3.1-flash-image** ($0.067/image at 1K, official Google pricing) + GA **gemini-3-pro-image** ($0.134/image). FIX: `gemini-3-pro-image-preview` was priced at $0.039 (the flash price) — corrected to $0.134; consumers using the Gemini *pro* image model were under-reporting its cost ~3.4×. Per-image prices are the standard-tier 1K/1024px figure (Google charges more at 2K/4K). Not affected: ai-sdk never used the deprecated Imagen 4 endpoints (discontinued 2026-08-17) — our image path uses generateContent, the model family Google migrates toward.)*
+v0.14.0: `ai.image({ finetune })` — **EU-resident** person/portrait generation via Black Forest Labs (F023), consent-only. New `bflAdapter` hard-pinned to `api.eu.bfl.ai` (a face = biometric personal data → GDPR strictest; never the global `api.bfl.ai` US-failover). Set `finetune` (a `finetune_id`) and `finetuneStrength?` on `ai.image` → routes to BFL's `flux-pro-1.1-ultra-finetuned`, polls the EU `get_result`, returns an image URL + per-image cost. **Delt flow:** BFL retired finetune-CREATE from its public API (live-verified: `POST /v1/finetune` → 404 on every region while inference paths 422; legacy eu1/us1 hosts TCP-dead), so a subject is trained **once, manually, in `dashboard.bfl.ai`** (`mode=character`, EU region); the SDK automates only the EU generation. fal `ai.trainStyle`/`lora` (style, US) is unchanged. Ship-dark (inert without `BFL_API_KEY`).
 
 ---
 

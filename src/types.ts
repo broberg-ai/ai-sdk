@@ -191,6 +191,11 @@ export interface ImageRequest {
   height?: number;
   /** LoRAs to merge at inference (F021) — e.g. a trained brand/style LoRA. */
   loras?: LoraWeight[];
+  /** F023 — a BFL finetune id (a subject trained in the BFL dashboard). Routes to the
+   *  EU-resident BFL finetuned-portrait endpoint. */
+  finetune?: string;
+  /** F023 — how strongly the finetune is applied (BFL finetune_strength, ~0–2). */
+  finetuneStrength?: number;
   /** F021.4 — re-roll once with a fresh seed if fal's safety-checker false-positives
    *  and returns a black image (has_nsfw_concepts). fal only. */
   retryOnBlack?: boolean;
