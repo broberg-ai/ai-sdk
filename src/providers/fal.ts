@@ -9,6 +9,8 @@ import type {
   ProviderAdapter,
   ImageRequest,
   ImageResult,
+  AnimateRequest,
+  AnimateResult,
   TrainStyleRequest,
   TrainStyleResult,
 } from "../types.js";
@@ -41,11 +43,15 @@ export interface FalAdapterConfig {
   timeoutMs?: number;
   /** Deadline for training jobs — they take minutes (default 600000 = 10 min). */
   trainTimeoutMs?: number;
+  /** Deadline for video jobs — they take minutes (default 600000 = 10 min). */
+  videoTimeoutMs?: number;
   fetch?: typeof fetch;
   /** Override the per-image USD price (else a built-in estimate per model, 0 if unknown). */
   pricePerImage?: number;
   /** Override the flat per-training USD price (else ~$2 estimate). */
   pricePerTraining?: number;
+  /** Override the per-SECOND video USD price (else a built-in estimate per model, 0 if unknown). */
+  pricePerSecond?: number;
 }
 
 // Per-image USD ESTIMATES (fal prices by megapixel/model and changes often —
@@ -60,6 +66,14 @@ const FAL_IMAGE_PRICE_ESTIMATE: Record<string, number> = {
 };
 // Flat training estimate (fal-ai/flux-lora-fast-training, ~$2; override via config).
 const FAL_TRAIN_PRICE_ESTIMATE = 2.0;
+
+// Per-SECOND USD estimates for video models (F024). fal does not return a price,
+// and rates vary by model/resolution — these are populated from real observed fal
+// spend (a live smoke), never guessed; override via config.pricePerSecond. Unknown
+// model → 0 (cost surfaced via the live smoke, not a fabricated number).
+const FAL_VIDEO_PRICE_PER_SEC: Record<string, number> = {};
+// Default clip length to bill when the caller doesn't pass durationSec (Veo ≈ 8s).
+const FAL_VIDEO_DEFAULT_SEC = 8;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -116,6 +130,48 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       outputTokens: 0,
     });
     usage.costUsd = (config.pricePerImage ?? FAL_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0) * calls;
+    return { url, usage };
+  }
+
+  async function animate(req: AnimateRequest): Promise<AnimateResult> {
+    const apiKey = resolveKey();
+    if (!apiKey) throw new Error("fal adapter: FAL_KEY not set");
+    const headers = authHeaders(apiKey);
+
+    // Input image: a URL passes through; raw bytes are uploaded to fal storage
+    // (fal needs a fetchable URL, not a data: URI — same gotcha as trainStyle).
+    const imageUrl =
+      typeof req.image === "string" && /^https?:\/\//i.test(req.image)
+        ? req.image
+        : await uploadToFalStorage(toBytes(req.image), sniffImageType(req.image), "input", apiKey);
+
+    const body: Record<string, unknown> = { image_url: imageUrl };
+    if (req.prompt !== undefined) body.prompt = req.prompt;
+    if (req.durationSec !== undefined) body.duration = req.durationSec;
+    if (req.resolution !== undefined) body.resolution = req.resolution;
+
+    // Video is long-running → always the queue, with the longer deadline.
+    const result = await queueResult(req.spec.model, headers, body, config.videoTimeoutMs ?? 600000);
+    const url = extractVideoUrl(result);
+    if (!url) {
+      throw new Error(
+        `fal animate: no video url in result — keys [${Object.keys(
+          (result as Record<string, unknown>) ?? {},
+        ).join(", ")}]: ${JSON.stringify(result).slice(0, 500)}`,
+      );
+    }
+
+    const usage = freshUsage({
+      provider: "fal",
+      model: req.spec.model,
+      transport: "http",
+      capability: "animate",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    // fal returns no price → per-second estimate × duration (override config.pricePerSecond).
+    const perSec = config.pricePerSecond ?? FAL_VIDEO_PRICE_PER_SEC[req.spec.model] ?? 0;
+    usage.costUsd = perSec * (req.durationSec ?? FAL_VIDEO_DEFAULT_SEC);
     return { url, usage };
   }
 
@@ -280,7 +336,35 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
     return resultRes.json();
   }
 
-  return { name: "fal", image, trainStyle };
+  return { name: "fal", image, animate, trainStyle };
+}
+
+/** Coerce an image input to bytes (a non-http string is treated as base64/data-URI). */
+function toBytes(img: string | Uint8Array): Uint8Array {
+  if (typeof img !== "string") return img;
+  const b64 = img.startsWith("data:") ? img.slice(img.indexOf(",") + 1) : img;
+  return new Uint8Array(Buffer.from(b64, "base64"));
+}
+
+/** Sniff a content-type from the bytes' magic (PNG/WebP/GIF), default JPEG. */
+function sniffImageType(img: string | Uint8Array): string {
+  const b = toBytes(img);
+  if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
+  if (b[0] === 0x47 && b[1] === 0x49) return "image/gif";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57) return "image/webp";
+  return "image/jpeg";
+}
+
+/** Find the result video URL across fal's video-output shapes (video.url, a wrapper,
+ *  or any *.mp4/.webm url anywhere in the response). */
+export function extractVideoUrl(result: unknown): string | undefined {
+  const r = result as Record<string, unknown> | null | undefined;
+  const root = (r?.data ?? r?.response ?? r?.output ?? r) as Record<string, unknown> | null | undefined;
+  return (
+    urlOf(root?.video) ??
+    urlOf((root?.videos as unknown[] | undefined)?.[0]) ??
+    deepFindUrl(root, (u) => /\.(mp4|webm|mov)(\?|$)/i.test(u))
+  );
 }
 
 // ── fal trained-file extraction (defensive against output-shape variance) ────

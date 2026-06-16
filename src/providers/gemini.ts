@@ -13,6 +13,8 @@ import type {
   ChatStreamEvent,
   ImageRequest,
   ImageResult,
+  AnimateRequest,
+  AnimateResult,
   Message,
   ContentPart,
   ToolCall,
@@ -63,8 +65,30 @@ function partsFrom(content: string | ContentPart[]): GeminiPart[] {
   });
 }
 
+/** Per-SECOND USD for Veo video models (F024). Official ai.google.dev/gemini-api/
+ *  docs/pricing (2026-06, "video with audio", 720p/1080p default; 4K costs more).
+ *  Override per call via config.pricePerSecond. Unknown model → 0 (never fabricated). */
+const VEO_PRICE_PER_SEC: Record<string, number> = {
+  "veo-3.1-generate-preview": 0.4, // standard; 4K = 0.60
+  "veo-3.1-fast-generate-preview": 0.1, // 720p; 1080p = 0.12, 4K = 0.30
+  "veo-3.1-lite-generate-preview": 0.05, // 720p; 1080p = 0.08
+  "veo-3.0-generate-001": 0.4,
+  "veo-3.0-fast-generate-001": 0.1,
+};
+
 export function geminiAdapter(
-  config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerImage?: number } = {},
+  config: {
+    apiKey?: string;
+    baseUrl?: string;
+    fetch?: typeof fetch;
+    pricePerImage?: number;
+    /** Override the per-SECOND Veo video price (else estimate per model, 0 if unknown). */
+    pricePerSecond?: number;
+    /** Poll interval for Veo long-running operations (default 5s). */
+    pollIntervalMs?: number;
+    /** Deadline for a Veo job (default 300000 = 5 min). */
+    videoTimeoutMs?: number;
+  } = {},
 ): ProviderAdapter {
   const baseUrl = config.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta";
 
@@ -250,7 +274,115 @@ export function geminiAdapter(
     return { url, usage };
   }
 
-  return { name: "gemini", chat, chatStream, image, vision: chat };
+  // Image-to-video (F024) via Veo on the Gemini API — :predictLongRunning. Submit
+  // returns an operation; poll until done; the result is an auth-gated file URI, so
+  // we download the bytes with the key and hand them back (the URI alone needs auth).
+  async function animate(req: AnimateRequest): Promise<AnimateResult> {
+    const apiKey = resolveKey();
+    const fetchImpl = config.fetch ?? fetch;
+    const pollIntervalMs = config.pollIntervalMs ?? 5000;
+    const deadline = Date.now() + (config.videoTimeoutMs ?? 300000);
+
+    // Input image → inline base64 + mime (URL is fetched to bytes first).
+    const { data, mimeType } = await toInlineImage(req.image, fetchImpl);
+    const parameters: Record<string, unknown> = {};
+    // durationSeconds must be a NUMBER (the API rejects a string, despite some docs).
+    if (req.durationSec !== undefined) parameters.durationSeconds = req.durationSec;
+    if (req.resolution !== undefined) parameters.resolution = req.resolution;
+    // Veo's predict image field is bytesBase64Encoded + mimeType (NOT generateContent's
+    // inlineData — the API rejects that: "inlineData isn't supported by this model").
+    const body = {
+      instances: [{ prompt: req.prompt ?? "", image: { bytesBase64Encoded: data, mimeType } }],
+      ...(Object.keys(parameters).length ? { parameters } : {}),
+    };
+
+    const submit = await fetchImpl(
+      `${baseUrl}/models/${req.spec.model}:predictLongRunning?key=${encodeURIComponent(apiKey)}`,
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) },
+    );
+    if (!submit.ok) {
+      throw new Error(`gemini animate ${submit.status}: ${(await submit.text().catch(() => "")).slice(0, 300)}`);
+    }
+    const op = (await submit.json()) as { name?: string };
+    if (!op.name) throw new Error("gemini animate: no operation name in submit response");
+
+    // Poll the operation until done.
+    let videoUri: string | undefined;
+    for (;;) {
+      const poll = await fetchImpl(`${baseUrl}/${op.name}?key=${encodeURIComponent(apiKey)}`, {
+        headers: { "content-type": "application/json" },
+      });
+      if (!poll.ok) throw new Error(`gemini animate poll ${poll.status}`);
+      const opData = (await poll.json()) as VeoOperation;
+      if (opData.error) throw new Error(`gemini animate: ${opData.error.message ?? "operation error"}`);
+      if (opData.done) {
+        videoUri = opData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+        if (!videoUri) throw new Error(`gemini animate: done but no video uri: ${JSON.stringify(opData.response).slice(0, 300)}`);
+        break;
+      }
+      if (Date.now() >= deadline) throw new Error("gemini animate: timed out");
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
+    }
+
+    // Download the bytes (the URI is auth-gated + short-lived).
+    const dl = await fetchImpl(videoUri.includes("key=") ? videoUri : `${videoUri}${videoUri.includes("?") ? "&" : "?"}key=${encodeURIComponent(apiKey)}`);
+    if (!dl.ok) throw new Error(`gemini animate download ${dl.status}`);
+    const bytes = new Uint8Array(await dl.arrayBuffer());
+
+    const usage = freshUsage({
+      provider: "gemini",
+      model: req.spec.model,
+      transport: "http",
+      capability: "animate",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    const perSec = config.pricePerSecond ?? VEO_PRICE_PER_SEC[req.spec.model] ?? 0;
+    usage.costUsd = perSec * (req.durationSec ?? 8);
+    return { url: videoUri, bytes, mimeType: "video/mp4", usage };
+  }
+
+  return { name: "gemini", chat, chatStream, image, animate, vision: chat };
+}
+
+/** A Veo predictLongRunning operation result shape. */
+interface VeoOperation {
+  done?: boolean;
+  error?: { message?: string };
+  response?: {
+    generateVideoResponse?: {
+      generatedSamples?: { video?: { uri?: string } }[];
+    };
+  };
+}
+
+/** Resolve an image input to { data(base64), mimeType } — a URL is fetched to bytes. */
+async function toInlineImage(
+  image: string | Uint8Array,
+  fetchImpl: typeof fetch,
+): Promise<{ data: string; mimeType: string }> {
+  if (typeof image !== "string") {
+    return { data: Buffer.from(image).toString("base64"), mimeType: sniffMime(image) };
+  }
+  if (/^https?:\/\//i.test(image)) {
+    const res = await fetchImpl(image);
+    if (!res.ok) throw new Error(`gemini animate: failed to fetch image (${res.status})`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const mimeType = res.headers.get("content-type") ?? sniffMime(bytes);
+    return { data: Buffer.from(bytes).toString("base64"), mimeType };
+  }
+  // A data: URI or bare base64.
+  const comma = image.startsWith("data:") ? image.indexOf(",") : -1;
+  const b64 = comma >= 0 ? image.slice(comma + 1) : image;
+  const mimeType = image.startsWith("data:") ? image.slice(5, image.indexOf(";")) : "image/png";
+  return { data: b64, mimeType };
+}
+
+function sniffMime(b: Uint8Array): string {
+  if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
+  if (b[0] === 0x47 && b[1] === 0x49) return "image/gif";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57) return "image/webp";
+  return "image/jpeg";
 }
 
 /** Image part shape on a generateContent response (camel + snake aliases). */

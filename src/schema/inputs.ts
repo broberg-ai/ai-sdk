@@ -10,6 +10,7 @@ import type {
   ChatResult,
   ChatStreamEvent,
   ImageResult,
+  AnimateResult,
   TrainStyleResult,
   EmbeddingResult,
   TranscribeResult,
@@ -156,6 +157,19 @@ export const imageInputSchema = z.object({
   ...callOptions,
 });
 
+// Image-to-video (F024) — animate a still into a short clip via a pluggable provider.
+export const animateInputSchema = z.object({
+  /** Input image: a URL or raw bytes (uploaded to fal storage). */
+  image: z.union([z.string(), z.instanceof(Uint8Array)]),
+  /** Motion/scene prompt. */
+  prompt: z.string().optional(),
+  /** Clip length in seconds (provider-dependent; Veo ≤ 8s). */
+  durationSec: z.number().positive().optional(),
+  /** e.g. "720p" / "1080p" (provider-dependent). */
+  resolution: z.string().optional(),
+  ...callOptions,
+});
+
 export const trainStyleInputSchema = z.object({
   /** A hosted archive URL, or an array of image URLs the SDK zips in-memory. */
   images: z.union([z.string(), z.array(z.string())]),
@@ -244,6 +258,7 @@ export type VisionInput = z.infer<typeof visionInputSchema>;
 export type VideoInput = z.infer<typeof videoInputSchema>;
 export type TranslateInput = z.infer<typeof translateInputSchema>;
 export type ImageInput = z.infer<typeof imageInputSchema>;
+export type AnimateInput = z.infer<typeof animateInputSchema>;
 export type TrainStyleInput = z.infer<typeof trainStyleInputSchema>;
 export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
 export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
@@ -264,6 +279,8 @@ export interface AiClient {
   video(input: VideoInput): Promise<ChatResult>;
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
+  /** Image-to-video (F024) — animate a still into a short clip → { url, usage }. fal. */
+  animate(input: AnimateInput): Promise<AnimateResult>;
   /** Train a style/brand LoRA from images (F021) → { loraUrl, configUrl }. fal. */
   trainStyle(input: TrainStyleInput): Promise<TrainStyleResult>;
   embedding(input: EmbeddingInput): Promise<EmbeddingResult>;

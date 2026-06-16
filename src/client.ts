@@ -20,6 +20,7 @@ import {
   videoInputSchema,
   translateInputSchema,
   imageInputSchema,
+  animateInputSchema,
   trainStyleInputSchema,
   embeddingInputSchema,
   transcribeInputSchema,
@@ -36,6 +37,7 @@ import type {
   VideoInput,
   TranslateInput,
   ImageInput,
+  AnimateInput,
   TrainStyleInput,
   EmbeddingInput,
   TranscribeInput,
@@ -48,6 +50,7 @@ import type {
   ChatResult,
   ChatStreamEvent,
   ImageResult,
+  AnimateResult,
   TrainStyleResult,
   EmbeddingResult,
   TranscribeResult,
@@ -82,6 +85,15 @@ const DEFAULT_LORA_IMAGE_SPEC: TierSpec = {
 const DEFAULT_TRAINSTYLE_SPEC: TierSpec = {
   provider: "fal",
   model: "fal-ai/flux-lora-fast-training",
+  transport: "http",
+};
+/** Image-to-video route (F024) — Veo 3.1 DIRECT via the Gemini API (no fal markup,
+ *  our existing GEMINI_API_KEY, and the path to EU via Vertex later). Override to
+ *  {provider:"fal", model:"fal-ai/veo3.1/..."} for the aggregator / other models
+ *  (Kling, Seedance). US-hosted: consent-gated use (F024). */
+const DEFAULT_ANIMATE_SPEC: TierSpec = {
+  provider: "gemini",
+  model: "veo-3.1-generate-preview",
   transport: "http",
 };
 /** EU-resident finetuned-portrait route (F023) — BFL, used by ai.image when a
@@ -450,6 +462,30 @@ export function createAI(config: AiConfig = {}): AiClient {
             outputFormat: input.outputFormat,
             safetyTolerance: input.safetyTolerance,
             retryOnBlack: input.retryOnBlack,
+          });
+        },
+      });
+    },
+
+    async animate(input: AnimateInput): Promise<AnimateResult> {
+      input = animateInputSchema.parse(input);
+      return runCapability({
+        primary: { ...DEFAULT_ANIMATE_SPEC, ...input.override },
+        fallback: input.fallback,
+        capability: "animate",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: 0, // video cost is per-second, not token-based
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.animate) throw new Error(`createAI: provider "${spec.provider}" does not support animate`);
+          return adapter.animate({
+            image: input.image,
+            prompt: input.prompt,
+            durationSec: input.durationSec,
+            resolution: input.resolution,
+            spec,
           });
         },
       });

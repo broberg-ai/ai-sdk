@@ -169,6 +169,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
+| `ai.animate` | `{ image: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
@@ -319,6 +320,29 @@ const { url, usage } = await ai.image({
 - **Sizing** — `width`/`height` derive a gcd-reduced `aspect_ratio` (ultra takes a ratio, not px).
 - **Training is NOT API-automated** — the public BFL API has no finetune-create endpoint;
   it's the one-time dashboard step above. `ai.trainStyle` (fal) is unrelated — that's *style*, US.
+
+### Image-to-video — `ai.animate` (F024)
+
+Turn a still (e.g. an F023 portrait) into a short video. **Default route: Veo 3.1
+DIRECT via the Gemini API** (`veo-3.1-generate-preview`) — no aggregator markup, the
+same `GEMINI_API_KEY` you already use, and the path to EU residency (Vertex) later.
+
+```ts
+import { readFileSync } from "node:fs";
+const { url, bytes, mimeType, usage } = await ai.animate({
+  image: readFileSync("portrait.jpg"),        // URL or bytes
+  prompt: "the subject pours coffee and smiles warmly, gentle natural movement, cinematic",
+  durationSec: 8,                              // Veo: 4 | 6 | 8
+  resolution: "1080p",                         // 720p | 1080p (same price) | 4k
+});
+// Veo returns an auth-gated file URI → the SDK downloads the bytes for you (in `bytes`);
+// `url` is the Google file URI. usage.costUsd = real per-second rate ($0.40/s standard).
+```
+
+- **Cost** — Veo 3.1 Standard **$0.40/s** (720p/1080p), Fast **$0.10/s**, Lite **$0.05/s** (official). 8s standard ≈ $3.20. Switch tier via `override:{ model:"veo-3.1-fast-generate-preview" }`.
+- **fal aggregator** for other models (Kling, Seedance) or fal-hosted Veo: `override:{ provider:"fal", model:"fal-ai/veo3.1/image-to-video" }`. fal returns a public URL (no `bytes`).
+- **Governance (F024)** — US-hosted: consent-gated. Generate a person's likeness only with their sign-off; other figures in the clip are fictional. EU-preferred when a managed route exists (deferred — none verified today).
+- **Verified live** — bytesBase64Encoded image field + numeric `durationSeconds` (Google's own docs were wrong on both; the live smoke caught them).
 
 ### Podcast & speech — `ai.podcast` / `ai.tts` (F020)
 
@@ -489,6 +513,7 @@ v0.12.0: Browser-clean subpath `@broberg/ai-sdk/registry` (F022.5) — `import {
 v0.13.0: Policy — `cheap` tier no longer routes through `claude -p` (retired fleet-wide); it now defaults to **mistral-small-latest** over HTTP (cheapest-that's-good-enough, EU/Paris-hosted → GDPR-safe even for personal data by default). The `claude -p` subprocess transport still exists for explicit `override:{ transport:"subprocess" }` but is no longer a default route. Reflects Christian's policy: Anthropic/Claude is what we build/code with (Claude Code), not the reflexive API default; for cost-sensitive cloud-API workloads, start with the cheapest model that's good enough. Quality tiers (`smart`/`powerful`) still resolve to Claude. Other tiers unchanged.
 v0.13.1: Gemini image-gen pricing — added **gemini-3.1-flash-image** ($0.067/image at 1K, official Google pricing) + GA **gemini-3-pro-image** ($0.134/image). FIX: `gemini-3-pro-image-preview` was priced at $0.039 (the flash price) — corrected to $0.134; consumers using the Gemini *pro* image model were under-reporting its cost ~3.4×. Per-image prices are the standard-tier 1K/1024px figure (Google charges more at 2K/4K). Not affected: ai-sdk never used the deprecated Imagen 4 endpoints (discontinued 2026-08-17) — our image path uses generateContent, the model family Google migrates toward.)*
 v0.14.0: `ai.image({ finetune })` — **EU-resident** person/portrait generation via Black Forest Labs (F023), consent-only. New `bflAdapter` hard-pinned to `api.eu.bfl.ai` (a face = biometric personal data → GDPR strictest; never the global `api.bfl.ai` US-failover). Set `finetune` (a `finetune_id`) and `finetuneStrength?` on `ai.image` → routes to BFL's `flux-pro-1.1-ultra-finetuned`, polls the EU `get_result`, returns an image URL + per-image cost. **Delt flow:** BFL retired finetune-CREATE from its public API (live-verified: `POST /v1/finetune` → 404 on every region while inference paths 422; legacy eu1/us1 hosts TCP-dead), so a subject is trained **once, manually, in `dashboard.bfl.ai`** (`mode=character`, EU region); the SDK automates only the EU generation. fal `ai.trainStyle`/`lora` (style, US) is unchanged. Ship-dark (inert without `BFL_API_KEY`).
+v0.17.0: `ai.animate({ image, prompt? })` (F024) — **image-to-video**: turn a still into a short clip. Default route **Veo 3.1 DIRECT via the Gemini API** (`veo-3.1-generate-preview`, same `GEMINI_API_KEY`, no aggregator markup, the path to EU via Vertex later) — submit `:predictLongRunning` → poll the operation → download the bytes (Veo's result URI is auth-gated, so the SDK returns the downloaded `bytes` + `mimeType` alongside `url`). Real per-second cost (Veo 3.1 Standard $0.40/s; Fast $0.10; Lite $0.05). fal stays a pluggable aggregator alternative (Kling/Seedance/fal-Veo) via `override`. Consent-gated, US-hosted (EU route deferred). New `ProviderAdapter.animate?` + `Capability:"animate"`. **Live-verified end-to-end** (portrait→video); the smoke caught two wrong-in-Google's-docs request fields (`bytesBase64Encoded` not `inlineData`; numeric `durationSeconds`) before any spend.
 v0.16.0: `bflCredits()` (F023.6) — check the remaining BFL account credit balance for budget-gating: `import { bflCredits } from "@broberg/ai-sdk"` → `{ credits, usd }` (EU-pinned `GET /v1/credits`, 1 credit = $0.01). Standalone export, not on the AiClient facade. BFL has **no pre-flight pricing endpoint** (probed — all 404); the authoritative per-call cost is BFL's submit-response `cost` (already in `usage.costUsd`). A precise client-side estimator was deliberately NOT built — cost is dominated by reference-image input megapixels (depends on each ref's resolution), so a naive formula would mislead; documented published base rates (FLUX.2 max from $0.07 / pro $0.03 / flex $0.05 / klein ~$0.014) + the real per-call cost are the honest answer.
 v0.15.0: `ai.image({ referenceImages })` — **EU-resident** person/portrait generation with **NO training step** (F023.5), via BFL **FLUX 2 multi-reference**. Pass 1–8 reference photos (bytes → base64-inlined into the EU call, or URLs) straight into the generate call → a likeness back in one call. Default model **flux-2-max** ($0.25/img); `override:{ model:"flux-2-pro" }` is the easy ~half-price switch ($0.12/img, near-identical likeness — verified live on a real face). New optional `seed` / `outputFormat` / `safetyTolerance` honored by the BFL route. `usage.costUsd` is the **real billed cost** BFL returns (credits × $0.01), not an estimate. EU-pinned + consent-only like F023; full chain proven end-to-end through `createAI()` (EU submit → `api.eu2` poll → `delivery.eu2`). This supersedes the F023 manual-dashboard step for the common case; `finetune` stays for high-volume single-subject.
 

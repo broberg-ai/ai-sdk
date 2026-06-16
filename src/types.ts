@@ -35,6 +35,7 @@ export type Capability =
   | "video"
   | "translate"
   | "image"
+  | "animate"
   | "embedding"
   | "transcribe"
   | "ocr"
@@ -216,6 +217,32 @@ export interface ImageResult {
   usage: Usage;
 }
 
+/** Image-to-video generation (F024) — animate a still into a short clip. */
+export interface AnimateRequest {
+  /** Input image: a URL (passed through) or raw bytes (uploaded to fal storage). */
+  image: string | Uint8Array;
+  /** Motion/scene prompt, e.g. "the subject turns and smiles". */
+  prompt?: string;
+  /** Clip length in seconds (provider-dependent; Veo ≤ 8s). */
+  durationSec?: number;
+  /** e.g. "720p" / "1080p" (provider-dependent). */
+  resolution?: string;
+  spec: TierSpec;
+}
+
+export interface AnimateResult {
+  /** URL to the generated video. For fal this is a public hosted URL; for the
+   *  Gemini/Veo route it is Google's file URI (needs the API key to fetch — the
+   *  bytes are also returned below, already downloaded). */
+  url: string;
+  /** The downloaded video bytes — set by providers whose result URL is auth-gated
+   *  or short-lived (Gemini/Veo). Absent for providers that return a public URL (fal). */
+  bytes?: Uint8Array;
+  /** MIME type of `bytes` (e.g. "video/mp4"). */
+  mimeType?: string;
+  usage: Usage;
+}
+
 /** Style/brand LoRA training (F021) — fal fal-ai/flux-lora-fast-training. */
 export interface TrainStyleRequest {
   /** A hosted archive URL, or an array of image URLs the SDK zips in-memory. */
@@ -349,6 +376,8 @@ export interface ProviderAdapter {
   chatStream?(req: ChatRequest): AsyncIterable<ChatStreamEvent>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
+  /** Image-to-video generation (F024) — animate a still into a short clip. fal. */
+  animate?(req: AnimateRequest): Promise<AnimateResult>;
   /** Train a style/brand LoRA from images (F021). fal. */
   trainStyle?(req: TrainStyleRequest): Promise<TrainStyleResult>;
   embedding?(req: EmbeddingRequest): Promise<EmbeddingResult>;
