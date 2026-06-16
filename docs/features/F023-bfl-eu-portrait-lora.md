@@ -1,6 +1,23 @@
 # F023 — Person / Portrait LoRA via Black Forest Labs (EU)
 
-> A GDPR-safe, EU-resident route for finetuning FLUX on a *person's* likeness (consent-based dev-portraits), via Black Forest Labs' FLUX Pro Finetuning API pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Effort: L (~2 days). Status: planned — capability + residency confirmed; GO from Christian 2026-06-16.
+> A GDPR-safe, EU-resident route for finetuning FLUX on a *person's* likeness (consent-based dev-portraits), via Black Forest Labs' FLUX Pro Finetuning API pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Effort: L (~2 days). Status: **BLOCKED — see verification finding below.**
+
+## ⚠️ Verification finding (2026-06-16) — BLOCKS the training half
+
+Before writing the adapter, the live BFL API was probed (key in `.env`). Exhaustive result (all 24 paths on **api.eu.bfl.ai**, identical on global + us):
+
+- ✅ **EU finetuned-INFERENCE works:** `POST /v1/flux-pro-1.1-ultra-finetuned` + `/v1/flux-pro-1.0-fill-finetuned` exist on `api.eu.bfl.ai` (auth `x-key` confirmed; poll shape `{id,status,result,progress,preview}` via `GET /v1/get_result`).
+- ✅ **Finetune MANAGEMENT on EU:** `GET /v1/my_finetunes`, `GET /v1/finetune_details`, `POST /v1/delete_finetune`.
+- ❌ **NO finetune-CREATE endpoint on ANY region.** `/v1/finetune` (the create/train step the F021 blog announced on the now-dead `api.us1.bfl.ai`) is **absent from the public OpenAPI on eu, us, AND global** (`api.{eu,us,}.bfl.ai` all 404 it; no create/train/submit path of any name in the 24-path spec). The `eu1`/`us1` hosts no longer resolve.
+
+**Implication:** BFL's *current public API* can run + manage EU-resident finetunes, but cannot **create** one programmatically. The finetunes that `my_finetunes` lists must be created via another channel (almost certainly the web dashboard `dashboard.bfl.ai`, or an enterprise path). So the planned fully-automated `ai.trainSubject` → `/v1/finetune` **cannot be built as specified** — the create endpoint does not exist.
+
+**Reframed options (Christian to decide — see intercom):**
+1. **Split flow:** finetune CREATED manually via `dashboard.bfl.ai` (one-time per person, with consent) → ai-sdk automates the **EU-resident inference** half (`ai.image({ finetune, override:{provider:"bfl"} })`). EU-clean *if* the dashboard upload is EU (to verify). Training not API-automated.
+2. **Self-host full EU** (Scaleway/OVH + ai-toolkit) — train + infer both self-hosted in EU; max automation + residency, biggest build. Note: a self-host LoRA cannot plug into BFL inference; self-host owns both halves.
+3. **fal-DPA** for create (US biometric) — previously rejected on GDPR.
+
+Until decided, F023 is **blocked**; only the inference-half (option 1) is buildable today.
 
 ## Motivation
 
