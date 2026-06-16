@@ -11,7 +11,13 @@ Three rules that shape the whole feature:
 2. **Customer sign-off = the GDPR basis.** The data subject's explicit consent legalises the non-EU transfer of their own likeness. The consuming app **owns capturing + storing that consent** (SDK can't enforce it; stated as the usage contract). So the F023-strict "EU-pin or nothing" does **not** bind here — consent replaces residency.
 3. **Other figures are fictional.** Any additional people in the generated video are **fictional persons unless explicitly described otherwise** → no *third-party* biometric data, so the only real likeness is the consenting customer's. Clean "do good, do no evil."
 
-Net effect: **fal.ai is the default**, US/CN models reachable through it are fine under this policy, and the EU route drops from a *blocker* to a *future-preferred upgrade*. The GDPR analysis below stays as the record of *why this is a deliberate, consent-grounded choice* — not an oversight.
+Net effect: US/CN models are fine under this policy, and the EU route drops from a *blocker* to a *future-preferred upgrade*. The GDPR analysis below stays as the record of *why this is a deliberate, consent-grounded choice* — not an oversight.
+
+## ✅✅ SHIPPED v0.17.0 — default pivoted to Veo DIRECT via Gemini (Christian's steer)
+
+Christian: *"den bedste model er det ikke Veo fra Deepmind?"* — sharp catch. **fal.ai is an aggregator, not a model**; via fal you already *get* Veo. But going **direct** to Veo is cleaner for the Veo choice: live-verified that Veo is reachable on the **Gemini API with our existing `GEMINI_API_KEY`** (6 models incl. `veo-3.1-generate-preview`, all `predictLongRunning`). So the **default route is now Veo 3.1 DIRECT via the gemini adapter** — no aggregator markup, our existing key, and the natural path to EU residency (Vertex) later. **fal stays the pluggable aggregator alternative** (Kling/Seedance/fal-Veo) via `override:{ provider:"fal", … }`. Both routes built.
+
+**Live-verified end-to-end** (a real $3.20 8s/1080p clip: portrait → video through `createAI()`). The smoke caught **two fields Google's own docs got wrong**, both *before* any spend: the image is `bytesBase64Encoded` (not `inlineData`), and `durationSeconds` is a **number** (not the string the docs show). Veo result URIs are auth-gated, so the adapter downloads the bytes and returns them in `AnimateResult.bytes` (+ `mimeType`) alongside `url`. Real per-second cost stamped (Veo 3.1 Standard $0.40/s — official). `ai.video` was taken (F019 understanding) → generation is `ai.animate`.
 
 ## ⚠️ Lead finding — the GDPR lens the capability landscape misses
 
