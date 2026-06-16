@@ -287,6 +287,17 @@ const { url, usage } = await ai.image({
 **B) `finetune` — a subject trained once in the BFL dashboard (F023).**
 Stronger/cheaper for high volume of one person, but needs the manual one-time train.
 
+**Credits + cost (F023.6).** `bflCredits()` checks the remaining BFL account balance for budget-gating; cost per call is read live from BFL's response.
+
+```ts
+import { bflCredits } from "@broberg/ai-sdk";
+const { credits, usd } = await bflCredits();   // EU-pinned GET /v1/credits; 1 credit = $0.01
+if (usd < 1) throw new Error("top up BFL credits");
+```
+
+- **No pre-flight price endpoint** — the authoritative cost is the `cost` BFL returns on submit (already in `usage.costUsd`), but submitting bills. Published base rates (per-MP): FLUX.2 **max from $0.07**, **pro from $0.03**, flex $0.05, klein ~$0.014.
+- **Reference images dominate cost** — 6 refs at ~1MP add ~$0.18 on max (more than the output). For exact pre-calc use BFL's own calculator; for budgeting, gate on `bflCredits()` + read `usage.costUsd`.
+
 > **Governance — consent only.** Generate a person's likeness ONLY with their explicit
 > consent (a customer who *wants* their own portrait). Never a deepfake of anyone
 > without sign-off. "Do good, do no evil."
@@ -478,6 +489,7 @@ v0.12.0: Browser-clean subpath `@broberg/ai-sdk/registry` (F022.5) — `import {
 v0.13.0: Policy — `cheap` tier no longer routes through `claude -p` (retired fleet-wide); it now defaults to **mistral-small-latest** over HTTP (cheapest-that's-good-enough, EU/Paris-hosted → GDPR-safe even for personal data by default). The `claude -p` subprocess transport still exists for explicit `override:{ transport:"subprocess" }` but is no longer a default route. Reflects Christian's policy: Anthropic/Claude is what we build/code with (Claude Code), not the reflexive API default; for cost-sensitive cloud-API workloads, start with the cheapest model that's good enough. Quality tiers (`smart`/`powerful`) still resolve to Claude. Other tiers unchanged.
 v0.13.1: Gemini image-gen pricing — added **gemini-3.1-flash-image** ($0.067/image at 1K, official Google pricing) + GA **gemini-3-pro-image** ($0.134/image). FIX: `gemini-3-pro-image-preview` was priced at $0.039 (the flash price) — corrected to $0.134; consumers using the Gemini *pro* image model were under-reporting its cost ~3.4×. Per-image prices are the standard-tier 1K/1024px figure (Google charges more at 2K/4K). Not affected: ai-sdk never used the deprecated Imagen 4 endpoints (discontinued 2026-08-17) — our image path uses generateContent, the model family Google migrates toward.)*
 v0.14.0: `ai.image({ finetune })` — **EU-resident** person/portrait generation via Black Forest Labs (F023), consent-only. New `bflAdapter` hard-pinned to `api.eu.bfl.ai` (a face = biometric personal data → GDPR strictest; never the global `api.bfl.ai` US-failover). Set `finetune` (a `finetune_id`) and `finetuneStrength?` on `ai.image` → routes to BFL's `flux-pro-1.1-ultra-finetuned`, polls the EU `get_result`, returns an image URL + per-image cost. **Delt flow:** BFL retired finetune-CREATE from its public API (live-verified: `POST /v1/finetune` → 404 on every region while inference paths 422; legacy eu1/us1 hosts TCP-dead), so a subject is trained **once, manually, in `dashboard.bfl.ai`** (`mode=character`, EU region); the SDK automates only the EU generation. fal `ai.trainStyle`/`lora` (style, US) is unchanged. Ship-dark (inert without `BFL_API_KEY`).
+v0.16.0: `bflCredits()` (F023.6) — check the remaining BFL account credit balance for budget-gating: `import { bflCredits } from "@broberg/ai-sdk"` → `{ credits, usd }` (EU-pinned `GET /v1/credits`, 1 credit = $0.01). Standalone export, not on the AiClient facade. BFL has **no pre-flight pricing endpoint** (probed — all 404); the authoritative per-call cost is BFL's submit-response `cost` (already in `usage.costUsd`). A precise client-side estimator was deliberately NOT built — cost is dominated by reference-image input megapixels (depends on each ref's resolution), so a naive formula would mislead; documented published base rates (FLUX.2 max from $0.07 / pro $0.03 / flex $0.05 / klein ~$0.014) + the real per-call cost are the honest answer.
 v0.15.0: `ai.image({ referenceImages })` — **EU-resident** person/portrait generation with **NO training step** (F023.5), via BFL **FLUX 2 multi-reference**. Pass 1–8 reference photos (bytes → base64-inlined into the EU call, or URLs) straight into the generate call → a likeness back in one call. Default model **flux-2-max** ($0.25/img); `override:{ model:"flux-2-pro" }` is the easy ~half-price switch ($0.12/img, near-identical likeness — verified live on a real face). New optional `seed` / `outputFormat` / `safetyTolerance` honored by the BFL route. `usage.costUsd` is the **real billed cost** BFL returns (credits × $0.01), not an estimate. EU-pinned + consent-only like F023; full chain proven end-to-end through `createAI()` (EU submit → `api.eu2` poll → `delivery.eu2`). This supersedes the F023 manual-dashboard step for the common case; `finetune` stays for high-volume single-subject.
 
 ---

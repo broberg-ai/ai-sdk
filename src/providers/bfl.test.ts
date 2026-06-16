@@ -138,6 +138,30 @@ test("a data: URI reference is stripped to plain base64", async () => {
   expect(body.input_image).toBe("QUJD"); // prefix stripped
 });
 
+test("bflCredits() reads GET /v1/credits (EU-pinned) → credits + USD", async () => {
+  const { bflCredits } = await import("./bfl.js");
+  const calls: string[] = [];
+  const fetchMock = (async (url: string) => {
+    calls.push(url);
+    return new Response(JSON.stringify({ credits: 601.5 }), { status: 200, headers: { "content-type": "application/json" } });
+  }) as unknown as typeof fetch;
+  const bal = await bflCredits({ apiKey: "k", fetch: fetchMock });
+  expect(bal.credits).toBe(601.5);
+  expect(bal.usd).toBeCloseTo(6.015, 5); // 1 credit = $0.01
+  expect(calls[0]).toBe("https://api.eu.bfl.ai/v1/credits"); // EU-pinned
+});
+
+test("bflCredits() throws without a key", async () => {
+  const { bflCredits } = await import("./bfl.js");
+  const prev = process.env.BFL_API_KEY;
+  delete process.env.BFL_API_KEY;
+  try {
+    await expect(bflCredits({ fetch: (async () => new Response("{}")) as unknown as typeof fetch })).rejects.toThrow(/BFL_API_KEY/);
+  } finally {
+    if (prev !== undefined) process.env.BFL_API_KEY = prev;
+  }
+});
+
 test("ai.image({ referenceImages }) routes to flux-2-max; override:{model} is the easy pro switch", async () => {
   const { createAI } = await import("../client.js");
   const calls: string[] = [];

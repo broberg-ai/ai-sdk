@@ -62,6 +62,30 @@ function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
 }
 
+/** Remaining BFL account credits + their USD value (1 credit = $0.01). */
+export interface BflCredits {
+  credits: number;
+  usd: number;
+}
+
+/** F023.6 — check the BFL account's remaining credit balance (`GET /v1/credits`).
+ *  Account-level (region-independent); EU-pinned by default for consistency. Use it
+ *  for budget-gating before a generate call: `if ((await bflCredits()).usd < 1) …`. */
+export async function bflCredits(
+  opts: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
+): Promise<BflCredits> {
+  const apiKey = opts.apiKey ?? process.env.BFL_API_KEY;
+  if (!apiKey) throw new Error("bflCredits: BFL_API_KEY not set");
+  const doFetch = opts.fetch ?? fetch;
+  const res = await doFetch(`${opts.baseUrl ?? EU_BASE}/v1/credits`, { headers: { "x-key": apiKey } });
+  if (!res.ok) {
+    throw new Error(`bflCredits ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  }
+  const data = (await res.json()) as { credits?: number };
+  const credits = typeof data.credits === "number" ? data.credits : 0;
+  return { credits, usd: credits * BFL_CREDIT_USD };
+}
+
 export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
   const doFetch = config.fetch ?? fetch;
   const base = config.baseUrl ?? EU_BASE;
