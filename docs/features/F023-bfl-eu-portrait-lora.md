@@ -1,6 +1,22 @@
-# F023 — Person / Portrait LoRA via Black Forest Labs (EU)
+# F023 — Person / Portrait generation via Black Forest Labs (EU)
 
-> A GDPR-safe, EU-resident route for generating photorealistic portraits from a *person's* trained likeness (consent-based dev-portraits), via Black Forest Labs' FLUX Pro finetuned-inference pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Effort: M (~1 day, down from L). Status: **SHIPPED (delt flow) — EU inference live in the SDK; training is a one-time manual BFL-dashboard step (see SOP below). Decided by Christian 2026-06-16.**
+> A GDPR-safe, EU-resident route for generating photorealistic portraits of a *person* (consent-based dev-portraits), via Black Forest Labs pinned to its EU endpoint. Complements F021 (fal style-LoRA, US). Tier: capability + provider. Status: **SHIPPED — two EU-resident modes: F023.5 `referenceImages` (FLUX 2 multi-reference, NO training, v0.15.0, the recommended default) and F023 `finetune` (dashboard-trained subject, v0.14.0). Decided + live-verified on a real face with Christian 2026-06-16.**
+
+## F023.5 — FLUX 2 multi-reference (no training step) — the better path
+
+After v0.14.0 shipped, Christian surfaced BFL's `flux-2-max` with `input_image…input_image_8`: **multi-reference generation** — reference photos go straight into the generate call, **no finetune/training at all**. Live-verified end-to-end on `api.eu.bfl.ai` (and on Christian's own face through `createAI()`):
+
+- ✅ **EU-resident whole chain:** submit `api.eu.bfl.ai/v1/flux-2-max` → poll `api.eu2.bfl.ai` → deliver `delivery.eu2.bfl.ai`. Never global/US.
+- ✅ **No training step** — 1–8 reference photos in the call; likeness back in ~30–50s. `flux-2-pro`/`flex` also on EU.
+- ✅ **Real cost from the API** — submit returns `cost` in credits (1 credit = $0.01, official): flux-2-max ≈ $0.25/img, flux-2-pro ≈ $0.12/img. `usage.costUsd` reads it, not an estimate.
+- ✅ **Bytes path is EU-pure** — a `Uint8Array` reference is base64-inlined into the EU call (no cross-region fetch); a URL forces BFL to fetch it (Wikimedia even 403'd it). SDK supports both.
+
+**Shape (shipped v0.15.0):** `ai.image({ referenceImages: (string|Uint8Array)[1–8], seed?, outputFormat?, safetyTolerance?, override? })`. `referenceImages` routes to `DEFAULT_BFL_REFERENCE_SPEC = {provider:"bfl", model:"flux-2-max"}`. **Default model = flux-2-max** (Christian's choice — premium quality; live test showed pro ≈ max likeness at half price, but he picked max as default). The easy cheap switch is `override:{ model:"flux-2-pro" }` (one field; provider stays bfl, still EU). Adapter `bfl.ts` branches: `referenceImages` → FLUX 2; `finetune` → finetuned-inference. Cost read from the response.
+
+**Verified on Christian's face (2026-06-16):** 3 portraits generated through the SDK (max-corporate, max-founder, pro-corporate) — all clearly him; framing learning: a relaxed/natural portrait flatters more than a tight corporate crop. Total test spend ≈ $1.07 of his $10 BFL credits.
+
+---
+
 
 ## ⚠️ Verification finding (2026-06-16) — why this is a "delt flow", not full automation
 

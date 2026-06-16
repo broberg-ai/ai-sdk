@@ -196,6 +196,16 @@ export interface ImageRequest {
   finetune?: string;
   /** F023 — how strongly the finetune is applied (BFL finetune_strength, ~0–2). */
   finetuneStrength?: number;
+  /** F023.5 — 1–8 reference photos of a subject (URL or raw bytes). Routes to the
+   *  EU-resident BFL FLUX 2 multi-reference endpoint — generate a likeness with NO
+   *  training step. Bytes are base64-inlined into the EU call (no cross-region fetch). */
+  referenceImages?: (string | Uint8Array)[];
+  /** F023.5 — fixed seed for reproducible output (BFL). */
+  seed?: number;
+  /** F023.5 — output container (BFL FLUX 2): "jpeg" | "png" | "webp". Default jpeg. */
+  outputFormat?: "jpeg" | "png" | "webp";
+  /** F023.5 — BFL content-moderation strictness, 0 (strict) … 6 (lax). Default 2. */
+  safetyTolerance?: number;
   /** F021.4 — re-roll once with a fresh seed if fal's safety-checker false-positives
    *  and returns a black image (has_nsfw_concepts). fal only. */
   retryOnBlack?: boolean;

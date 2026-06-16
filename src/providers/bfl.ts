@@ -1,4 +1,4 @@
-// Black Forest Labs (FLUX) adapter — F023. EU-RESIDENT finetuned-inference ONLY.
+// Black Forest Labs (FLUX) adapter — F023 / F023.5. EU-RESIDENT image generation.
 //
 // GDPR CRUX (non-negotiable): this adapter hard-pins https://api.eu.bfl.ai — the
 // dedicated EU endpoint — NEVER the global api.bfl.ai (which auto-failovers to the
@@ -6,24 +6,32 @@
 // EU residency is what makes this compliant; "German company" alone is not enough.
 // The default base is asserted in bfl.test.ts.
 //
-// SCOPE: finetuned INFERENCE only. BFL retired finetune-CREATE from the public API
-// (live-verified 2026-06-16: POST /v1/finetune → 404 on every region with a valid
-// key, while inference paths 422; legacy eu1/us1 finetune hosts TCP-dead). Training
-// a subject is therefore a MANUAL one-time step in the BFL dashboard — see the SOP in
-// docs/features/F023-bfl-eu-portrait-lora.md. Once trained, the finetune_id flows
-// here: ai.image({ finetune, override: { provider: "bfl" } }).
+// Two EU-resident likeness modes (route by what ai.image is given):
+//  • referenceImages (F023.5) → FLUX 2 multi-reference: 1–8 photos in the generate
+//    call, NO training step. Default model flux-2-max ($0.25/img); pass
+//    override:{ model:"flux-2-pro" } for ~half price ($0.12/img). Bytes are
+//    base64-inlined into the EU call (no cross-region fetch); URLs pass through.
+//  • finetune (F023) → flux-pro-1.1-ultra-finetuned, a subject trained ONCE in the
+//    BFL dashboard (finetune-CREATE was retired from the public API — live-verified
+//    2026-06-16: POST /v1/finetune 404s on every region; legacy eu1/us1 hosts dead).
+//    See the dashboard SOP in docs/features/F023-bfl-eu-portrait-lora.md.
 //
-// Auth header `x-key`. Request→poll: POST returns {id, polling_url}; we poll the EU
-// get_result by id (deliberately NOT the returned polling_url) so a response carrying
-// a face never transits a non-EU host.
+// Auth header `x-key`. Request→poll: POST returns {id, polling_url, cost}; we poll the
+// EU get_result by id (deliberately NOT the returned polling_url) so a response carrying
+// a face never transits a non-EU host. BFL returns the real `cost` in credits
+// (1 credit = $0.01, official) → usage.costUsd is exact, not estimated.
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
 
 const EU_BASE = "https://api.eu.bfl.ai";
+/** BFL bills in credits; 1 credit = $0.01 USD (official, bfl.ai/pricing). */
+const BFL_CREDIT_USD = 0.01;
 
 interface BflSubmitResponse {
   id?: string;
   polling_url?: string;
+  /** BFL's billed cost for this request, in credits. */
+  cost?: number;
 }
 interface BflResultResponse {
   id?: string;
@@ -65,26 +73,37 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
   async function image(req: ImageRequest): Promise<ImageResult> {
     const apiKey = resolveKey();
     if (!apiKey) throw new Error("bfl adapter: BFL_API_KEY not set");
-    if (!req.finetune) {
-      throw new Error(
-        "bfl adapter: requires a finetune id — call ai.image({ finetune, override: { provider: 'bfl' } }). " +
-          "Train the subject once in the BFL dashboard (dashboard.bfl.ai) — finetune-create is not in the public API.",
-      );
-    }
     const headers = { "content-type": "application/json", "x-key": apiKey };
 
-    const body: Record<string, unknown> = {
-      finetune_id: req.finetune,
-      prompt: req.prompt,
-    };
-    if (req.finetuneStrength !== undefined) body.finetune_strength = req.finetuneStrength;
-    // flux-pro-1.1-ultra takes aspect_ratio, not width/height — derive it when both given.
-    if (req.width && req.height) {
-      const g = gcd(req.width, req.height) || 1;
-      body.aspect_ratio = `${req.width / g}:${req.height / g}`;
+    const body: Record<string, unknown> = { prompt: req.prompt };
+    if (req.referenceImages?.length) {
+      // F023.5 — FLUX 2 multi-reference: input_image, input_image_2 … input_image_8.
+      req.referenceImages.forEach((img, i) => {
+        body[i === 0 ? "input_image" : `input_image_${i + 1}`] = toBflImage(img);
+      });
+      if (req.width) body.width = req.width;
+      if (req.height) body.height = req.height;
+      if (req.seed !== undefined) body.seed = req.seed;
+      body.output_format = req.outputFormat ?? "jpeg";
+      body.safety_tolerance = req.safetyTolerance ?? 2;
+    } else if (req.finetune) {
+      // F023 — finetuned subject (trained once in the BFL dashboard).
+      body.finetune_id = req.finetune;
+      if (req.finetuneStrength !== undefined) body.finetune_strength = req.finetuneStrength;
+      // flux-pro-1.1-ultra takes aspect_ratio, not width/height — derive it when both given.
+      if (req.width && req.height) {
+        const g = gcd(req.width, req.height) || 1;
+        body.aspect_ratio = `${req.width / g}:${req.height / g}`;
+      }
+    } else {
+      throw new Error(
+        "bfl adapter: requires referenceImages (FLUX 2 multi-reference) or a finetune id. " +
+          "ai.image({ referenceImages: [...] }) needs no training; ai.image({ finetune }) uses a subject " +
+          "trained once in the BFL dashboard (dashboard.bfl.ai — finetune-create is not in the public API).",
+      );
     }
 
-    const submitRes = await doFetch(`${base}/v1/flux-pro-1.1-ultra-finetuned`, {
+    const submitRes = await doFetch(`${base}/v1/${req.spec.model}`, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
@@ -105,8 +124,21 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = config.pricePerImage ?? BFL_IMAGE_PRICE;
+    // BFL returns the real billed cost (credits) — use it; fall back to the estimate.
+    usage.costUsd =
+      typeof submit.cost === "number"
+        ? submit.cost * BFL_CREDIT_USD
+        : (config.pricePerImage ?? BFL_IMAGE_PRICE);
     return { url: sample, usage };
+  }
+
+  /** A URL passes through; raw bytes / a data: URI become a plain base64 string
+   *  (BFL's input_image wants base64, not a data: URI — verified live). */
+  function toBflImage(img: string | Uint8Array): string {
+    if (typeof img !== "string") return Buffer.from(img).toString("base64");
+    if (/^https?:\/\//i.test(img)) return img;
+    const comma = img.startsWith("data:") ? img.indexOf(",") : -1;
+    return comma >= 0 ? img.slice(comma + 1) : img;
   }
 
   /** Poll the EU get_result by id until Ready (or a terminal/moderated status). */

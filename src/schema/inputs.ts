@@ -142,6 +142,15 @@ export const imageInputSchema = z.object({
   finetune: z.string().optional(),
   /** F023 — BFL finetune_strength (~0–2; higher = stronger likeness). */
   finetuneStrength: z.number().min(0).max(2).optional(),
+  /** F023.5 — 1–8 reference photos (URL or raw bytes) → EU-resident BFL FLUX 2
+   *  multi-reference generation (likeness, no training step). */
+  referenceImages: z.array(z.union([z.string(), z.instanceof(Uint8Array)])).min(1).max(8).optional(),
+  /** F023.5 — fixed seed for reproducible output (BFL). */
+  seed: z.number().int().optional(),
+  /** F023.5 — output container (BFL FLUX 2). Default jpeg. */
+  outputFormat: z.enum(["jpeg", "png", "webp"]).optional(),
+  /** F023.5 — BFL content-moderation strictness, 0 (strict) … 6 (lax). Default 2. */
+  safetyTolerance: z.number().int().min(0).max(6).optional(),
   /** F021.4 — re-roll once if fal returns a black image (NSFW false-positive). */
   retryOnBlack: z.boolean().optional(),
   ...callOptions,

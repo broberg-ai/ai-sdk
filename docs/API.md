@@ -168,7 +168,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `vision` |
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
-| `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `finetune` given |
+| `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
@@ -256,12 +256,36 @@ const { url } = await ai.image({ prompt: "a treatment illustration of a back mas
   seed if fal's NSFW safety-checker false-positives and blanks the image
   (`has_nsfw_concepts`). The re-roll is a second billed generation.
 
-### Person / portrait generation — `ai.image({ finetune })`, EU-resident (F023)
+### Person / portrait generation — EU-resident via BFL (F023 / F023.5)
 
-GDPR-safe, **EU-resident** photorealistic portraits from a person's trained
-likeness, via **Black Forest Labs** pinned to `api.eu.bfl.ai`. A face is biometric
-personal data, so the adapter **hard-pins the EU endpoint** (never the global
-`api.bfl.ai`, which can failover to the US) and polls the EU `get_result` directly.
+GDPR-safe, **EU-resident** photorealistic portraits of a person, via **Black Forest
+Labs** pinned to `api.eu.bfl.ai`. A face is biometric personal data, so the adapter
+**hard-pins the EU endpoint** (never the global `api.bfl.ai`, which can failover to
+the US) and polls the EU `get_result` directly. Two modes:
+
+**A) `referenceImages` — FLUX 2 multi-reference, NO training step (F023.5, recommended).**
+Pass 1–8 reference photos straight into the generate call; get a likeness back. Zero
+setup, one API call, fully automated.
+
+```ts
+import { readFileSync } from "node:fs";
+const { url, usage } = await ai.image({
+  prompt: "relaxed founder portrait, natural office light, casual sweater, photorealistic",
+  referenceImages: [readFileSync("a.jpg"), readFileSync("b.jpg") /* …up to 8, bytes or URLs */],
+  // default model flux-2-max ($0.25/img); easy cheap switch:
+  override: { model: "flux-2-pro" },   // ~half price ($0.12/img), near-identical likeness
+  seed: 7, outputFormat: "jpeg", safetyTolerance: 2,   // all optional
+});
+// usage.costUsd is the REAL billed cost (BFL returns it: credits × $0.01), not an estimate.
+```
+
+- **Pass bytes, not URLs, for EU-purity** — a `Uint8Array` is base64-inlined into the EU
+  call; a URL forces BFL to *fetch* it (may be blocked or cross-region). Both work; bytes are cleaner.
+- **Up to 8 references** (`input_image` … `input_image_8`). More varied angles/lighting = more robust likeness.
+- **Framing matters** — a relaxed, slightly-distant portrait flatters far more than a tight headshot crop.
+
+**B) `finetune` — a subject trained once in the BFL dashboard (F023).**
+Stronger/cheaper for high volume of one person, but needs the manual one-time train.
 
 > **Governance — consent only.** Generate a person's likeness ONLY with their explicit
 > consent (a customer who *wants* their own portrait). Never a deepfake of anyone
@@ -454,6 +478,7 @@ v0.12.0: Browser-clean subpath `@broberg/ai-sdk/registry` (F022.5) — `import {
 v0.13.0: Policy — `cheap` tier no longer routes through `claude -p` (retired fleet-wide); it now defaults to **mistral-small-latest** over HTTP (cheapest-that's-good-enough, EU/Paris-hosted → GDPR-safe even for personal data by default). The `claude -p` subprocess transport still exists for explicit `override:{ transport:"subprocess" }` but is no longer a default route. Reflects Christian's policy: Anthropic/Claude is what we build/code with (Claude Code), not the reflexive API default; for cost-sensitive cloud-API workloads, start with the cheapest model that's good enough. Quality tiers (`smart`/`powerful`) still resolve to Claude. Other tiers unchanged.
 v0.13.1: Gemini image-gen pricing — added **gemini-3.1-flash-image** ($0.067/image at 1K, official Google pricing) + GA **gemini-3-pro-image** ($0.134/image). FIX: `gemini-3-pro-image-preview` was priced at $0.039 (the flash price) — corrected to $0.134; consumers using the Gemini *pro* image model were under-reporting its cost ~3.4×. Per-image prices are the standard-tier 1K/1024px figure (Google charges more at 2K/4K). Not affected: ai-sdk never used the deprecated Imagen 4 endpoints (discontinued 2026-08-17) — our image path uses generateContent, the model family Google migrates toward.)*
 v0.14.0: `ai.image({ finetune })` — **EU-resident** person/portrait generation via Black Forest Labs (F023), consent-only. New `bflAdapter` hard-pinned to `api.eu.bfl.ai` (a face = biometric personal data → GDPR strictest; never the global `api.bfl.ai` US-failover). Set `finetune` (a `finetune_id`) and `finetuneStrength?` on `ai.image` → routes to BFL's `flux-pro-1.1-ultra-finetuned`, polls the EU `get_result`, returns an image URL + per-image cost. **Delt flow:** BFL retired finetune-CREATE from its public API (live-verified: `POST /v1/finetune` → 404 on every region while inference paths 422; legacy eu1/us1 hosts TCP-dead), so a subject is trained **once, manually, in `dashboard.bfl.ai`** (`mode=character`, EU region); the SDK automates only the EU generation. fal `ai.trainStyle`/`lora` (style, US) is unchanged. Ship-dark (inert without `BFL_API_KEY`).
+v0.15.0: `ai.image({ referenceImages })` — **EU-resident** person/portrait generation with **NO training step** (F023.5), via BFL **FLUX 2 multi-reference**. Pass 1–8 reference photos (bytes → base64-inlined into the EU call, or URLs) straight into the generate call → a likeness back in one call. Default model **flux-2-max** ($0.25/img); `override:{ model:"flux-2-pro" }` is the easy ~half-price switch ($0.12/img, near-identical likeness — verified live on a real face). New optional `seed` / `outputFormat` / `safetyTolerance` honored by the BFL route. `usage.costUsd` is the **real billed cost** BFL returns (credits × $0.01), not an estimate. EU-pinned + consent-only like F023; full chain proven end-to-end through `createAI()` (EU submit → `api.eu2` poll → `delivery.eu2`). This supersedes the F023 manual-dashboard step for the common case; `finetune` stays for high-volume single-subject.
 
 ---
 

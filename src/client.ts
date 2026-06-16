@@ -91,6 +91,14 @@ const DEFAULT_BFL_FINETUNE_SPEC: TierSpec = {
   model: "flux-pro-1.1-ultra-finetuned",
   transport: "http",
 };
+/** EU-resident multi-reference route (F023.5) — BFL FLUX 2, used by ai.image when
+ *  `referenceImages` are supplied (likeness with no training step). flux-2-max =
+ *  premium-quality default; override to flux-2-pro/flex for volume. EU-pinned. */
+const DEFAULT_BFL_REFERENCE_SPEC: TierSpec = {
+  provider: "bfl",
+  model: "flux-2-max",
+  transport: "http",
+};
 
 /** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
 const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
@@ -407,14 +415,17 @@ export function createAI(config: AiConfig = {}): AiClient {
         ...(input.loras ?? []),
         ...(input.lora ? [{ path: input.lora }] : []),
       ];
-      // Route by what's supplied (override still wins): a `finetune` id → the EU
-      // BFL finetuned-portrait endpoint (F023); LoRAs → flux-lora (F021, flux/schnell
-      // can't merge LoRAs); else the plain image route.
-      const base = input.finetune
-        ? DEFAULT_BFL_FINETUNE_SPEC
-        : loras.length > 0
-          ? DEFAULT_LORA_IMAGE_SPEC
-          : DEFAULT_IMAGE_SPEC;
+      // Route by what's supplied (override still wins): `referenceImages` → the EU
+      // BFL FLUX 2 multi-reference endpoint (F023.5, no training step); a `finetune`
+      // id → the EU BFL finetuned-portrait endpoint (F023); LoRAs → flux-lora (F021,
+      // flux/schnell can't merge LoRAs); else the plain image route.
+      const base = input.referenceImages?.length
+        ? DEFAULT_BFL_REFERENCE_SPEC
+        : input.finetune
+          ? DEFAULT_BFL_FINETUNE_SPEC
+          : loras.length > 0
+            ? DEFAULT_LORA_IMAGE_SPEC
+            : DEFAULT_IMAGE_SPEC;
       return runCapability({
         primary: { ...base, ...input.override },
         fallback: input.fallback,
@@ -434,6 +445,10 @@ export function createAI(config: AiConfig = {}): AiClient {
             loras: loras.length ? loras : undefined,
             finetune: input.finetune,
             finetuneStrength: input.finetuneStrength,
+            referenceImages: input.referenceImages,
+            seed: input.seed,
+            outputFormat: input.outputFormat,
+            safetyTolerance: input.safetyTolerance,
             retryOnBlack: input.retryOnBlack,
           });
         },

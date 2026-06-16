@@ -89,3 +89,66 @@ test("ai.image({ finetune }) routes to the bfl provider", async () => {
   expect(url).toBe("https://eu-cdn.bfl.ai/r.png");
   expect(usage.provider).toBe("bfl");
 });
+
+// ── F023.5 — FLUX 2 multi-reference (no training step) ───────────────────────
+
+const flux2Spec = { provider: "bfl", model: "flux-2-max", transport: "http" as const };
+
+/** Captures the submit body + URL; returns a Ready result with a `cost` in credits. */
+function flux2Fetch(opts: { calls: string[]; body?: (b: Record<string, unknown>) => void; cost?: number }) {
+  return (async (url: string, init?: RequestInit) => {
+    opts.calls.push(url);
+    const json = (p: unknown) => new Response(JSON.stringify(p), { status: 200, headers: { "content-type": "application/json" } });
+    if (typeof url === "string" && url.includes("/get_result")) {
+      return json({ status: "Ready", result: { sample: "https://delivery.eu2.bfl.ai/x.jpeg" } });
+    }
+    opts.body?.(JSON.parse(String(init?.body)));
+    return json({ id: "task-2", polling_url: "https://api.eu2.bfl.ai/v1/get_result?id=task-2", cost: opts.cost ?? 25 });
+  }) as unknown as typeof fetch;
+}
+
+test("referenceImages → input_image_N + output_format/safety + real credit cost, EU-pinned", async () => {
+  const calls: string[] = [];
+  let body: Record<string, unknown> = {};
+  const adapter = bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls, body: (b) => (body = b), cost: 25 }) });
+  const { url, usage } = await adapter.image!({
+    prompt: "studio headshot",
+    spec: flux2Spec,
+    referenceImages: ["https://example.com/a.jpg", new Uint8Array([1, 2, 3])],
+    seed: 42,
+    outputFormat: "png",
+    safetyTolerance: 2,
+  });
+  expect(url).toBe("https://delivery.eu2.bfl.ai/x.jpeg");
+  expect(usage.costUsd).toBe(0.25); // 25 credits × $0.01 — the API's real billed cost
+  expect(body.input_image).toBe("https://example.com/a.jpg"); // URL passes through
+  expect(body.input_image_2).toBe(Buffer.from([1, 2, 3]).toString("base64")); // bytes → base64
+  expect(body.output_format).toBe("png");
+  expect(body.safety_tolerance).toBe(2);
+  expect(body.seed).toBe(42);
+  expect(body.finetune_id).toBeUndefined();
+  for (const u of calls) expect(u.startsWith("https://api.eu.bfl.ai/")).toBe(true);
+  expect(calls.some((u) => u.includes("/v1/flux-2-max"))).toBe(true);
+});
+
+test("a data: URI reference is stripped to plain base64", async () => {
+  let body: Record<string, unknown> = {};
+  const adapter = bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls: [], body: (b) => (body = b) }) });
+  await adapter.image!({ prompt: "x", spec: flux2Spec, referenceImages: ["data:image/png;base64,QUJD"] });
+  expect(body.input_image).toBe("QUJD"); // prefix stripped
+});
+
+test("ai.image({ referenceImages }) routes to flux-2-max; override:{model} is the easy pro switch", async () => {
+  const { createAI } = await import("../client.js");
+  const calls: string[] = [];
+  const ai = createAI({ providers: { bfl: bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls }) }) } });
+
+  await ai.image({ prompt: "me", referenceImages: ["https://example.com/a.jpg"] });
+  expect(calls.some((u) => u.includes("/v1/flux-2-max"))).toBe(true); // premium default
+
+  const proCalls: string[] = [];
+  const ai2 = createAI({ providers: { bfl: bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls: proCalls }) }) } });
+  await ai2.image({ prompt: "me", referenceImages: ["https://example.com/a.jpg"], override: { model: "flux-2-pro" } });
+  expect(proCalls.some((u) => u.includes("/v1/flux-2-pro"))).toBe(true); // one field switches to pro
+  expect(proCalls.every((u) => u.startsWith("https://api.eu.bfl.ai/"))).toBe(true); // still EU, provider stays bfl
+});
