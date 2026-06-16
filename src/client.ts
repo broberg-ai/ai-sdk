@@ -96,6 +96,11 @@ const DEFAULT_ANIMATE_SPEC: TierSpec = {
   model: "veo-3.1-generate-preview",
   transport: "http",
 };
+/** Default audio directive appended to every ai.animate prompt (F024, Christian's
+ *  preference): no generated speech (it's the weak link, esp. non-English), but
+ *  ambient sounds matched to the scene are wanted. A soft prompt instruction. */
+const ANIMATE_AUDIO_DIRECTIVE =
+  "No spoken dialogue, no talking, no voiceover. Include natural ambient background sounds that match the environment.";
 /** EU-resident finetuned-portrait route (F023) — BFL, used by ai.image when a
  *  `finetune` id is supplied. Hard-pinned to api.eu.bfl.ai inside the adapter. */
 const DEFAULT_BFL_FINETUNE_SPEC: TierSpec = {
@@ -469,6 +474,10 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async animate(input: AnimateInput): Promise<AnimateResult> {
       input = animateInputSchema.parse(input);
+      // Append the default audio directive (no speech, ambient sounds matched to scene).
+      const prompt = input.prompt?.trim()
+        ? `${input.prompt.trim()} ${ANIMATE_AUDIO_DIRECTIVE}`
+        : ANIMATE_AUDIO_DIRECTIVE;
       return runCapability({
         primary: { ...DEFAULT_ANIMATE_SPEC, ...input.override },
         fallback: input.fallback,
@@ -482,7 +491,7 @@ export function createAI(config: AiConfig = {}): AiClient {
           if (!adapter.animate) throw new Error(`createAI: provider "${spec.provider}" does not support animate`);
           return adapter.animate({
             image: input.image,
-            prompt: input.prompt,
+            prompt,
             durationSec: input.durationSec,
             resolution: input.resolution,
             spec,

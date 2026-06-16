@@ -65,12 +65,18 @@ test("a done operation with no video uri throws", async () => {
   await expect(adapter.animate!({ image: new Uint8Array([1]), spec })).rejects.toThrow(/no video uri/);
 });
 
-test("ai.animate({ image }) routes to gemini Veo by default", async () => {
+test("ai.animate({ image }) routes to gemini Veo by default + appends the no-speech/ambient directive", async () => {
   const { createAI } = await import("../client.js");
   const calls: string[] = [];
-  const ai = createAI({ providers: { gemini: geminiAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: veoFetch({ calls }) }) } });
-  const { usage } = await ai.animate({ image: new Uint8Array([0xff, 0xd8]), prompt: "move" });
+  const bodies: unknown[] = [];
+  const ai = createAI({ providers: { gemini: geminiAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: veoFetch({ calls, bodies }) }) } });
+  const { usage } = await ai.animate({ image: new Uint8Array([0xff, 0xd8]), prompt: "the man pours coffee" });
   expect(usage.provider).toBe("gemini");
   expect(usage.model).toBe("veo-3.1-generate-preview");
   expect(calls.some((u) => u.includes("veo-3.1-generate-preview:predictLongRunning"))).toBe(true);
+  // the default audio directive (no speech, ambient sounds) is appended to the prompt
+  const prompt = (bodies[0] as { instances: { prompt: string }[] }).instances[0]!.prompt;
+  expect(prompt).toContain("the man pours coffee");
+  expect(prompt).toMatch(/no spoken dialogue/i);
+  expect(prompt).toMatch(/ambient background sounds/i);
 });
