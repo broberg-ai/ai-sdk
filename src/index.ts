@@ -69,6 +69,18 @@ export type {
   SqliteSinkConfig,
   CostSummary,
 } from "./cost/sinks/index.js";
+// F025 — cost READ-back: the canonical aggregation lives in Upmetrics; this thin,
+// browser-clean client reads your own rolled-up cost from its cost read-API.
+export { upmetricsCostClient, UpmetricsCostError, usdFromMicro } from "./cost/upmetrics-read.js";
+export type {
+  UpmetricsCostClientConfig,
+  CostQuery,
+  CostSummaryQuery,
+  CostTimeseriesQuery,
+  UpmetricsCostRow,
+  UpmetricsCostSummary,
+  UpmetricsCostTimeseries,
+} from "./cost/upmetrics-read.js";
 export { getPrice } from "./cost/pricing.js";
 export type { PricingEntry } from "./cost/pricing.js";
 export {

@@ -460,6 +460,42 @@ try {
 `purpose` is a free-text label that rides into the sink (`agent_runs.purpose`)
 for per-feature cost attribution.
 
+### Cost delivery — Upmetrics is method #1 (F025)
+
+Cost telemetry can fan out to several **sinks**, but they are not peers:
+
+- **`upmetricsSink` is the canonical method.** Upmetrics already *aggregates* —
+  its cost read-API (`upmetrics/docs/COST-API.md`) rolls up `agent_runs` into
+  totals, `by_provider/model/tier/capability`, per-tenant `groupBy`, time-series
+  and a fleet-wide digest, in integer micro-USD (rounded once, so sub-cent calls
+  survive). Write each run to it and you get the roll-up for free — don't
+  re-aggregate locally.
+- **`discordSink`, `sqliteSink`, `multiSink`, `noopSink` are extra methods** — a
+  Discord ping, a local DB for offline/air-gapped use, fan-out, or a no-op.
+  Reach for them *in addition to* (or, for dev, instead of) upmetrics — not as the
+  primary cost system.
+
+**Read your cost back** from the canonical source with `upmetricsCostClient`
+(the read companion to the write sink — browser-clean, pure `fetch`):
+
+```ts
+import { upmetricsCostClient, usdFromMicro } from "@broberg/ai-sdk";
+
+const cost = upmetricsCostClient({
+  baseUrl: "https://upmetrics.org",
+  apiKey: process.env.UPMETRICS_API_KEY!, // same per-project uk_… key as the sink
+});
+
+const month = await cost.summary({ window: "month" });
+console.log(usdFromMicro(month.total_micro_usd));          // $ this month
+const perTenant = await cost.summary({ groupBy: "tenantId" }); // by customer
+const series = await cost.timeseries({ bucket: "day", window: "month" });
+```
+
+A `401 invalid_api_key` or an unreachable host throws a typed `UpmetricsCostError`
+(never a silent empty). Money is integer micro-USD (`$1 = 1_000_000`) — divide for
+USD; don't do currency conversion here (USD is the source of truth).
+
 ---
 
 ## 6. Cost precision & budget persistence
