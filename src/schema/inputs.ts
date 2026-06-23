@@ -220,9 +220,13 @@ export const podcastInputSchema = z.object({
 });
 
 // Single-voice TTS (F020.4) — text → audio. `voice` is a curated name or a voiceId.
+// `lang`/`format` (F026) are used by the Azure adapter; ElevenLabs ignores them.
 export const ttsInputSchema = z.object({
   text: z.string(),
   voice: z.string(),
+  lang: z.string().optional(),
+  format: z.string().optional(),
+  rate: z.number().positive().optional(),
   ...callOptions,
 });
 

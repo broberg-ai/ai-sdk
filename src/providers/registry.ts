@@ -8,6 +8,7 @@ import { deepinfraAdapter } from "./deepinfra.js";
 import { openrouterAdapter } from "./openrouter.js";
 import { mistralAdapter } from "./mistral.js";
 import { elevenlabsAdapter } from "./elevenlabs.js";
+import { azureAdapter } from "./azure.js";
 import { falAdapter } from "./fal.js";
 import { bflAdapter } from "./bfl.js";
 import type { ProviderAdapter } from "../types.js";
@@ -20,6 +21,7 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   openrouter: openrouterAdapter(),
   mistral: mistralAdapter(),
   elevenlabs: elevenlabsAdapter(),
+  azure: azureAdapter(),
   fal: falAdapter(),
   bfl: bflAdapter(),
 };

@@ -339,10 +339,16 @@ export interface PodcastResult {
   usage: Usage;
 }
 
-// Single-voice TTS (F020.4) — text → audio in one voice. ElevenLabs.
+// Single-voice TTS (F020.4) — text → audio in one voice. ElevenLabs or Azure (F026).
 export interface TtsRequest {
   text: string;
   voiceId: string;
+  /** BCP-47 locale (e.g. "da-DK"). Azure uses it for SSML xml:lang; ElevenLabs ignores it. */
+  lang?: string;
+  /** Provider output-format hint (e.g. an Azure X-Microsoft-OutputFormat); ElevenLabs ignores it. */
+  format?: string;
+  /** Speaking-rate multiplier (Azure): 1 = normal, 0.9 = 10% slower, 1.1 = faster. ElevenLabs ignores it. */
+  rate?: number;
   spec: TierSpec;
 }
 

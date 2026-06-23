@@ -176,7 +176,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
 | `ai.moderate` | `{ input: string \| string[] }` | `{ results: {flagged,categories,categoryScores}[], usage }` | mistral-moderation (per-token) |
 | `ai.podcast` | `{ script: {speaker,text}[], voices: {speaker→voiceId} }` | `{ audio, mimeType, usage }` | elevenlabs eleven_v3 (per-char) |
-| `ai.tts` | `{ text, voice }` | `{ audio, mimeType, usage }` | elevenlabs eleven_multilingual_v2 (per-char) |
+| `ai.tts` | `{ text, voice, lang?, format? }` | `{ audio, mimeType, usage }` | elevenlabs eleven_multilingual_v2 (per-char); or Azure neural EU via `override:{provider:"azure"}` (F026) |
 
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose?, labels? }`.
 
@@ -375,6 +375,34 @@ names → voiceIds, so apps never hardcode raw IDs: `soren`, `jesper`, `mads`, `
 `camilla`. Pass a name anywhere a `voice` / `voices` value is expected, or a raw
 ElevenLabs voiceId to use any other voice. **Library (named) voices require a paid
 ElevenLabs plan** — the free tier 402s on them; the 25 default voices speak Danish too.
+
+**EU-resident neural Danish — Azure (F026).** For GDPR-clean, natural Danish
+narration (e.g. plan read-aloud) route `ai.tts` to the Azure Speech adapter — a
+direct SSML call region-pinned to an EU region (~10× cheaper than ElevenLabs).
+Azure is NOT reachable via OpenRouter; it needs an `AZURE_SPEECH_KEY` +
+`AZURE_SPEECH_REGION` (ship-dark until set).
+
+```ts
+const { audio } = await ai.tts({
+  text: "Hej, det her er planen.",
+  voice: "christel",                       // or "jeppe", or a raw da-DK-*Neural voice
+  lang: "da-DK",                           // optional; derived from the voice otherwise
+  override: { provider: "azure", model: "neural" },
+});
+```
+
+**Voice roster + picker.** `listAzureDanishVoices()` returns the curated da-DK roster
+for a UI picker — 3 female + 3 male: `christel`/`jeppe` are **native** da-DK (most
+natural); `seraphina`/`ava` (F) and `florian`/`andrew` (M) are multilingual voices
+that also speak Danish (Azure has only 2 native da-DK voices). Each entry is
+`{ name, voiceId, gender, display, native, defaultRate? }`. Pass a friendly `name`
+as `voice`, or a raw Azure voice name.
+
+**Speaking rate.** `ai.tts({ …, rate })` controls pace via SSML prosody — `1` = normal,
+`0.9` = 10% slower, `1.1` = faster. Each voice can carry its own `defaultRate` (e.g.
+**Christel defaults to `0.85`** since she reads a touch fast; Jeppe is normal) — applied
+when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
+per-character and tracked like every other call.
 
 ### Streaming — `ai.chatStream`
 
