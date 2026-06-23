@@ -12,3 +12,4 @@ src/version.ts
 
 # local backup artifacts
 *.bak
+src/catalogue/pricing-data.ts

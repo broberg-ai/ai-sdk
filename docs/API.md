@@ -524,6 +524,28 @@ A `401 invalid_api_key` or an unreachable host throws a typed `UpmetricsCostErro
 (never a silent empty). Money is integer micro-USD (`$1 = 1_000_000`) — divide for
 USD; don't do currency conversion here (USD is the source of truth).
 
+### Pricing API — `@broberg/ai-sdk/pricing` (F027)
+
+Exact prices for **all ~346 inventory models**, callable from the installed package —
+no network, no `fs`, browser/edge-clean (bundles in a Vite/Worker build, like
+`./registry`). The bundled data is a trimmed projection of `inventory.json`; the
+curated routed-provider numbers (`src/cost/pricing.ts`) are overlaid as authoritative.
+
+```ts
+import { getModelPrice, findModelPrices, priceCall, pricingGeneratedAt } from "@broberg/ai-sdk/pricing";
+
+getModelPrice("deepseek/deepseek-v4-flash");
+// → { provider, model, name?, inputPer1M, outputPer1M, unit, region:"cn", source:"curated" }
+getModelPrice("anthropic:claude-sonnet-4-6");        // id accepts "/" , ":" , or a bare basename
+findModelPrices({ region: "eu", maxInputPer1M: 1 }); // cheap EU models
+priceCall("anthropic:claude-sonnet-4-6", 1_000_000, 1_000_000); // → 18 (USD)
+pricingGeneratedAt();                                 // inventory snapshot ISO ts → flag staleness
+```
+
+`source` is `"curated"` (authoritative hand-maintained) or `"inventory"` (from the
+monthly inventory refresh). Prices are as-of `pricingGeneratedAt()` — if it's stale
+(>~35 days), surface that in your UI. `listModelPrices()` returns the whole set.
+
 ---
 
 ## 6. Cost precision & budget persistence

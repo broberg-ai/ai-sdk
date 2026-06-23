@@ -24,11 +24,16 @@
     "./registry": {
       "types": "./dist/registry.d.ts",
       "import": "./dist/registry.js"
+    },
+    "./pricing": {
+      "types": "./dist/pricing.d.ts",
+      "import": "./dist/pricing.js"
     }
   },
   "scripts": {
     "gen-version": "node scripts/gen-version.mjs",
-    "build": "bun run gen-version && tsup",
+    "gen-pricing": "node scripts/gen-pricing.mjs",
+    "build": "bun run gen-version && bun run gen-pricing && tsup",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

@@ -1,10 +1,11 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  // Two entries: the full root barrel, and a browser-clean subpath
-  // (@broberg/ai-sdk/registry) carrying only the synchronous availability read —
-  // no bun:sqlite/zlib, so it bundles in a browser build (F022.5, cardmem #4853).
-  entry: { index: "src/index.ts", registry: "src/registry.ts" },
+  // Entries: the full root barrel, plus two browser-clean subpaths —
+  // @broberg/ai-sdk/registry (sync availability read, F022.5) and
+  // @broberg/ai-sdk/pricing (model prices, F027). Both avoid bun:sqlite/zlib/fs
+  // so they bundle in a browser/edge build (cardmem #4853, Trail edge).
+  entry: { index: "src/index.ts", registry: "src/registry.ts", pricing: "src/pricing.ts" },
   format: ["esm"],
   dts: true,
   clean: true,
