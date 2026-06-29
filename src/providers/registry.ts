@@ -6,6 +6,7 @@ import { openaiAdapter } from "./openai.js";
 import { geminiAdapter } from "./gemini.js";
 import { deepinfraAdapter } from "./deepinfra.js";
 import { openrouterAdapter } from "./openrouter.js";
+import { requestyAdapter } from "./requesty.js";
 import { mistralAdapter } from "./mistral.js";
 import { elevenlabsAdapter } from "./elevenlabs.js";
 import { azureAdapter } from "./azure.js";
@@ -19,6 +20,7 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   gemini: geminiAdapter(),
   deepinfra: deepinfraAdapter(),
   openrouter: openrouterAdapter(),
+  requesty: requestyAdapter(),
   mistral: mistralAdapter(),
   elevenlabs: elevenlabsAdapter(),
   azure: azureAdapter(),

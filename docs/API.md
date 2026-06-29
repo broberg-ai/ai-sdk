@@ -51,6 +51,7 @@ bun add @broberg/ai-sdk     # or: npm i @broberg/ai-sdk / pnpm add
   | `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) | Google Gemini |
   | `DEEPINFRA_API_KEY` | DeepInfra |
   | `OPENROUTER_API_KEY` | OpenRouter (incl. MiniMax) |
+  | `REQUESTY_API_KEY` | Requesty (OpenRouter-alternative gateway, EU endpoint) |
   | `FAL_KEY` | fal.ai images |
 
 ### The one-time wiring in your app
@@ -120,6 +121,15 @@ config > built-in defaults**. So you can rename what `smart` means globally
 or override one call (`ai.chat({ prompt, override:{ provider:"openrouter", model:"minimax/minimax-m2.7", transport:"http" } })`).
 `DEFAULT_TIER_MAP` is exported if you want to read the defaults.
 
+**Aggregator upstreams (one key → many models).** `openrouter` and `requesty`
+(F028) are interchangeable OpenAI-compatible gateways — use either wherever you'd
+mint a key per provider. Both return ground-truth `usage.cost`, so cost is exact.
+`requestyAdapter({ eu:true })` hits Requesty's EU endpoint (`router.eu.requesty.ai`).
+**EU caveat:** the EU endpoint only keeps Requesty's *gateway* in the EU — end-to-end
+EU residency still needs an EU-region **model** slug (e.g. `mistral/…`, a Bedrock
+`@eu-central-1` / Azure `@swedencentral` model); a global slug routes inference
+outside the EU despite the EU endpoint. Neither is a default tier — opt in per app.
+
 ### 3.3 Providers — `ProviderAdapter`
 A thin contract every provider implements (`chat?`, `vision?`, `image?`,
 `embedding?`, `transcribe?` — all optional; an adapter implements only what it
@@ -129,7 +139,7 @@ override, or use the exported `stubProviders` for deterministic tests. Tool /
 function-calling is normalized across providers via `toProviderTools` /
 `fromProviderToolCall`. Built-in adapters: `anthropicAdapter` (http +
 `claude -p`), `openaiAdapter`, `geminiAdapter`, `deepinfraAdapter`,
-`openrouterAdapter`, `falAdapter`.
+`openrouterAdapter`, `requestyAdapter`, `falAdapter`.
 
 ### 3.4 Transport — http vs subprocess
 The transport decides *how bytes travel*, never *what they contain*.
