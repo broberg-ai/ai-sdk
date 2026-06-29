@@ -280,6 +280,9 @@ export interface TranscribeRequest {
   language?: string;
   /** Audio length in seconds — enables per-minute cost (Whisper). Omit → cost 0. */
   durationSec?: number;
+  /** Bias recognition toward these brand/jargon terms (Azure phraseList, F029.3).
+   *  Providers without biasing support (Voxtral/Whisper) ignore it. */
+  phrases?: string[];
   spec: TierSpec;
 }
 

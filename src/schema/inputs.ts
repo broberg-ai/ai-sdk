@@ -192,6 +192,8 @@ export const transcribeInputSchema = z.object({
   language: z.string().optional(),
   /** Audio length in seconds — enables Whisper per-minute cost. */
   durationSec: z.number().positive().optional(),
+  /** Bias toward brand/jargon terms (Azure phraseList, F029.3); others ignore it. */
+  phrases: z.array(z.string()).optional(),
   ...callOptions,
 });
 

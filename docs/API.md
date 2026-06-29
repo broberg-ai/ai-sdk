@@ -182,7 +182,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.animate` | `{ image: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
-| `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1 |
+| `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1; EU: Voxtral (mistral, auto-detect) or **Azure da-DK** via `override:{provider:"azure"}` (F029) |
 | `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
 | `ai.moderate` | `{ input: string \| string[] }` | `{ results: {flagged,categories,categoryScores}[], usage }` | mistral-moderation (per-token) |
 | `ai.podcast` | `{ script: {speaker,text}[], voices: {speaker→voiceId} }` | `{ audio, mimeType, usage }` | elevenlabs eleven_v3 (per-char) |
@@ -572,6 +572,13 @@ monthly inventory refresh). Prices are as-of `pricingGeneratedAt()` — if it's 
   a hosted URL); priced per image ($0.039 for nano-banana models, `pricePerImage` overrides).
 - **Whisper** is per-minute: pass `durationSec` to `ai.transcribe` and it prices
   `(durationSec/60) × $0.006`. Omit it → `costUsd 0` (the API returns no duration).
+- **EU speech-to-text (GDPR).** Two EU-resident options behind `ai.transcribe`:
+  **Voxtral** (mistral, auto-detect — it rejects forced `language:'da'`) and **Azure
+  da-DK** (F029, `override:{provider:"azure"}`) — Azure forces `da-DK` via fast
+  transcription on a regional EU host (`{region}.api.cognitive.microsoft.com`),
+  reusing `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`; cost is per audio-minute from
+  the response's real duration. Azure transcribes Danish prose cleanly; brand/jargon
+  terms benefit from a `phraseList` bias (not wired yet).
 - **Persistent / shared budget.** By default `BudgetGuard`'s rolling total is
   in-memory (per `createAI` instance). For a budget that survives restarts and is
   shared across processes/instances, pass a persistent store:

@@ -4,17 +4,39 @@
 // is a direct SSML REST call, region-pinned to an EU host. Audio out is MP3 bytes;
 // billed per character. Key + region from AZURE_SPEECH_KEY / AZURE_SPEECH_REGION.
 import { freshUsage } from "../cost/usage.js";
-import type { ProviderAdapter, TtsRequest, PodcastResult } from "../types.js";
+import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
 
 /** USD per 1000 characters. ≈ Azure neural standard ($16 / 1M chars) — verify on
  *  azure.microsoft.com/pricing; override via config.pricePer1kChars. */
 const AZURE_TTS_PRICE_PER_1K_CHARS = 0.016;
+
+/** USD per audio-minute for speech-to-text. ≈ Azure standard STT ($1 / audio-hour
+ *  = $0.0167/min) — verify the fast-transcription rate on azure.microsoft.com/pricing;
+ *  override via config.sttPricePerMin. */
+const AZURE_STT_PRICE_PER_MIN = 0.0167;
+
+/** Fast-transcription REST api-version. 2025-10-15 is required for the `phraseList`
+ *  biasing field (2024-11-15 rejects it as "Invalid JSON"); both serve plain
+ *  transcription. Override via config.sttApiVersion. (Live-verified F029.) */
+const DEFAULT_STT_API_VERSION = "2025-10-15";
 
 /** Default region — EU/GDPR-clean. Override via config.region / AZURE_SPEECH_REGION. */
 const DEFAULT_REGION = "westeurope";
 
 /** Default MP3 output (Azure's X-Microsoft-OutputFormat). */
 const DEFAULT_FORMAT = "audio-24khz-48kbitrate-mono-mp3";
+
+/** Short language code → Azure STT locale. A full locale ("da-DK") passes through;
+ *  omitted language defaults to da-DK (the EU-Danish use-case this was built for). */
+const AZURE_LOCALE_MAP: Record<string, string> = {
+  da: "da-DK", en: "en-US", de: "de-DE", sv: "sv-SE", nb: "nb-NO", no: "nb-NO",
+  fi: "fi-FI", nl: "nl-NL", fr: "fr-FR", es: "es-ES", it: "it-IT", pt: "pt-PT",
+};
+function toAzureLocale(lang?: string): string {
+  if (!lang) return "da-DK";
+  if (lang.includes("-")) return lang;
+  return AZURE_LOCALE_MAP[lang.toLowerCase()] ?? lang;
+}
 
 /** A curated Danish-speaking Azure voice, exposed so a consuming app can render a
  *  picker. `native` = a true da-DK voice (most natural); otherwise a multilingual
@@ -79,7 +101,23 @@ function localeOf(voice: string): string {
 }
 
 export function azureAdapter(
-  config: { apiKey?: string; region?: string; fetch?: typeof fetch; pricePer1kChars?: number } = {},
+  config: {
+    apiKey?: string;
+    region?: string;
+    fetch?: typeof fetch;
+    pricePer1kChars?: number;
+    /** USD per audio-minute for transcribe (overrides AZURE_STT_PRICE_PER_MIN). */
+    sttPricePerMin?: number;
+    /** STT base URL override (e.g. a resource custom domain). */
+    sttBaseUrl?: string;
+    /** Resource name → custom-domain STT host `{resource}.cognitiveservices.azure.com`
+     *  (or env AZURE_SPEECH_RESOURCE). Without it, STT uses the regional host. */
+    resource?: string;
+    /** Fast-transcription api-version (overrides the GA default). */
+    sttApiVersion?: string;
+    /** phraseList biasing weight (0–2) applied when a call passes `phrases`. Default 1.5. */
+    sttBiasingWeight?: number;
+  } = {},
 ): ProviderAdapter {
   const fetchImpl = config.fetch ?? fetch;
 
@@ -90,6 +128,14 @@ export function azureAdapter(
   }
   function region(): string {
     return config.region ?? process.env.AZURE_SPEECH_REGION ?? DEFAULT_REGION;
+  }
+  /** STT host. Default = regional cognitive host; a resource name (config/env) →
+   *  the custom-domain host (some resources require it). Live-verified per resource. */
+  function sttBaseUrl(): string {
+    if (config.sttBaseUrl) return config.sttBaseUrl.replace(/\/$/, "");
+    const resource = config.resource ?? process.env.AZURE_SPEECH_RESOURCE;
+    if (resource) return `https://${resource}.cognitiveservices.azure.com`;
+    return `https://${region()}.api.cognitive.microsoft.com`;
   }
 
   function priceFor(chars: number, model: string): ReturnType<typeof freshUsage> {
@@ -140,5 +186,51 @@ export function azureAdapter(
     return { audio, mimeType: "audio/mpeg", usage: priceFor(req.text.length, req.spec.model) };
   }
 
-  return { name: "azure", tts };
+  // Speech-to-text (F029) via Azure fast transcription. Synchronous multipart POST
+  // → { combinedPhrases:[{text}], durationMilliseconds }. da-DK forced (Voxtral can't).
+  // Cost is per audio-minute from the response's real duration. EU-resident.
+  async function transcribe(req: TranscribeRequest): Promise<TranscribeResult> {
+    const locale = toAzureLocale(req.language);
+    const definition: Record<string, unknown> = { locales: [locale] };
+    // Bias toward known brand/jargon terms (F029.3) — lifts accuracy on names the
+    // model wouldn't otherwise know (e.g. "cardmem", "Pins"). Other STTs ignore phrases.
+    if (req.phrases && req.phrases.length > 0) {
+      definition.phraseList = { phrases: req.phrases, biasingWeight: config.sttBiasingWeight ?? 1.5 };
+    }
+    const form = new FormData();
+    form.append("audio", new Blob([req.audio]), "audio");
+    form.append("definition", JSON.stringify(definition));
+    const url = `${sttBaseUrl()}/speechtotext/transcriptions:transcribe?api-version=${config.sttApiVersion ?? DEFAULT_STT_API_VERSION}`;
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: { "Ocp-Apim-Subscription-Key": key() },
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`azure transcribe ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      combinedPhrases?: { text?: string }[];
+      durationMilliseconds?: number;
+    };
+    const text = data.combinedPhrases?.[0]?.text ?? "";
+    // Prefer the API's real duration; fall back to a caller-supplied durationSec.
+    const minutes =
+      data.durationMilliseconds != null
+        ? data.durationMilliseconds / 60000
+        : (req.durationSec ?? 0) / 60;
+    const usage = freshUsage({
+      provider: "azure",
+      model: req.spec.model,
+      transport: "http",
+      capability: "transcribe",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    usage.costUsd = minutes * (config.sttPricePerMin ?? AZURE_STT_PRICE_PER_MIN);
+    return { text, usage };
+  }
+
+  return { name: "azure", tts, transcribe };
 }

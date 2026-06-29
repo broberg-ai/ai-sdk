@@ -124,3 +124,74 @@ test("ai.tts routes to azure via override + passes lang/format through", async (
   expect(cap.body).toContain("<voice name='da-DK-ChristelNeural'>");
   expect(cap.body).toContain("Goddag");
 });
+
+// ── Speech-to-text (F029) ────────────────────────────────────────────────────
+function sttFetch(cap: { url?: string; form?: FormData; headers?: Headers }, payload: unknown) {
+  return (async (url: string, init?: RequestInit) => {
+    cap.url = url;
+    cap.form = init?.body as FormData;
+    cap.headers = new Headers(init?.headers);
+    return new Response(JSON.stringify(payload), { status: 200, headers: { "content-type": "application/json" } });
+  }) as unknown as typeof fetch;
+}
+
+test("transcribe: forces da-DK locale, sends multipart + auth, parses combinedPhrases, costs per minute", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({
+    apiKey: "k",
+    region: "swedencentral",
+    fetch: sttFetch(cap, { combinedPhrases: [{ text: "Hej med dig" }], durationMilliseconds: 120000 }),
+  });
+  const { text, usage } = await adapter.transcribe!({ audio: new Uint8Array([1, 2, 3]), language: "da", spec });
+
+  expect(text).toBe("Hej med dig");
+  // regional STT host (default) + fast-transcription path
+  expect(cap.url).toBe("https://swedencentral.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15");
+  expect(cap.headers!.get("Ocp-Apim-Subscription-Key")).toBe("k");
+  // multipart definition carries the forced da-DK locale (Voxtral's gap)
+  expect(JSON.parse(cap.form!.get("definition") as string)).toEqual({ locales: ["da-DK"] });
+  expect(cap.form!.get("audio")).toBeInstanceOf(Blob);
+  // cost from the API's real duration: 2 min × $0.0167
+  expect(usage.provider).toBe("azure");
+  expect(usage.capability).toBe("transcribe");
+  expect(usage.costUsd).toBeCloseTo(2 * 0.0167, 6);
+});
+
+test("transcribe: omitted language defaults to da-DK; full locale passes through", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", fetch: sttFetch(cap, { combinedPhrases: [{ text: "x" }] }) });
+  await adapter.transcribe!({ audio: new Uint8Array([1]), spec });
+  expect(JSON.parse(cap.form!.get("definition") as string)).toEqual({ locales: ["da-DK"] });
+  await adapter.transcribe!({ audio: new Uint8Array([1]), language: "en-GB", spec });
+  expect(JSON.parse(cap.form!.get("definition") as string)).toEqual({ locales: ["en-GB"] });
+});
+
+test("transcribe: a resource name switches to the custom-domain host", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", resource: "broberg-tts", fetch: sttFetch(cap, { combinedPhrases: [{ text: "x" }] }) });
+  await adapter.transcribe!({ audio: new Uint8Array([1]), language: "da", spec });
+  expect(cap.url).toContain("https://broberg-tts.cognitiveservices.azure.com/speechtotext/");
+});
+
+test("transcribe ship-dark: no key → throws only when called", async () => {
+  const prev = process.env.AZURE_SPEECH_KEY;
+  delete process.env.AZURE_SPEECH_KEY;
+  try {
+    const adapter = azureAdapter();
+    await expect(adapter.transcribe!({ audio: new Uint8Array([1]), language: "da", spec })).rejects.toThrow(/AZURE_SPEECH_KEY/);
+  } finally {
+    if (prev !== undefined) process.env.AZURE_SPEECH_KEY = prev;
+  }
+});
+
+test("transcribe: phrases → definition.phraseList biasing; absent → no phraseList key", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", fetch: sttFetch(cap, { combinedPhrases: [{ text: "x" }] }) });
+  await adapter.transcribe!({ audio: new Uint8Array([1]), language: "da", phrases: ["cardmem", "Pins", "cb-2"], spec });
+  const def = JSON.parse(cap.form!.get("definition") as string);
+  expect(def.phraseList.phrases).toEqual(["cardmem", "Pins", "cb-2"]);
+  expect(def.phraseList.biasingWeight).toBe(1.5);
+
+  await adapter.transcribe!({ audio: new Uint8Array([1]), language: "da", spec });
+  expect(JSON.parse(cap.form!.get("definition") as string).phraseList).toBeUndefined();
+});
