@@ -185,7 +185,7 @@ Reads (the gap check) need no key; only `POST /api/enroll` uses your `DISCOVERY_
 
 ```ts
 import { createAI } from "@broberg/ai-sdk";
-const ai = createAI();                         // real adapters; keys from env (ANTHROPIC_API_KEY, …)
+const ai = createAI();                         // real adapters; keys from env (MISTRAL_API_KEY, …)
 const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 // also: ai.vision · ai.video · ai.translate · ai.image · ai.embedding · ai.transcribe · ai.ocr · ai.moderate · ai.contracts.{extract,classify,…}
 ```
@@ -198,7 +198,7 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 **Model-availability gate (F022, v0.11+).** Before launching/spawning on a model, gate it — a suspended tier (e.g. Fable 5, globally disabled 2026-06-12) then degrades instead of erroring at the user:
 ```ts
 import { resolveModel, listModels } from "@broberg/ai-sdk";          // browser UI: import from "@broberg/ai-sdk/registry"
-const r = resolveModel("fable", { fallback: "claude-opus-4-8" });    // sync, zero-I/O → { ok, model, fellBack, status, reason }
+const r = resolveModel("fable", { fallback: "mistral-large-latest" }); // sync, zero-I/O → { ok, model, fellBack, status, reason }
 listModels();  // [{ id, alias?, provider, available, status, note? }] — grey out dead tiers in a picker
 ```
 
