@@ -3,22 +3,25 @@ import { buildVisionMessages, VISION_DEFAULT_TIER } from "./vision.js";
 import { createAI } from "../client.js";
 
 const realFetch = globalThis.fetch;
-const prevKey = process.env.ANTHROPIC_API_KEY;
+const prevKey = process.env.MISTRAL_API_KEY;
 afterEach(() => {
   globalThis.fetch = realFetch;
-  if (prevKey === undefined) delete process.env.ANTHROPIC_API_KEY;
-  else process.env.ANTHROPIC_API_KEY = prevKey;
+  if (prevKey === undefined) delete process.env.MISTRAL_API_KEY;
+  else process.env.MISTRAL_API_KEY = prevKey;
 });
 
-function mockAnthropic() {
-  process.env.ANTHROPIC_API_KEY = "sk-test"; // fetch is mocked; key just unblocks the adapter
+// F030: the default `vision` tier now resolves to Mistral (EU), not Anthropic.
+// Mistral is OpenAI-compatible, so the wire is api.mistral.ai + OpenAI message/response
+// shape. (Anthropic's vision wire format stays covered in anthropic.test.ts.)
+function mockMistral() {
+  process.env.MISTRAL_API_KEY = "k"; // fetch is mocked; key just unblocks the adapter
   const seen: { url: string; body: any }[] = [];
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     seen.push({ url: String(url), body: JSON.parse(init!.body as string) });
     return new Response(
       JSON.stringify({
-        content: [{ type: "text", text: "a sunny beach" }],
-        usage: { input_tokens: 1100, output_tokens: 6 },
+        choices: [{ message: { content: "a sunny beach" } }],
+        usage: { prompt_tokens: 1100, completion_tokens: 6 },
       }),
       { status: 200 },
     );
@@ -45,35 +48,36 @@ test("VISION_DEFAULT_TIER is 'vision'", () => {
   expect(VISION_DEFAULT_TIER).toBe("vision");
 });
 
-test("ai.vision() with a URL image → default vision tier (anthropic), text + usage", async () => {
-  const seen = mockAnthropic();
-  const ai = createAI({ providers: undefined }); // default live registry → real anthropic
+test("ai.vision() with a URL image → default vision tier (mistral EU), text + usage", async () => {
+  const seen = mockMistral();
+  const ai = createAI({ providers: undefined }); // default live registry → real mistral
   const res = await ai.vision({ image: "https://x/beach.png", prompt: "describe" });
-  // default vision tier resolves to anthropic claude-sonnet-4-6 over http
-  expect(seen[0]?.url).toBe("https://api.anthropic.com/v1/messages");
+  // F030: default vision tier resolves to mistral-small-latest over http (OpenAI-compatible)
+  expect(seen[0]?.url).toBe("https://api.mistral.ai/v1/chat/completions");
   expect(res.text).toBe("a sunny beach");
-  expect(res.usage.provider).toBe("anthropic");
+  expect(res.usage.provider).toBe("mistral");
   expect(res.usage.tier).toBe("vision");
   expect(res.usage.capability).toBe("vision");
   expect(res.usage.inputTokens).toBe(1100);
-  // url image block sent
+  // url image block sent as an OpenAI image_url part
   const block = seen[0]?.body.messages[0].content[1];
-  expect(block.source.type).toBe("url");
+  expect(block.type).toBe("image_url");
+  expect(block.image_url.url).toBe("https://x/beach.png");
 });
 
-test("ai.vision() accepts raw bytes (Uint8Array → base64 image block)", async () => {
-  const seen = mockAnthropic();
+test("ai.vision() accepts raw bytes (Uint8Array → base64 data-URL image part)", async () => {
+  const seen = mockMistral();
   const ai = createAI();
   const bytes = new Uint8Array([137, 80, 78, 71]); // PNG magic
   const res = await ai.vision({ image: bytes, prompt: "what is this", mimeType: "image/png" });
   expect(res.text).toBe("a sunny beach");
   const block = seen[0]?.body.messages[0].content[1];
-  expect(block.source.type).toBe("base64");
-  expect(block.source.media_type).toBe("image/png");
+  expect(block.type).toBe("image_url");
+  expect(block.image_url.url).toMatch(/^data:image\/png;base64,/);
 });
 
 test("vision tier is overridable per call", async () => {
-  mockAnthropic();
+  mockMistral();
   const ai = createAI();
   const res = await ai.vision({ image: "https://x/p.png", prompt: "p", tier: "smart" });
   expect(res.usage.tier).toBe("smart");

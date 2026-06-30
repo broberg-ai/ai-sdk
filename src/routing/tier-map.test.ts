@@ -34,3 +34,16 @@ test("partial override only changes the fields it sets", () => {
   expect(resolved.provider).toBe(DEFAULT_TIER_MAP.fast.provider);
   expect(resolved.model).toBe(DEFAULT_TIER_MAP.fast.model);
 });
+
+test("F030: NO default tier resolves to Anthropic (ANTHROPIC_API_KEY removed)", () => {
+  for (const [tier, spec] of Object.entries(DEFAULT_TIER_MAP)) {
+    expect(spec.provider, `tier "${tier}" must not default to anthropic`).not.toBe("anthropic");
+  }
+});
+
+test("F030: the former Anthropic tiers now default to Mistral EU", () => {
+  expect(DEFAULT_TIER_MAP.fast).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.smart).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.powerful).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
+});

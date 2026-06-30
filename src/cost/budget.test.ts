@@ -64,9 +64,9 @@ test("no budget config → no guard (calls run freely)", async () => {
 });
 
 test("client blocks a call whose pre-flight estimate exceeds the per-call ceiling", async () => {
-  // smart tier = anthropic/claude-sonnet-4-6 (3/15 per 1M). A ~512-output estimate
-  // costs ~$0.0077, well over a $0.001 ceiling → throws before the adapter runs.
-  const ai = createAI({ budget: { perCallUsd: 0.001 } });
+  // F030: default chat tier = mistral-large-latest ($0.5/$1.5 per 1M). A ~512-output
+  // estimate costs ~$0.0008, well over a $0.0001 ceiling → throws before the adapter runs.
+  const ai = createAI({ budget: { perCallUsd: 0.0001 } });
   await expect(ai.chat({ prompt: "x".repeat(400) })).rejects.toThrow(BudgetExceededError);
 });
 

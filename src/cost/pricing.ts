@@ -79,6 +79,14 @@ export const PRICING: Record<string, PricingEntry> = {
   // cheap route for fleet background work once `claude -p` is API-billed (15 Jun).
   "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.435, outputPer1M: 0.87, version: "2026-05-22-deepseek-official" },
   "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.0983, outputPer1M: 0.1966, version: "2026-05-22-deepseek-official" },
+  // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from
+  // api-docs.deepseek.com 2026-06-30 ($0.14/$0.28 per 1M; both map to deepseek-v4-flash).
+  // `deepseek-chat` (non-thinking) + `deepseek-reasoner` (thinking) DEPRECATE 2026-07-24.
+  // (The bare `deepseek-v4-flash` basename is already priced via the openrouter entry
+  // above — kept distinct here to avoid a basename collision in the F027 pricing-API.)
+  // Verify against a real key when it lands.
+  "deepseek:deepseek-chat": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
+  "deepseek:deepseek-reasoner": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
 
   // Google Gemini (direct). Provider key is "gemini" — matches the adapter's
   // usage.provider + the override.provider callers pass. (Image-gen models are

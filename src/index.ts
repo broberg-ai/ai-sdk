@@ -22,6 +22,7 @@ export { geminiAdapter } from "./providers/gemini.js";
 export { deepinfraAdapter } from "./providers/deepinfra.js";
 export { openrouterAdapter } from "./providers/openrouter.js";
 export { requestyAdapter } from "./providers/requesty.js";
+export { deepseekAdapter } from "./providers/deepseek.js";
 export { mistralAdapter } from "./providers/mistral.js";
 export { elevenlabsAdapter, ELEVENLABS_DANISH_VOICES, resolveVoice } from "./providers/elevenlabs.js";
 export { azureAdapter, AZURE_DANISH_VOICES, AZURE_DANISH_VOICE_LIST, listAzureDanishVoices, resolveAzureVoice } from "./providers/azure.js";
@@ -36,6 +37,7 @@ export { defaultProviders } from "./providers/registry.js";
 export {
   anthropicApiAdapter,
   anthropicSubprocessAdapter,
+  mistralStubAdapter,
   openaiStubAdapter,
   falStubAdapter,
   stubProviders,

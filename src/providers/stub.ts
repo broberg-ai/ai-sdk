@@ -76,6 +76,24 @@ export const anthropicSubprocessAdapter: ProviderAdapter = {
   },
 };
 
+/** Mistral adapter stub — covers the default text/vision tiers (F030: fast/smart/
+ *  powerful/vision/cheap all default to Mistral EU after the Anthropic phase-out). */
+export const mistralStubAdapter: ProviderAdapter = {
+  name: "mistral",
+  async chat(req: ChatRequest): Promise<ChatResult> {
+    return {
+      text: `[stub:mistral] ${lastUserText(req)}`,
+      usage: stubUsage("mistral", req.spec.model, "http", "chat"),
+    };
+  },
+  async vision(req: ChatRequest): Promise<ChatResult> {
+    return {
+      text: `[stub:mistral:vision] ${lastUserText(req)}`,
+      usage: stubUsage("mistral", req.spec.model, "http", "vision"),
+    };
+  },
+};
+
 /** OpenAI adapter stub — covers the embedding default tier + a chat fallback. */
 export const openaiStubAdapter: ProviderAdapter = {
   name: "openai",
@@ -109,6 +127,7 @@ export const falStubAdapter: ProviderAdapter = {
  *  wires the live adapters. */
 export const stubProviders: Record<string, ProviderAdapter> = {
   anthropic: anthropicApiAdapter,
+  mistral: mistralStubAdapter,
   openai: openaiStubAdapter,
   fal: falStubAdapter,
 };

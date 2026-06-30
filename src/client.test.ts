@@ -15,7 +15,7 @@ test("createAI({}).chat resolves without throwing (stub response)", async () => 
   const ai = createAI();
   const res = await ai.chat({ prompt: "hi" });
   expect(res.text).toContain("hi");
-  expect(res.usage.provider).toBe("anthropic");
+  expect(res.usage.provider).toBe("mistral"); // F030: default tiers → Mistral EU
   expect(res.usage.capability).toBe("chat");
   expect(res.usage.ts).not.toBe(""); // client stamps ts
 });
