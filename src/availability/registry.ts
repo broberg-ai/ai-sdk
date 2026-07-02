@@ -31,7 +31,7 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "claude-haiku-4-5", aliases: ["haiku", "fast"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-sonnet-4-6", aliases: ["sonnet", "smart"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-opus-4-8", aliases: ["opus", "powerful"], provider: "anthropic", available: true, status: "available", source: "default" },
-  { id: "claude-fable-5", aliases: ["fable"], provider: "anthropic", available: false, status: "suspended", note: SUSPENDED_FABLE_MYTHOS, source: "default" },
+  { id: "claude-fable-5", aliases: ["fable"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-mythos-5", aliases: ["mythos"], provider: "anthropic", available: false, status: "suspended", note: SUSPENDED_FABLE_MYTHOS, source: "default" },
   // ── Gemini ───────────────────────────────────────────────────────────────
   { id: "gemini-2.5-flash", aliases: ["gemini-flash"], provider: "gemini", available: true, status: "available", source: "default" },
