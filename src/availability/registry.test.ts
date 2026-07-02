@@ -4,15 +4,18 @@ import { listModels } from "./resolve.js";
 
 beforeEach(() => resetRegistry());
 
-test("Fable 5 + Mythos 5 are seeded suspended with the export-control note", () => {
+test("Mythos 5 is seeded suspended with the export-control note (Fable 5 re-enabled)", () => {
   const byId = new Map(listModels().map((m) => [m.id, m]));
-  for (const id of ["claude-fable-5", "claude-mythos-5"]) {
-    const m = byId.get(id)!;
-    expect(m.available).toBe(false);
-    expect(m.status).toBe("suspended");
-    expect(m.note).toContain("export-control");
-    expect(m.source).toBe("default");
-  }
+  // Fable 5 is now available (Anthropic restored it).
+  const fable = byId.get("claude-fable-5")!;
+  expect(fable.available).toBe(true);
+  expect(fable.status).toBe("available");
+  // Mythos 5 remains suspended (unverified).
+  const mythos = byId.get("claude-mythos-5")!;
+  expect(mythos.available).toBe(false);
+  expect(mythos.status).toBe("suspended");
+  expect(mythos.note).toContain("export-control");
+  expect(mythos.source).toBe("default");
 });
 
 test("the tier-map defaults are seeded available (at least one available row)", () => {

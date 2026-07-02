@@ -23,15 +23,15 @@ test("autoResolve on: a suspended primary model is swapped to the configured fal
     providers: { anthropic: recording("anthropic", seen) },
     availability: { autoResolve: true, fallback: "claude-opus-4-8" },
   });
-  await ai.chat({ prompt: "hi", override: { provider: "anthropic", model: "claude-fable-5", transport: "http" } });
-  expect(seen.model).toBe("claude-opus-4-8"); // fable suspended → opus dispatched
+  await ai.chat({ prompt: "hi", override: { provider: "anthropic", model: "claude-mythos-5", transport: "http" } });
+  expect(seen.model).toBe("claude-opus-4-8"); // mythos suspended → opus dispatched
 });
 
 test("autoResolve OFF (default): a suspended model is dispatched unchanged — byte-identical", async () => {
   const seen: { model?: string } = {};
   const ai = createAI({ providers: { anthropic: recording("anthropic", seen) } });
-  await ai.chat({ prompt: "hi", override: { provider: "anthropic", model: "claude-fable-5", transport: "http" } });
-  expect(seen.model).toBe("claude-fable-5"); // no gate → unchanged
+  await ai.chat({ prompt: "hi", override: { provider: "anthropic", model: "claude-mythos-5", transport: "http" } });
+  expect(seen.model).toBe("claude-mythos-5"); // no gate → unchanged
 });
 
 test("autoResolve on: an available primary model is left untouched (no false swap)", async () => {
