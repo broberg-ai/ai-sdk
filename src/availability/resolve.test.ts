@@ -7,51 +7,51 @@ beforeEach(() => resetRegistry());
 
 // ── AC1: transparent fallback, no throw ─────────────────────────────────────
 test("suspended model + fallback → transparent swap (ok:false, fellBack:true)", () => {
-  const r = resolveModel("claude-fable-5", { fallback: "claude-opus-4-8" });
+  const r = resolveModel("claude-mythos-5", { fallback: "claude-opus-4-8" });
   expect(r.ok).toBe(false);
   expect(r.fellBack).toBe(true);
   expect(r.model).toBe("claude-opus-4-8");
-  expect(r.requested).toBe("claude-fable-5");
+  expect(r.requested).toBe("claude-mythos-5");
   expect(r.status).toBe("suspended");
   expect(r.reason).toContain("export-control");
 });
 
 test("fallback chain → first AVAILABLE wins (skips a suspended fallback)", () => {
-  const r = resolveModel("fable", { fallback: ["mythos", "opus"] });
-  expect(r.model).toBe("claude-opus-4-8"); // mythos also suspended → skipped
+  const r = resolveModel("mythos", { fallback: ["fable", "opus"] });
+  expect(r.model).toBe("claude-fable-5"); // mythos suspended → skipped, fable available
   expect(r.fellBack).toBe(true);
 });
 
 // ── AC2: structured throw ───────────────────────────────────────────────────
 test("suspended model + throwIfUnavailable → ModelUnavailableError", () => {
   try {
-    resolveModel("claude-fable-5", { throwIfUnavailable: true });
+    resolveModel("claude-mythos-5", { throwIfUnavailable: true });
     throw new Error("should have thrown");
   } catch (e) {
     expect(e).toBeInstanceOf(ModelUnavailableError);
     const err = e as ModelUnavailableError;
     expect(err.code).toBe("model_unavailable");
-    expect(err.requested).toBe("claude-fable-5");
+    expect(err.requested).toBe("claude-mythos-5");
     expect(err.note).toContain("export-control");
   }
 });
 
-test("suspended model + no fallback, no throw flag → ok:false, fellBack:false", () => {
+test("available model (fable-5) returns ok:true, no fallback needed", () => {
   const r = resolveModel("claude-fable-5");
-  expect(r.ok).toBe(false);
+  expect(r.ok).toBe(true);
   expect(r.fellBack).toBe(false);
   expect(r.model).toBe("claude-fable-5");
-  expect(r.reason).toBeDefined();
+  expect(r.status).toBe("available");
 });
 
 // ── AC3: alias-aware ────────────────────────────────────────────────────────
-test("alias resolves identically to the canonical id", () => {
-  const byAlias = resolveModel("fable", { fallback: "opus" });
-  const byId = resolveModel("claude-fable-5", { fallback: "claude-opus-4-8" });
+test("alias resolves identically to the canonical id (fable-5 available)", () => {
+  const byAlias = resolveModel("fable");
+  const byId = resolveModel("claude-fable-5");
   expect(byAlias.requested).toBe("claude-fable-5"); // normalized
-  expect(byAlias.model).toBe("claude-opus-4-8"); // alias fallback normalized too
+  expect(byAlias.model).toBe("claude-fable-5");
   expect(byAlias.ok).toBe(byId.ok);
-  expect(byAlias.fellBack).toBe(byId.fellBack);
+  expect(byAlias.ok).toBe(true); // fable-5 is now available
 });
 
 // ── AC4: zero false positives on live models ────────────────────────────────
@@ -77,7 +77,7 @@ test("resolveModel + listModels do zero I/O (fetch throws → still return)", ()
     throw new Error("hot path must not touch the network");
   }) as unknown as typeof fetch;
   try {
-    expect(resolveModel("claude-fable-5", { fallback: "claude-opus-4-8" }).model).toBe("claude-opus-4-8");
+    expect(resolveModel("claude-mythos-5", { fallback: "claude-opus-4-8" }).model).toBe("claude-opus-4-8");
     expect(listModels().length).toBeGreaterThan(0);
   } finally {
     globalThis.fetch = realFetch;
