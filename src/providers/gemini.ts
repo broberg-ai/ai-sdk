@@ -6,6 +6,7 @@ import { httpTransport } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
 import { toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
+import { toInlineImage } from "./media.js";
 import type {
   ProviderAdapter,
   ChatRequest,
@@ -354,35 +355,6 @@ interface VeoOperation {
       generatedSamples?: { video?: { uri?: string } }[];
     };
   };
-}
-
-/** Resolve an image input to { data(base64), mimeType } — a URL is fetched to bytes. */
-async function toInlineImage(
-  image: string | Uint8Array,
-  fetchImpl: typeof fetch,
-): Promise<{ data: string; mimeType: string }> {
-  if (typeof image !== "string") {
-    return { data: Buffer.from(image).toString("base64"), mimeType: sniffMime(image) };
-  }
-  if (/^https?:\/\//i.test(image)) {
-    const res = await fetchImpl(image);
-    if (!res.ok) throw new Error(`gemini animate: failed to fetch image (${res.status})`);
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    const mimeType = res.headers.get("content-type") ?? sniffMime(bytes);
-    return { data: Buffer.from(bytes).toString("base64"), mimeType };
-  }
-  // A data: URI or bare base64.
-  const comma = image.startsWith("data:") ? image.indexOf(",") : -1;
-  const b64 = comma >= 0 ? image.slice(comma + 1) : image;
-  const mimeType = image.startsWith("data:") ? image.slice(5, image.indexOf(";")) : "image/png";
-  return { data: b64, mimeType };
-}
-
-function sniffMime(b: Uint8Array): string {
-  if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
-  if (b[0] === 0x47 && b[1] === 0x49) return "image/gif";
-  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57) return "image/webp";
-  return "image/jpeg";
 }
 
 /** Image part shape on a generateContent response (camel + snake aliases). */

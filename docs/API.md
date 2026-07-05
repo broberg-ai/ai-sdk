@@ -177,9 +177,9 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `vision` |
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
-| `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` |
+| `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` (chat prompt-contract, free-form `to`/`from` e.g. "Danish"); or **DeepL EU** dedicated MT via `override:{provider:"deepl"}` (F032) — `to`/`from` must be DeepL codes ("DA", not "Danish") |
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
-| `ai.animate` | `{ image: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override |
+| `ai.animate` | `{ image: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override; **Vertex EU** (europe-west1) via `override:{provider:"vertex"}` (F031, needs a GCP service-account) |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1; EU: Voxtral (mistral, auto-detect) or **Azure da-DK** via `override:{provider:"azure"}` (F029) |
@@ -570,6 +570,14 @@ monthly inventory refresh). Prices are as-of `pricingGeneratedAt()` — if it's 
 - **Gemini images** — `ai.image({ override:{ provider:"gemini", model:"gemini-3-pro-image-preview", transport:"http" } })`
   returns the inline image as a `data:<mime>;base64,…` URL (Gemini sends bytes, not
   a hosted URL); priced per image ($0.039 for nano-banana models, `pricePerImage` overrides).
+- **Recraft V4.1 via OpenRouter** (F033.1) — `ai.image({ override:{ provider:"openrouter", model:"recraft/recraft-v4.1", transport:"http" } })`
+  for brand illustrations, or `model:"recraft/recraft-v4.1-vector"` for scalable
+  **SVG logo** output. OpenRouter's unified Image API (`POST /images`, distinct from
+  `/chat/completions`) returns base64 image data (`data[].b64_json`, `data[].media_type`
+  for SVG) plus ground-truth `usage.cost` (raster $0.035/img, vector $0.08/img,
+  falls back to a local estimate if the response omits it). **US-hosted — brand
+  visuals only**, no personal data/faces (those stay on the BFL EU-portrait path,
+  §above). No new secret: reuses `OPENROUTER_API_KEY`.
 - **Whisper** is per-minute: pass `durationSec` to `ai.transcribe` and it prices
   `(durationSec/60) × $0.006`. Omit it → `costUsd 0` (the API returns no duration).
 - **EU speech-to-text (GDPR).** Two EU-resident options behind `ai.transcribe`:

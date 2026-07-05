@@ -31,3 +31,10 @@ No new mechanism needed — `client.ts`'s `report()` already funnels every capab
 ## Stories
 
 See child stories F033.1 (Recraft V4.1 via OpenRouter), F033.2 (Gemini 2.5 Flash Image — verify/document), F033.3 (gpt-image-1 — new OpenAI adapter).
+
+### F033.1 implementation notes (shipped)
+
+- `openrouterAdapter` gains an `image()` method hitting the unified `POST /images` endpoint (distinct from `/chat/completions`), returning base64 image data (`data[].b64_json`, `data[].media_type` for SVG) as a `data:` URL.
+- Ground-truth `usage.cost` from the response is preferred; a local `OPENROUTER_IMAGE_PRICE_ESTIMATE` (raster $0.035, vector $0.08) is the fallback. The `-pro` variant is deliberately **not** pre-seeded — add it with a test when a caller actually needs it (kept scope to the tested/documented raster + vector).
+- Forwards `seed` + `outputFormat` (→ `output_format`) to the wire, matching bfl.ts; surfaces OpenRouter's structured `error` on an empty-data 200 (moderation blocks read differently than glitches).
+- `config.fetch` is forwarded into the shared chat core too, so an injectable-fetch override applies uniformly across chat/stream/vision/image.

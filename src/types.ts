@@ -383,6 +383,11 @@ export interface ProviderAdapter {
   /** Streaming chat (F8). Optional — absence is a typed "no streaming support".
    *  Same request shape as chat; yields ChatStreamEvents as the turn unfolds. */
   chatStream?(req: ChatRequest): AsyncIterable<ChatStreamEvent>;
+  /** Dedicated translation engine (F032) — e.g. DeepL. When absent, `ai.translate`
+   *  falls back to a chat prompt-contract (the historical default for every
+   *  other provider). `to`/`from` are provider-specific: a chat-routed call
+   *  accepts free-form names ("Danish"); DeepL requires real codes ("DA"). */
+  translate?(req: TranslateRequest): Promise<TranslateResult>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
   /** Image-to-video generation (F024) — animate a still into a short clip. fal. */
@@ -413,4 +418,14 @@ export interface ProviderAdapter {
 export interface TranslateResult {
   text: string;
   usage: Usage;
+}
+
+/** Dedicated-engine translation request (F032) — used only by adapters that
+ *  implement `ProviderAdapter.translate` directly (e.g. DeepL); chat-routed
+ *  providers never see this shape, they get a built prompt instead. */
+export interface TranslateRequest {
+  text: string;
+  to: string;
+  from?: string;
+  spec: TierSpec;
 }

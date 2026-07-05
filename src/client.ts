@@ -407,7 +407,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       const tier = input.tier ?? TRANSLATE_DEFAULT_TIER;
       const messages: Message[] = buildTranslateMessages(input);
       const estIn = estTokens(input.text) + 40;
-      const res = await runCapability<ChatResult>({
+      const res = await runCapability<TranslateResult>({
         primary: resolveTier(tier, input.override, cfg.defaults),
         fallback: input.fallback,
         capability: "translate",
@@ -418,6 +418,10 @@ export function createAI(config: AiConfig = {}): AiClient {
         estOut: estIn,
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
+          // A dedicated translation engine (F032, e.g. DeepL) is preferred when the
+          // resolved provider implements it — its `to`/`from` are provider-specific
+          // codes, not the free-form names the chat prompt-contract accepts.
+          if (adapter.translate) return adapter.translate({ text: input.text, to: input.to, from: input.from, spec });
           if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat (translate routes through chat)`);
           return adapter.chat({ messages, spec });
         },
