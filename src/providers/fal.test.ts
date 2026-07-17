@@ -81,6 +81,44 @@ test("queue mode: times out if never COMPLETED", async () => {
   await expect(a.image!(req)).rejects.toThrow(/timed out/);
 });
 
+test("animate: blessed Kling i2v model bills the published $0.07/sec (cost not silently 0)", async () => {
+  const fetchImpl = (async (url: string) => {
+    const u = String(url);
+    if (u.startsWith("https://queue.fal.run/"))
+      return new Response(JSON.stringify({ status_url: "https://q/s", response_url: "https://q/r" }), { status: 200 });
+    if (u === "https://q/s") return new Response(JSON.stringify({ status: "COMPLETED" }), { status: 200 });
+    if (u === "https://q/r")
+      return new Response(JSON.stringify({ video: { url: "https://fal.media/out.mp4" } }), { status: 200 });
+    return new Response("{}", { status: 404 });
+  }) as unknown as typeof fetch;
+  const a = falAdapter({ apiKey: "fk", pollIntervalMs: 1, fetch: fetchImpl });
+  const res = await a.animate!({
+    image: "https://ex/in.png",
+    durationSec: 5,
+    spec: { provider: "fal", model: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", transport: "http" },
+  });
+  expect(res.url).toBe("https://fal.media/out.mp4");
+  expect(res.usage.capability).toBe("animate");
+  expect(res.usage.costUsd).toBeCloseTo(0.35, 6); // 0.07/sec × 5s — NOT 0
+});
+
+test("animate: config.pricePerSecond overrides the blessed per-second rate", async () => {
+  const fetchImpl = (async (url: string) => {
+    const u = String(url);
+    if (u.startsWith("https://queue.fal.run/"))
+      return new Response(JSON.stringify({ status_url: "https://q/s", response_url: "https://q/r" }), { status: 200 });
+    if (u === "https://q/s") return new Response(JSON.stringify({ status: "COMPLETED" }), { status: 200 });
+    return new Response(JSON.stringify({ video: { url: "https://fal.media/o.mp4" } }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const a = falAdapter({ apiKey: "fk", pricePerSecond: 0.1, pollIntervalMs: 1, fetch: fetchImpl });
+  const res = await a.animate!({
+    image: "https://ex/in.png",
+    durationSec: 4,
+    spec: { provider: "fal", model: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", transport: "http" },
+  });
+  expect(res.usage.costUsd).toBeCloseTo(0.4, 6); // 0.1 × 4s, override wins
+});
+
 test("missing FAL_KEY throws", async () => {
   const prev = process.env.FAL_KEY;
   delete process.env.FAL_KEY;

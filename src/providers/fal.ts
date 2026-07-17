@@ -68,10 +68,16 @@ const FAL_IMAGE_PRICE_ESTIMATE: Record<string, number> = {
 const FAL_TRAIN_PRICE_ESTIMATE = 2.0;
 
 // Per-SECOND USD estimates for video models (F024). fal does not return a price,
-// and rates vary by model/resolution — these are populated from real observed fal
-// spend (a live smoke), never guessed; override via config.pricePerSecond. Unknown
-// model → 0 (cost surfaced via the live smoke, not a fabricated number).
-const FAL_VIDEO_PRICE_PER_SEC: Record<string, number> = {};
+// and rates vary by model/resolution — entries are fal's OFFICIAL published
+// per-second rate (fal.ai/models/<id> pricing), not guessed; override via
+// config.pricePerSecond. Unknown model → 0 (cost surfaced via a live smoke,
+// not a fabricated number).
+const FAL_VIDEO_PRICE_PER_SEC: Record<string, number> = {
+  // Kling 2.5 Turbo Pro i2v — the blessed FAL_KEY-only image→video route (F014
+  // contentpush spike). $0.35 for the first 5 s + $0.07/additional s = a flat
+  // $0.07/s (1080p); per-second-billed, commercial-use, not deprecated.
+  "fal-ai/kling-video/v2.5-turbo/pro/image-to-video": 0.07,
+};
 // Default clip length to bill when the caller doesn't pass durationSec (Veo ≈ 8s).
 const FAL_VIDEO_DEFAULT_SEC = 8;
 
