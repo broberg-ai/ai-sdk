@@ -54,6 +54,91 @@ test("a throwing costSink never crashes the call", async () => {
   expect(res.text).toContain("still works");
 });
 
+// F034 — cost-tracking on by DEFAULT. These seal the exact fleet-wide break:
+// a call-site that passes NO costSink must still report (via env auto-wiring),
+// so Mistral spend stops being invisible in upmetrics.
+test("default cost-tracking: no explicit sink + UPMETRICS_API_KEY env → auto-wires upmetrics POST", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, name: process.env.UPMETRICS_AGENT_NAME, fetch: globalThis.fetch };
+  const posts: { url: string; body: any }[] = [];
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  process.env.UPMETRICS_AGENT_NAME = "ai-sdk-test";
+  globalThis.fetch = (async (url: any, init: any) => {
+    posts.push({ url: String(url), body: JSON.parse(init.body) });
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    const ai = createAI(); // NO costSink passed — the drifting call-site
+    await ai.chat({ prompt: "x", tier: "fast" });
+    expect(posts).toHaveLength(1);
+    expect(posts[0]?.url).toBe("https://upmetrics.org/api/agent");
+    expect(posts[0]?.body.agent_name).toBe("ai-sdk-test");
+    expect(posts[0]?.body.mode).toBe("record");
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+    prev.name === undefined ? delete process.env.UPMETRICS_AGENT_NAME : (process.env.UPMETRICS_AGENT_NAME = prev.name);
+  }
+});
+
+test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call also POSTs", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, name: process.env.UPMETRICS_AGENT_NAME, fetch: globalThis.fetch };
+  const posts: { body: any }[] = [];
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  process.env.UPMETRICS_AGENT_NAME = "ai-sdk-test";
+  globalThis.fetch = (async (_url: any, init: any) => {
+    posts.push({ body: JSON.parse(init.body) });
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    const ai = createAI(); // NO costSink
+    await ai.chat({ prompt: "x", override: { provider: "anthropic", model: "claude-x", transport: "http" } });
+    expect(posts).toHaveLength(1);
+    expect(posts[0]?.body.provider).toBe("anthropic"); // not mistral — every provider is tracked
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+    prev.name === undefined ? delete process.env.UPMETRICS_AGENT_NAME : (process.env.UPMETRICS_AGENT_NAME = prev.name);
+  }
+});
+
+test("ship-dark: no explicit sink + no UPMETRICS_API_KEY → no POST, call still works", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, fetch: globalThis.fetch };
+  let posted = false;
+  delete process.env.UPMETRICS_API_KEY;
+  globalThis.fetch = (async () => {
+    posted = true;
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    const res = await createAI().chat({ prompt: "works" });
+    expect(res.text).toContain("works");
+    expect(posted).toBe(false);
+  } finally {
+    globalThis.fetch = prev.fetch;
+    if (prev.key !== undefined) process.env.UPMETRICS_API_KEY = prev.key;
+  }
+});
+
+test("explicit config.costSink always wins — env auto-wiring is skipped", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, fetch: globalThis.fetch };
+  let posted = false;
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  globalThis.fetch = (async () => {
+    posted = true;
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  const recorded: Usage[] = [];
+  try {
+    const ai = createAI({ costSink: { record: (u) => void recorded.push(u) } });
+    await ai.chat({ prompt: "x" });
+    expect(recorded).toHaveLength(1);
+    expect(posted).toBe(false); // upmetrics NOT auto-wired when an explicit sink is given
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+  }
+});
+
 test("translate routes through chat and tags capability translate", async () => {
   const recorded: Usage[] = [];
   const ai = createAI({ costSink: { record: (u) => void recorded.push(u) } });

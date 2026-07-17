@@ -67,7 +67,9 @@ import type {
   Tier,
   TierSpec,
   Usage,
+  CostSink,
 } from "./types.js";
+import { upmetricsSink } from "./cost/sinks/upmetrics.js";
 
 /** Built-in image route (no image tier in the tier map — fal owns its routing). */
 const DEFAULT_IMAGE_SPEC: TierSpec = {
@@ -127,10 +129,31 @@ const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_mult
 /** Batch route (F016.1) — Mistral batch jobs (50% cost), cheap default model. */
 const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-latest", transport: "http" };
 
+/** Cost-tracking on by DEFAULT (F034): an explicit config.costSink always wins;
+ *  otherwise, when the upmetrics env is present, auto-wire the canonical sink so
+ *  fleet-wide call-sites report without per-repo wiring (per-repo wiring drifts —
+ *  ~91% of Mistral spend was invisible because most call-sites passed no sink).
+ *  Env absent (no UPMETRICS_API_KEY) → undefined = ship-dark, current behaviour.
+ *  Server-entry only: createAI already pulls the provider adapters (which read
+ *  process.env at call time), so this module is never in the browser build (the
+ *  browser imports "@broberg/ai-sdk/registry"). */
+function defaultCostSink(): CostSink | undefined {
+  const apiKey = process.env.UPMETRICS_API_KEY;
+  if (!apiKey) return undefined;
+  return upmetricsSink({
+    baseUrl: process.env.UPMETRICS_BASE_URL ?? "https://upmetrics.org",
+    apiKey,
+    agentName: process.env.UPMETRICS_AGENT_NAME ?? process.env.npm_package_name ?? "unknown",
+    complianceMode: process.env.UPMETRICS_COMPLIANCE === "1",
+  });
+}
+
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
   const cfg = aiConfigSchema.parse(config);
   const providers = cfg.providers ?? defaultProviders;
+  // Explicit sink wins; else auto-wire from env (default cost-tracking, F034).
+  const costSink = cfg.costSink ?? defaultCostSink();
   const budget = cfg.budget ? new BudgetGuard(cfg.budget) : undefined;
 
   const estTokens = (s: string): number => Math.ceil(s.length / 4);
@@ -177,9 +200,9 @@ export function createAI(config: AiConfig = {}): AiClient {
   }
 
   async function report(usage: Usage): Promise<void> {
-    if (!cfg.costSink) return;
+    if (!costSink) return;
     try {
-      await cfg.costSink.record(usage);
+      await costSink.record(usage);
     } catch {
       // A broken sink must never crash a real AI call (F3.3 invariant).
     }
