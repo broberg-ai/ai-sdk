@@ -30,7 +30,7 @@ const emb = await ai.embedding({ text: ["a", "b"] });
 
 ## Capabilities
 
-`chat` · `vision` · `translate` · `image` (fal.ai) · `embedding` · `transcribe`
+`chat` · `vision` · `translate` · `image` (fal.ai default / OpenRouter) · `embedding` · `transcribe`
 (Whisper), plus **prompt contracts** with structured output:
 
 ```ts
@@ -55,6 +55,14 @@ overridable per call:
 await ai.chat({ prompt: "…", tier: "powerful" });
 await ai.chat({ prompt: "…", override: { provider: "openrouter", model: "minimax/minimax-m2.7" } });
 ```
+
+> **Images — raster vs. vector.** `ai.image()` defaults to fal.ai (raster PNG). For
+> **vector/SVG** output (logos), override to OpenRouter Recraft — the slug is an
+> **OpenRouter** model, not a fal app-id:
+> ```ts
+> await ai.image({ prompt: "…", override: { provider: "openrouter", model: "recraft/recraft-v4.1-vector" } });
+> // → data:image/svg+xml;base64,… with ground-truth cost
+> ```
 
 `cheap` defaults to the cheapest-that's-good-enough cloud model — **Mistral Small**
 (EU/Paris-hosted, GDPR-safe, ~$0.10/$0.30) — so a cost-tier call is safe for
