@@ -62,6 +62,13 @@ export function openaiAdapter(
     form.append("file", new Blob([req.audio]), "audio");
     form.append("model", req.spec.model);
     if (req.language) form.append("language", req.language);
+    // Timestamps (F036): Whisper needs verbose_json, plus a granularity per
+    // requested level. verbose_json returns `segments` inherently; `words` only
+    // when "word" granularity is asked for.
+    if (req.timestamps && req.timestamps.length > 0) {
+      form.append("response_format", "verbose_json");
+      for (const g of req.timestamps) form.append("timestamp_granularities[]", g);
+    }
     const fetchImpl = config.fetch ?? fetch;
     const res = await fetchImpl(`${baseUrl}/audio/transcriptions`, {
       method: "POST",
@@ -71,7 +78,11 @@ export function openaiAdapter(
     if (!res.ok) {
       throw new Error(`openai ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
     }
-    const data = (await res.json()) as { text?: string };
+    const data = (await res.json()) as {
+      text?: string;
+      words?: { word: string; start: number; end: number }[];
+      segments?: { text: string; start: number; end: number }[];
+    };
     const usage = freshUsage({
       provider: "openai",
       model: req.spec.model,
@@ -85,7 +96,15 @@ export function openaiAdapter(
       const perMinute = WHISPER_PRICE_PER_MIN[req.spec.model] ?? 0;
       usage.costUsd = (req.durationSec / 60) * perMinute;
     }
-    return { text: data.text ?? "", usage };
+    const result: TranscribeResult = { text: data.text ?? "", usage };
+    // "word" granularity → words[]; any timestamps → segments[] (verbose_json emits them).
+    if (req.timestamps?.includes("word") && data.words) {
+      result.words = data.words.map((w) => ({ word: w.word, start: w.start, end: w.end }));
+    }
+    if (req.timestamps && req.timestamps.length > 0 && data.segments) {
+      result.segments = data.segments.map((s) => ({ text: s.text, start: s.start, end: s.end }));
+    }
+    return result;
   }
 
   return { ...base, embedding, transcribe };

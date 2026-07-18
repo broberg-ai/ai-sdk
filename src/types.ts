@@ -274,6 +274,21 @@ export interface EmbeddingResult {
   usage: Usage;
 }
 
+/** Timestamp granularity a caller can request from `ai.transcribe` (F036). */
+export type TimestampGranularity = "word" | "segment";
+/** A single word with its start/end offset in seconds. */
+export interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
+}
+/** A phrase/sentence segment with its start/end offset in seconds. */
+export interface SegmentTimestamp {
+  text: string;
+  start: number;
+  end: number;
+}
+
 export interface TranscribeRequest {
   /** Raw audio bytes (the client resolves a URL to bytes before calling). */
   audio: Uint8Array;
@@ -283,11 +298,18 @@ export interface TranscribeRequest {
   /** Bias recognition toward these brand/jargon terms (Azure phraseList, F029.3).
    *  Providers without biasing support (Voxtral/Whisper) ignore it. */
   phrases?: string[];
+  /** Request timestamps (F036). The client normalizes the input to this array.
+   *  Adapters without timestamp support ignore it (result omits words/segments). */
+  timestamps?: TimestampGranularity[];
   spec: TierSpec;
 }
 
 export interface TranscribeResult {
   text: string;
+  /** Word-level timing — present only when "word" timestamps were requested. */
+  words?: WordTimestamp[];
+  /** Segment (phrase/sentence) timing — present when any timestamps were requested. */
+  segments?: SegmentTimestamp[];
   usage: Usage;
 }
 

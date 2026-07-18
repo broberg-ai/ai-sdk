@@ -668,7 +668,13 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.transcribe) throw new Error(`createAI: provider "${spec.provider}" does not support transcribe`);
-          return adapter.transcribe({ audio, language: input.language, durationSec: input.durationSec, phrases: input.phrases, spec });
+          const timestamps =
+            input.timestamps === undefined
+              ? undefined
+              : Array.isArray(input.timestamps)
+                ? input.timestamps
+                : [input.timestamps];
+          return adapter.transcribe({ audio, language: input.language, durationSec: input.durationSec, phrases: input.phrases, timestamps, spec });
         },
       });
     },

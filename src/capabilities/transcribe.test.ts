@@ -63,6 +63,65 @@ test("durationSec → Whisper per-minute cost (120s ≈ $0.012); without it → 
   expect(without.usage.costUsd).toBe(0);
 });
 
+// F036 — opt-in timestamps.
+test("transcribe timestamps ['word','segment']: verbose_json + granularities sent, both parsed", async () => {
+  process.env.OPENAI_API_KEY = "sk-test";
+  let form: FormData | undefined;
+  globalThis.fetch = (async (_url: string, init: { body: FormData }) => {
+    form = init.body;
+    return new Response(
+      JSON.stringify({
+        text: "hej med dig",
+        words: [
+          { word: "hej", start: 0, end: 0.4 },
+          { word: "med", start: 0.4, end: 0.7 },
+        ],
+        segments: [{ text: "hej med dig", start: 0, end: 1.2 }],
+      }),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+  const res = await createAI().transcribe({ audio: new Uint8Array([1, 2, 3]), timestamps: ["word", "segment"] });
+  expect(form?.get("response_format")).toBe("verbose_json");
+  expect(form?.getAll("timestamp_granularities[]")).toEqual(["word", "segment"]);
+  expect(res.words).toEqual([
+    { word: "hej", start: 0, end: 0.4 },
+    { word: "med", start: 0.4, end: 0.7 },
+  ]);
+  expect(res.segments).toEqual([{ text: "hej med dig", start: 0, end: 1.2 }]);
+});
+
+test("transcribe timestamps 'segment' (single): segments filled, words NOT surfaced", async () => {
+  process.env.OPENAI_API_KEY = "sk-test";
+  let form: FormData | undefined;
+  globalThis.fetch = (async (_url: string, init: { body: FormData }) => {
+    form = init.body;
+    // API may still include words; caller asked only for "segment" → don't surface them.
+    return new Response(
+      JSON.stringify({ text: "en sætning", words: [{ word: "en", start: 0, end: 0.2 }], segments: [{ text: "en sætning", start: 0, end: 0.9 }] }),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+  const res = await createAI().transcribe({ audio: new Uint8Array([1]), timestamps: "segment" });
+  expect(form?.getAll("timestamp_granularities[]")).toEqual(["segment"]);
+  expect(res.segments).toHaveLength(1);
+  expect(res.words).toBeUndefined();
+});
+
+test("transcribe without timestamps: no response_format, plain {text} — backward-compat", async () => {
+  process.env.OPENAI_API_KEY = "sk-test";
+  let form: FormData | undefined;
+  globalThis.fetch = (async (_url: string, init: { body: FormData }) => {
+    form = init.body;
+    return new Response(JSON.stringify({ text: "plain" }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const res = await createAI().transcribe({ audio: new Uint8Array([1]) });
+  expect(form?.get("response_format")).toBeNull();
+  expect(res.text).toBe("plain");
+  expect(res.words).toBeUndefined();
+  expect(res.segments).toBeUndefined();
+});
+
 test("ai.transcribe({audio: URL}) fetches the URL then transcribes", async () => {
   process.env.OPENAI_API_KEY = "sk-test";
   const urls: string[] = [];

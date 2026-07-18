@@ -194,6 +194,11 @@ export const transcribeInputSchema = z.object({
   durationSec: z.number().positive().optional(),
   /** Bias toward brand/jargon terms (Azure phraseList, F029.3); others ignore it. */
   phrases: z.array(z.string()).optional(),
+  /** Opt-in timestamps (F036) — a single granularity or an array. Omit → the
+   *  current { text, usage } shape, unchanged. Pass ["word","segment"] for both. */
+  timestamps: z
+    .union([z.enum(["word", "segment"]), z.array(z.enum(["word", "segment"]))])
+    .optional(),
   ...callOptions,
 });
 
