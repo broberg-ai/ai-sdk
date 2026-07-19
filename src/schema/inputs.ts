@@ -195,7 +195,9 @@ export const transcribeInputSchema = z.object({
   /** Bias toward brand/jargon terms (Azure phraseList, F029.3); others ignore it. */
   phrases: z.array(z.string()).optional(),
   /** Opt-in timestamps (F036) — a single granularity or an array. Omit → the
-   *  current { text, usage } shape, unchanged. Pass ["word","segment"] for both. */
+   *  current { text, usage } shape, unchanged. Pass ["word","segment"] for both.
+   *  Supported by Whisper (openai) + Azure fast-transcription (F036.1); other
+   *  adapters (Voxtral/mistral) ignore it and return text only. */
   timestamps: z
     .union([z.enum(["word", "segment"]), z.array(z.enum(["word", "segment"]))])
     .optional(),

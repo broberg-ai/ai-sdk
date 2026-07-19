@@ -213,6 +213,13 @@ export function azureAdapter(
     const data = (await res.json()) as {
       combinedPhrases?: { text?: string }[];
       durationMilliseconds?: number;
+      // Fast-transcription phrases carry ms offsets + per-word timing (F036.1).
+      phrases?: {
+        text?: string;
+        offsetMilliseconds?: number;
+        durationMilliseconds?: number;
+        words?: { text?: string; offsetMilliseconds?: number; durationMilliseconds?: number }[];
+      }[];
     };
     const text = data.combinedPhrases?.[0]?.text ?? "";
     // Prefer the API's real duration; fall back to a caller-supplied durationSec.
@@ -229,7 +236,29 @@ export function azureAdapter(
       outputTokens: 0,
     });
     usage.costUsd = minutes * (config.sttPricePerMin ?? AZURE_STT_PRICE_PER_MIN);
-    return { text, usage };
+    const result: TranscribeResult = { text, usage };
+    // Timestamps (F036.1) — Azure fast-transcription already returns phrases+words
+    // with ms offsets; surface them on the same TranscribeResult shape as Whisper.
+    // "word" granularity → words[]; any timestamps request → segments[].
+    if (req.timestamps && req.timestamps.length > 0 && data.phrases) {
+      const toSec = (ms?: number) => (ms ?? 0) / 1000;
+      if (req.timestamps.includes("word")) {
+        const words = data.phrases.flatMap((p) => p.words ?? []);
+        if (words.length > 0) {
+          result.words = words.map((w) => ({
+            word: w.text ?? "",
+            start: toSec(w.offsetMilliseconds),
+            end: toSec((w.offsetMilliseconds ?? 0) + (w.durationMilliseconds ?? 0)),
+          }));
+        }
+      }
+      result.segments = data.phrases.map((p) => ({
+        text: p.text ?? "",
+        start: toSec(p.offsetMilliseconds),
+        end: toSec((p.offsetMilliseconds ?? 0) + (p.durationMilliseconds ?? 0)),
+      }));
+    }
+    return result;
   }
 
   return { name: "azure", tts, transcribe };

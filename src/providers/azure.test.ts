@@ -173,6 +173,57 @@ test("transcribe: a resource name switches to the custom-domain host", async () 
   expect(cap.url).toContain("https://broberg-tts.cognitiveservices.azure.com/speechtotext/");
 });
 
+// F036.1 — Azure honors the timestamps API too (not just Whisper).
+const PHRASES_PAYLOAD = {
+  combinedPhrases: [{ text: "Hej med dig" }],
+  durationMilliseconds: 1200,
+  phrases: [
+    {
+      text: "Hej med dig",
+      offsetMilliseconds: 200,
+      durationMilliseconds: 1000,
+      words: [
+        { text: "Hej", offsetMilliseconds: 200, durationMilliseconds: 300 },
+        { text: "med", offsetMilliseconds: 500, durationMilliseconds: 300 },
+        { text: "dig", offsetMilliseconds: 800, durationMilliseconds: 400 },
+      ],
+    },
+  ],
+};
+
+test("transcribe timestamps ['word','segment']: parses Azure phrases→segments + words (ms→sec)", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", fetch: sttFetch(cap, PHRASES_PAYLOAD) });
+  const { words, segments } = await adapter.transcribe!({
+    audio: new Uint8Array([1]),
+    timestamps: ["word", "segment"],
+    spec,
+  });
+  expect(segments).toEqual([{ text: "Hej med dig", start: 0.2, end: 1.2 }]);
+  expect(words).toEqual([
+    { word: "Hej", start: 0.2, end: 0.5 },
+    { word: "med", start: 0.5, end: 0.8 },
+    { word: "dig", start: 0.8, end: 1.2 },
+  ]);
+});
+
+test("transcribe timestamps 'segment': segments filled, words NOT surfaced", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", fetch: sttFetch(cap, PHRASES_PAYLOAD) });
+  const { words, segments } = await adapter.transcribe!({ audio: new Uint8Array([1]), timestamps: ["segment"], spec });
+  expect(segments).toHaveLength(1);
+  expect(words).toBeUndefined();
+});
+
+test("transcribe without timestamps: text only, no words/segments (backward-compat)", async () => {
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const adapter = azureAdapter({ apiKey: "k", fetch: sttFetch(cap, PHRASES_PAYLOAD) });
+  const res = await adapter.transcribe!({ audio: new Uint8Array([1]), spec });
+  expect(res.text).toBe("Hej med dig");
+  expect(res.words).toBeUndefined();
+  expect(res.segments).toBeUndefined();
+});
+
 test("transcribe ship-dark: no key → throws only when called", async () => {
   const prev = process.env.AZURE_SPEECH_KEY;
   delete process.env.AZURE_SPEECH_KEY;
