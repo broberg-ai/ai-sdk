@@ -106,8 +106,29 @@ test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call
 // ever reaches this repo's .env (the fleet rollout tells every repo to set it), the
 // ~26 suites that call createAI() would POST fake usage into PRODUCTION telemetry.
 test("test env is stripped of UPMETRICS_* so the suite can never post real telemetry", () => {
-  expect(process.env.UPMETRICS_API_KEY).toBeUndefined();
-  expect(process.env.UPMETRICS_AGENT_NAME).toBeUndefined();
+  // Assert the EFFECT (no UPMETRICS_* reaches a test), not a hand-listed set.
+  expect(Object.keys(process.env).filter((k) => k.startsWith("UPMETRICS_"))).toEqual([]);
+});
+
+// Control for the test above. On a machine whose .env never had the key, that
+// assertion passes while protecting nothing — green by vacuum. So prove the
+// preload actually strips an injected key, and that this probe can SEE a
+// failure (negative control): without the preload the same key survives.
+// Credit: cardmem, who caught the vacuum hole in the first version of this guard.
+test("UPMETRICS_* strip is load-bearing: injected key dies with the preload, survives without it", () => {
+  const probe = 'console.log(process.env.UPMETRICS_API_KEY ?? "STRIPPED")';
+  const run = (args: string[]) =>
+    new TextDecoder()
+      .decode(
+        Bun.spawnSync({
+          cmd: ["bun", ...args, "-e", probe],
+          env: { ...process.env, UPMETRICS_API_KEY: "uk_probe" },
+        }).stdout,
+      )
+      .trim();
+
+  expect(run(["--preload", "./test-setup.ts"])).toBe("STRIPPED"); // guard works
+  expect(run([])).toBe("uk_probe"); // probe can detect a failure
 });
 
 // Owner decision 2026-08-06: a MISSING agent name must never disable tracking —
