@@ -101,6 +101,48 @@ test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call
   }
 });
 
+test("UPMETRICS_BASE_URL overrides the default ingest host", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, base: process.env.UPMETRICS_BASE_URL, fetch: globalThis.fetch };
+  const urls: string[] = [];
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  process.env.UPMETRICS_BASE_URL = "https://upmetrics.internal";
+  globalThis.fetch = (async (url: any) => {
+    urls.push(String(url));
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    await createAI().chat({ prompt: "x" });
+    expect(urls[0]).toBe("https://upmetrics.internal/api/agent");
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+    prev.base === undefined ? delete process.env.UPMETRICS_BASE_URL : (process.env.UPMETRICS_BASE_URL = prev.base);
+  }
+});
+
+test("UPMETRICS_COMPLIANCE=1: call succeeds and the POST body carries no prompt/response content", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, comp: process.env.UPMETRICS_COMPLIANCE, fetch: globalThis.fetch };
+  let body: any;
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  process.env.UPMETRICS_COMPLIANCE = "1";
+  globalThis.fetch = (async (_url: any, init: any) => {
+    body = JSON.parse(init.body);
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    const res = await createAI().chat({ prompt: "patientjournal — fortroligt" });
+    expect(res.text).toContain("fortroligt"); // the call itself still works
+    // The GDPR guarantee: usage carries no excerpts, so no field echoes the prompt.
+    expect(JSON.stringify(body)).not.toContain("fortroligt");
+    expect(body.prompt).toBeUndefined();
+    expect(body.response).toBeUndefined();
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+    prev.comp === undefined ? delete process.env.UPMETRICS_COMPLIANCE : (process.env.UPMETRICS_COMPLIANCE = prev.comp);
+  }
+});
+
 test("ship-dark: no explicit sink + no UPMETRICS_API_KEY → no POST, call still works", async () => {
   const prev = { key: process.env.UPMETRICS_API_KEY, fetch: globalThis.fetch };
   let posted = false;
