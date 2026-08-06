@@ -259,7 +259,10 @@ export const aiConfigSchema = z.object({
   // Functions can't be deeply validated — z.custom asserts the TS type and
   // passes the value through untouched.
   providers: z.record(z.string(), z.custom<ProviderAdapter>()).optional(),
-  costSink: z.custom<CostSink>().optional(),
+  /** Omit → cost-tracking auto-wires from the upmetrics env (F034). Pass `null`
+   *  to opt OUT explicitly — for a consumer that already reports its own costs
+   *  and would otherwise be counted twice (F034.3). An object is used as-is. */
+  costSink: z.custom<CostSink>().nullable().optional(),
   budget: budgetSchema.optional(),
   availability: availabilitySchema.optional(),
 });

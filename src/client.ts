@@ -152,8 +152,11 @@ export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
   const cfg = aiConfigSchema.parse(config);
   const providers = cfg.providers ?? defaultProviders;
-  // Explicit sink wins; else auto-wire from env (default cost-tracking, F034).
-  const costSink = cfg.costSink ?? defaultCostSink();
+  // Explicit wins — including explicit NONE. `undefined` (omitted) auto-wires
+  // from env (F034); `null` is a deliberate opt-out for a consumer that already
+  // reports its own costs and would otherwise be double-counted (F034.3); an
+  // object is used as-is.
+  const costSink = cfg.costSink === undefined ? defaultCostSink() : (cfg.costSink ?? undefined);
   const budget = cfg.budget ? new BudgetGuard(cfg.budget) : undefined;
 
   const estTokens = (s: string): number => Math.ceil(s.length / 4);

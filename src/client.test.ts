@@ -197,6 +197,31 @@ test("UPMETRICS_COMPLIANCE=1: call succeeds and the POST body carries no prompt/
   }
 });
 
+// F034.3 — explicit opt-out. A consumer that already reports its own costs (buddy
+// records to cli_usage and pushes hourly) would otherwise be counted TWICE once the
+// SDK auto-wires on top. `null` = "no sink, do not auto-wire".
+test("costSink: null opts out of auto-wiring even with UPMETRICS_API_KEY set", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, fetch: globalThis.fetch };
+  let posted = false;
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  globalThis.fetch = (async () => {
+    posted = true;
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    const res = await createAI({ costSink: null }).chat({ prompt: "no double count" });
+    expect(res.text).toContain("no double count"); // the call itself is unaffected
+    expect(posted).toBe(false); // and nothing was reported
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+  }
+});
+
+test("costSink: null passes schema validation (typed CostSink | null, no ZodError)", () => {
+  expect(() => createAI({ costSink: null })).not.toThrow();
+});
+
 test("ship-dark: no explicit sink + no UPMETRICS_API_KEY → no POST, call still works", async () => {
   const prev = { key: process.env.UPMETRICS_API_KEY, fetch: globalThis.fetch };
   let posted = false;
