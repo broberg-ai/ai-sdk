@@ -101,6 +101,30 @@ test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call
   }
 });
 
+// Owner decision 2026-08-06: a MISSING agent name must never disable tracking —
+// silently-invisible spend is the failure this feature exists to kill. Only the
+// API key gates the sink; the name degrades to a fallback label.
+test("UPMETRICS_AGENT_NAME absent: still tracks, agent_name falls back (never silently untracked)", async () => {
+  const prev = { key: process.env.UPMETRICS_API_KEY, name: process.env.UPMETRICS_AGENT_NAME, fetch: globalThis.fetch };
+  const posts: any[] = [];
+  process.env.UPMETRICS_API_KEY = "uk_test";
+  delete process.env.UPMETRICS_AGENT_NAME;
+  globalThis.fetch = (async (_url: any, init: any) => {
+    posts.push(JSON.parse(init.body));
+    return new Response("{}", { status: 200 });
+  }) as unknown as typeof fetch;
+  try {
+    await createAI().chat({ prompt: "x" });
+    expect(posts).toHaveLength(1); // tracked despite the missing name
+    expect(typeof posts[0]?.agent_name).toBe("string");
+    expect(posts[0]?.agent_name.length).toBeGreaterThan(0);
+  } finally {
+    globalThis.fetch = prev.fetch;
+    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
+    if (prev.name !== undefined) process.env.UPMETRICS_AGENT_NAME = prev.name;
+  }
+});
+
 test("UPMETRICS_BASE_URL overrides the default ingest host", async () => {
   const prev = { key: process.env.UPMETRICS_API_KEY, base: process.env.UPMETRICS_BASE_URL, fetch: globalThis.fetch };
   const urls: string[] = [];
