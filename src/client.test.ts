@@ -101,6 +101,15 @@ test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call
   }
 });
 
+// Guard (see test-setup.ts + bunfig.toml preload): bun test auto-loads .env, and a
+// bare createAI() auto-wires the upmetrics sink from UPMETRICS_API_KEY. If that key
+// ever reaches this repo's .env (the fleet rollout tells every repo to set it), the
+// ~26 suites that call createAI() would POST fake usage into PRODUCTION telemetry.
+test("test env is stripped of UPMETRICS_* so the suite can never post real telemetry", () => {
+  expect(process.env.UPMETRICS_API_KEY).toBeUndefined();
+  expect(process.env.UPMETRICS_AGENT_NAME).toBeUndefined();
+});
+
 // Owner decision 2026-08-06: a MISSING agent name must never disable tracking —
 // silently-invisible spend is the failure this feature exists to kill. Only the
 // API key gates the sink; the name degrades to a fallback label.
