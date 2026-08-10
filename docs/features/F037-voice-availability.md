@@ -1,10 +1,9 @@
 # F037 — Voice availability (a `resolveVoice` that can fall back)
 
-> **Status: backlog, with an OPEN DESIGN QUESTION (see below).** Flagged by
-> torrent-search-api via components (#19357). They call `ai.tts({voice:'christel'})`
-> and found no counterpart to `resolveModel` for voices. They asked for nothing — they
-> reported a hole they cannot close from their side. Confirmed real; the design is not
-> a copy of F022 and needs a decision before code.
+> **Status: backlog, awaiting the owner's call.** Flagged by torrent-search-api via
+> components (#19357). They call `ai.tts({voice:'christel'})` and found no counterpart
+> to `resolveModel` for voices. Confirmed real. The open design question below is now
+> **resolved in favour of A** by a finding neither side had at the start (#19384).
 
 ## The gap, verified in code
 
@@ -14,48 +13,72 @@
 | Resolve + fallback | `resolveModel()` | only name→id (`resolveVoice`, `resolveAzureVoice`) |
 | Roster for a picker | `listModels()` | `listAzureDanishVoices()` (static) |
 
-`resolveVoice(nameOrId)` passes an unknown string straight through, and the adapter
-POSTs it to `/text-to-speech/{voice_id}`; a retired id returns non-200 and
-`elevenlabs.ts:89` throws. So a retired voice fails **at the end user**, exactly as a
-suspended model did before F022 — the precedent this repo already accepted.
-
 **The risk is ours, not just the consumer's.** We ship a *blessed* roster: 5 curated
 ElevenLabs Danish voices (`ELEVENLABS_DANISH_VOICES`) and 6 Azure ones
 (`AZURE_DANISH_VOICE_LIST`). If a provider retires one, our own default is broken for
-every consumer using it — and nothing in the SDK notices.
+every consumer using it, and nothing in the SDK notices. `christel` — the voice
+contentpush uses for its promo videos — is one of them.
 
-## OPEN QUESTION — where does voice truth come from?
+## How it actually fails (corrected 2026-08-10)
 
-F022's harness is deliberately **sync, zero-I/O**: a hardcoded registry, safe on a hot
-path and in a browser build. Voices cannot simply copy that:
+The first version of this plan said a retired voice "fails at the end user" loudly.
+**That was wrong about the consumer, and the truth is worse.** torrent-search-api
+catches the throw and logs it with a ⚠️, but their log view highlights only ❌/[ERROR].
+A retired `christel` would have shown up as the house simply going quiet — with
+nothing red to point at. Their phrasing: **hard throw, soft landing, silent result.**
 
-- **A) Static registry (mirror F022).** Zero-I/O, browser-safe, identical ergonomics.
-  Cost: a hand-maintained list that drifts — and a voice retired upstream stays
-  "available" in our registry until someone edits it. Drift is precisely what the
-  guard is supposed to catch, so this risks a green light that proves nothing.
-- **B) Live check against the provider.** Both providers expose a roster
-  (`listVoices()` already exists on the ElevenLabs adapter; Azure has voices/list).
-  Always truthful, but async + network on a path that is currently neither, and it
-  costs a round-trip per resolve unless cached.
-- **C) Graceful fallback at call time.** Leave resolution alone; catch the
-  voice-not-found error in the adapter and retry once with a same-gender/same-locale
-  voice from the curated roster. No new I/O, no registry to drift — but it only helps
-  *after* a failure, and it cannot grey out a dead voice in a picker.
+They have since fixed their end (2 consecutive speech failures → ❌ [ERROR] naming the
+voice; threshold 2, counter reset on every success, so a lone network blip doesn't
+make red meaningless). Not a request to us — but it means a retired voice is a
+*silent* fleet failure, which raises this from "annoying" to "invisible".
 
-A hybrid (B refreshing A, like `availability/refresh.ts` does for models) is the
-likeliest answer, but it is a real decision about I/O on the TTS path — not a
-mechanical port. **Do not build until this is decided.**
+## The finding that settles the design
 
-## Scope (once decided)
+Consumer's vote: **A (static registry)**, arguing that a drifting registry beats no
+registry because "the expensive thing isn't having wrong data — it's not being able to
+SEE that it's wrong."
 
+Testing that claim against our code produced the real argument, which is stronger than
+either side's:
+
+```ts
+export function resolveVoice(nameOrId: string): string {
+  return ELEVENLABS_DANISH_VOICES[nameOrId] ?? nameOrId;   // ← unknown = passthrough
+}
+```
+
+**There is today no way to express "known, but dead".** Only two states exist:
+*known-good* (in the map) and *unknown* (passed through verbatim as a raw voice id).
+So if `christel` is retired and we "fix" it by deleting it from the curated map, the
+call doesn't start failing gracefully — it starts POSTing the literal string
+`"christel"` as a voice id, which fails **more** confusingly.
+
+That means a registry is not primarily a drift-detector. It is the only way to *act on
+a retirement at all*: even with perfect knowledge that a voice is dead, we currently
+have no mechanism to say so. That is a missing tri-state
+(**known-good / known-dead / unknown-passthrough**), and no amount of live checking
+fixes it — B and C both still resolve through the same two-state function.
+
+**Decision: A**, with the drift concern handled the way F034.1 taught us — make the
+guard's staleness *visible* (a `checkedAt` on the registry, surfaced by `listVoices()`)
+rather than pretending it cannot go stale. An optional refresh (mirroring
+`availability/refresh.ts`) can layer on later without changing the call-site contract.
+
+## Scope
+
+- Voice registry with explicit status, mirroring `src/availability/registry.ts`:
+  `known-good` / `known-dead` / unknown (passthrough, unchanged behaviour).
 - `resolveVoice(requested, { fallback })` → `{ ok, voiceId, fellBack, reason }`,
-  mirroring `resolveModel`'s shape so consumers learn one idiom.
-- `listVoices()` returning `{ id, name, provider, locale, gender, available }` so a UI
-  can grey out a dead voice — the F022 ergonomics torrent-search-api is asking for.
-- Cover both providers; a raw provider voice-id still passes through unchanged.
+  mirroring `resolveModel`'s shape so consumers learn one idiom. Existing one-arg
+  calls keep working.
+- `listVoices()` → `{ id, name, provider, locale, gender, available, checkedAt }` so a
+  UI can grey out a dead voice — the F022 ergonomics torrent-search-api asked for.
+- Both providers. A raw provider voice-id still passes through unchanged.
 
 ### Non-goals
 
+- **No live provider lookup in v1.** Async I/O on the TTS path is a separate decision;
+  the tri-state above is the part that cannot be solved any other way.
 - No change to the curated Danish rosters themselves.
 - Not a voice *picker* UI — this is the data behind one.
 
@@ -67,6 +90,5 @@ mirror. Nothing external to reuse.
 
 ## Trigger
 
-A consumer hitting an actually-retired voice, or a decision on the open question
-above. torrent-search-api is the reporting consumer; contentpush also runs TTS
-(Azure, native da-DK) and would benefit from the same guard.
+Owner's go. Reporting consumer: torrent-search-api. contentpush also runs TTS (Azure,
+native da-DK, voice `christel`) and inherits the same risk.
