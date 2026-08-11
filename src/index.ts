@@ -49,6 +49,10 @@ export { DEFAULT_TIER_MAP, resolveTier } from "./routing/tier-map.js";
 // F022 — Model Availability Harness: synchronous resolve + status read (spawn /
 // call hot path) and an async background refresh. One registry, two consumers.
 export { resolveModel, listModels, refreshAvailability, ModelUnavailableError, resetRegistry, resetRefreshState } from "./availability/index.js";
+// F037 — voice availability. `checkVoice` is the gate (the voice counterpart to
+// resolveModel); `resolveVoice` above stays the plain name→id mapper it always was.
+export { checkVoice, listVoices, VoiceUnavailableError } from "./voices/index.js";
+export type { VoiceInfo, VoiceProvider, VoiceStatus, VoiceResolveResult, CheckVoiceOptions } from "./voices/index.js";
 export type {
   ModelStatus,
   ResolveResult,

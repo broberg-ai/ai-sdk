@@ -1,9 +1,12 @@
-# F037 — Voice availability (a `resolveVoice` that can fall back)
+# F037 — Voice availability (a voice gate that can fall back)
 
-> **Status: backlog, awaiting the owner's call.** Flagged by torrent-search-api via
+> **Status: in progress — owner's go 2026-08-11.** Flagged by torrent-search-api via
 > components (#19357). They call `ai.tts({voice:'christel'})` and found no counterpart
 > to `resolveModel` for voices. Confirmed real. The open design question below is now
 > **resolved in favour of A** by a finding neither side had at the start (#19384).
+>
+> **Two corrections made at implementation time — see "Corrections" at the bottom.**
+> The scope below is the original; the corrections are what actually ships and why.
 
 ## The gap, verified in code
 
@@ -90,5 +93,56 @@ mirror. Nothing external to reuse.
 
 ## Trigger
 
-Owner's go. Reporting consumer: torrent-search-api. contentpush also runs TTS (Azure,
-native da-DK, voice `christel`) and inherits the same risk.
+Owner's go (given 2026-08-11). Reporting consumer: torrent-search-api. contentpush also
+runs TTS (Azure, native da-DK, voice `christel`) and inherits the same risk.
+
+## Stories
+
+| | |
+|---|---|
+| **F037.1** | Voice registry with a `retired` state + `listVoices()` showing `checkedAt` |
+| **F037.2** | `checkVoice()` — resolve with fallback, mirroring `resolveModel` |
+| **F037.3** | `ai.tts` / `ai.podcast` refuse a known-dead voice (extends the scope above) |
+
+## Corrections made at implementation time
+
+### 1. The gate is called `checkVoice`, not `resolveVoice`
+
+The scope above promised two things that cannot both be true: that
+`resolveVoice(requested, {fallback})` returns `{ok, voiceId, fellBack, reason}`, **and**
+that "existing one-arg calls keep working". `resolveVoice` returns a **string** today:
+
+```ts
+export function resolveVoice(nameOrId: string): string   // src/providers/elevenlabs.ts
+```
+
+It is called at `client.ts` (both `tts` and `podcast`) and re-exported from `index.ts`,
+so it is part of the published API two peer repos may already call. Changing its return
+type from `string` to an object breaks every call-site silently — the exact failure
+class this feature exists to prevent.
+
+So `resolveVoice` is left untouched (it is a *mapper*: name → id), and the gate ships as
+**`checkVoice`** — the honest name, since it checks rather than maps. `listVoices()`
+keeps the F022 symmetry with `listModels()`.
+
+> Note: `elevenlabsAdapter().listVoices()` is a different thing — an async call to
+> ElevenLabs' live API. The top-level `listVoices()` is synchronous, cross-provider, and
+> reads only the curated registry.
+
+### 2. F037.3 extends the scope: the client enforces the gate
+
+The scope above stops at the data + the gate, mirroring F022 where buddy calls
+`resolveModel` explicitly at spawn time. Applied to voices, that would not deliver this
+epic's own promise.
+
+**No TTS consumer calls a gate.** torrent-search-api and contentpush both call
+`ai.tts({voice:'christel'})` directly. Ship only the gate, and the day `christel` is
+retired both still break — silently, per the "hard throw, soft landing, silent result"
+finding above — while the gate sits unused. That is precisely the failure this plan-doc
+criticises, reproduced one layer up.
+
+`ai.tts` and `ai.podcast` therefore consult the registry themselves. The blast radius is
+exactly the voices we deliberately mark `retired`: a known-good voice and an unknown raw
+provider id behave byte-identically to before. A voice we *know* is dead stops producing
+a confusing provider error and starts producing `VoiceUnavailableError`, or falls back
+when the caller passed `voiceFallback`.

@@ -94,8 +94,10 @@ function xmlEscape(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-/** Derive the BCP-47 locale from a voice name: "da-DK-ChristelNeural" → "da-DK". */
-function localeOf(voice: string): string {
+/** Derive the BCP-47 locale from a voice name: "da-DK-ChristelNeural" → "da-DK".
+ *  Exported so the F037 voice registry derives locales from this one implementation
+ *  instead of keeping a second copy of the rule. */
+export function localeOf(voice: string): string {
   const parts = voice.split("-");
   return parts.length >= 2 ? `${parts[0]}-${parts[1]}` : "en-US";
 }

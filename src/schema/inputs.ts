@@ -233,6 +233,9 @@ export const podcastInputSchema = z.object({
 export const ttsInputSchema = z.object({
   text: z.string(),
   voice: z.string(),
+  /** F037: voice to use if `voice` is one we know the provider has retired. Without
+   *  it a retired voice throws VoiceUnavailableError rather than reaching the API. */
+  voiceFallback: z.string().optional(),
   lang: z.string().optional(),
   format: z.string().optional(),
   rate: z.number().positive().optional(),

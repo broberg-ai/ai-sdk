@@ -12,7 +12,7 @@ import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/t
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
-import { resolveVoice } from "./providers/elevenlabs.js";
+import { checkVoice, VoiceUnavailableError } from "./voices/index.js";
 import {
   aiConfigSchema,
   chatInputSchema,
@@ -599,7 +599,12 @@ export function createAI(config: AiConfig = {}): AiClient {
       const inputs = input.script.map((turn) => {
         const mapped = input.voices[turn.speaker];
         if (!mapped) throw new Error(`ai.podcast: no voice mapped for speaker "${turn.speaker}"`);
-        return { text: turn.text, voiceId: resolveVoice(mapped) }; // curated name → voiceId
+        // F037: refuse a voice we know is retired. No fallback here on purpose —
+        // silently collapsing two speakers onto one voice ruins a dialogue, so a
+        // dead voice in a cast is a refusal, not a degradation.
+        const res = checkVoice(mapped); // curated name → voiceId
+        if (!res.ok) throw new VoiceUnavailableError(mapped, `${res.reason} — speaker "${turn.speaker}"`, res.provider);
+        return { text: turn.text, voiceId: res.voiceId };
       });
       const chars = input.script.reduce((n, t) => n + t.text.length, 0);
       return runCapability({
@@ -620,6 +625,10 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async tts(input: TtsInput): Promise<PodcastResult> {
       input = ttsInputSchema.parse(input);
+      // F037: gate the voice BEFORE the call path. Resolving here rather than inside
+      // invoke() means a refusal is immediate and cannot be mistaken for a provider
+      // failure and retried against the fallback chain.
+      const { voiceId } = checkVoice(input.voice, { fallback: input.voiceFallback, throwIfUnavailable: true });
       return runCapability({
         primary: { ...DEFAULT_TTS_SPEC, ...input.override },
         fallback: input.fallback,
@@ -631,7 +640,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.tts) throw new Error(`createAI: provider "${spec.provider}" does not support tts`);
-          return adapter.tts({ text: input.text, voiceId: resolveVoice(input.voice), lang: input.lang, format: input.format, rate: input.rate, spec });
+          return adapter.tts({ text: input.text, voiceId, lang: input.lang, format: input.format, rate: input.rate, spec });
         },
       });
     },
