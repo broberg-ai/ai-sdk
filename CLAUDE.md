@@ -53,6 +53,12 @@ release after that is just bump + tag + push.
    capability, a new env var, a new caveat, or anything that makes an existing
    note wrong. `ask_peer({ to: "components", … })` with the version and the delta;
    they own the roster at `discovery.broberg.ai`.
+   **Phrase it as a dated measurement, never as a state.** "No EU route for video
+   analysis exists" reads as permanent; "measured 2026-08-10: no EU route" carries
+   its own expiry, so the next reader can see that something may have moved. This
+   was components' own diagnosis of how their note went stale (#19457), and it
+   applies to every claim we hand anyone — a state is forever, a measurement has
+   a date.
 
 **Why step 5 is a step and not a nicety.** Three times in one week (2026-08-04→11)
 a Discovery note that was *correct when written* became actively misleading by
