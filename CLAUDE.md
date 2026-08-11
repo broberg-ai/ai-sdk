@@ -46,6 +46,24 @@ A `workflow_dispatch` manual run is also available. One-time bootstrap (v0.1.0
 hand-publish + npmjs.com Trusted Publisher config) is already done — every
 release after that is just bump + tag + push.
 
+4. **Verify against npm, not the workflow.** A green run is not proof the package
+   is installable — check `npm view @broberg/ai-sdk version` (it can lag a few
+   seconds behind a successful publish).
+5. **Tell Discovery when the release changes what a consumer must know** — a new
+   capability, a new env var, a new caveat, or anything that makes an existing
+   note wrong. `ask_peer({ to: "components", … })` with the version and the delta;
+   they own the roster at `discovery.broberg.ai`.
+
+**Why step 5 is a step and not a nicety.** Three times in one week (2026-08-04→11)
+a Discovery note that was *correct when written* became actively misleading by
+remaining: the cost-tracking adoption note (missing the two guards that landed
+after it), "no EU route for video analysis exists" (F038 shipped one), and
+"code-complete but not live-verified" (still there two months after the creds
+arrived). Every one was caught because the package owner reported back — none by
+the inventory noticing. **A shared inventory cannot know it has gone stale; only
+the owner of the thing it describes can.** So the release is not done when npm
+has the tarball; it is done when the roster stops lying.
+
 ## Working with cardmem
 
 > **Canonical section per F057 multi-project convention.** Every cardmem-compatible repo gets this same block, copied verbatim (the URLs and F-number rules are universal). The `## Project layout` table above is what differs per repo.
