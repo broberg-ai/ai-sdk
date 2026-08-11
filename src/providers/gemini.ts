@@ -34,7 +34,7 @@ const GEMINI_IMAGE_PRICE_PER_IMAGE: Record<string, number> = {
   "gemini-3-pro-image-preview": 0.134, // was $0.039 — wrong (that's the flash price); pro is $0.134
 };
 
-interface GeminiPart {
+export interface GeminiPart {
   text?: string;
   functionCall?: { name: string; args: Record<string, unknown> };
   inlineData?: { mimeType: string; data: string };
@@ -45,7 +45,10 @@ interface GeminiResponse {
   error?: unknown;
 }
 
-function partsFrom(content: string | ContentPart[]): GeminiPart[] {
+/** Exported so the Vertex adapter (F038) reuses this exact mapping — Vertex and the
+ *  Gemini API share the generateContent content format, and two copies of it would
+ *  drift. */
+export function partsFrom(content: string | ContentPart[]): GeminiPart[] {
   if (typeof content === "string") return [{ text: content }];
   return content.map((p): GeminiPart => {
     if (p.type === "text") return { text: p.text };

@@ -161,3 +161,119 @@ test("ai.animate routes to vertex via override", async () => {
   expect(usage.provider).toBe("vertex");
   expect(calls.some((u) => u.includes(":predictLongRunning"))).toBe(true);
 });
+
+// ── F038: EU-resident vision + video analysis ───────────────────────────────
+
+const visionSpec = { provider: "vertex", model: "gemini-2.5-flash", transport: "http" as const };
+
+/** Token exchange, then a generateContent reply. Captures url + body for assertions. */
+function visionFetch(cap: { url?: string; body?: any }, text = "en mand hælder kaffe op") {
+  return (async (url: string, init?: RequestInit) => {
+    if (String(url) === "https://oauth2.googleapis.com/token") {
+      return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    }
+    cap.url = String(url);
+    cap.body = JSON.parse(init!.body as string);
+    return new Response(
+      JSON.stringify({
+        candidates: [{ content: { parts: [{ text }] } }],
+        usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 100 },
+      }),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+}
+
+test("vision: EU-pinned URL, image part inlined, usage + cost from token counts", async () => {
+  const cap: { url?: string; body?: any } = {};
+  const adapter = vertexAdapter({ credentials: CREDS, project: "p", fetch: visionFetch(cap) });
+  const { text, usage } = await adapter.vision!({
+    messages: [{ role: "user", content: [{ type: "text", text: "hvad ses?" }, { type: "image", image: new Uint8Array([0xff, 0xd8]), mimeType: "image/jpeg" }] }],
+    spec: visionSpec,
+  });
+  expect(text).toBe("en mand hælder kaffe op");
+  // The whole point of this adapter: the host is an EU region, never a US one.
+  expect(cap.url).toBe(
+    "https://europe-west1-aiplatform.googleapis.com/v1/projects/p/locations/europe-west1/publishers/google/models/gemini-2.5-flash:generateContent",
+  );
+  expect(cap.body.contents[0].parts[1].inlineData.mimeType).toBe("image/jpeg");
+  expect(usage.provider).toBe("vertex");
+  expect(usage.capability).toBe("vision");
+  // Priced, not silently 0: 1000 in @ $0.30/1M + 100 out @ $2.50/1M.
+  expect(usage.costUsd).toBeCloseTo(0.0003 + 0.00025, 8);
+});
+
+test("vision: a VIDEO part is inlined with its video mime type (the EU analysis case)", async () => {
+  const cap: { url?: string; body?: any } = {};
+  const adapter = vertexAdapter({ credentials: CREDS, project: "p", fetch: visionFetch(cap) });
+  await adapter.vision!({
+    messages: [{ role: "user", content: [{ type: "text", text: "beskriv klippet" }, { type: "video", video: new Uint8Array([0, 0, 0, 1]), mimeType: "video/mp4" }] }],
+    spec: visionSpec,
+  });
+  expect(cap.body.contents[0].parts[1].inlineData.mimeType).toBe("video/mp4");
+  expect(typeof cap.body.contents[0].parts[1].inlineData.data).toBe("string");
+});
+
+test("vision: region override stays inside the EU and is honoured in the URL", async () => {
+  const cap: { url?: string; body?: any } = {};
+  const adapter = vertexAdapter({ credentials: CREDS, project: "p", region: "europe-west4", fetch: visionFetch(cap) });
+  await adapter.vision!({ messages: [{ role: "user", content: "hej" }], spec: visionSpec });
+  expect(cap.url).toContain("https://europe-west4-aiplatform.googleapis.com/");
+  expect(cap.url).toContain("/locations/europe-west4/");
+});
+
+test("vision: an EU error propagates — never a silent retry in another region", async () => {
+  const seen: string[] = [];
+  const fetchMock = (async (url: string) => {
+    if (String(url) === "https://oauth2.googleapis.com/token") return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+    seen.push(String(url));
+    return new Response("Permission denied", { status: 403 });
+  }) as unknown as typeof fetch;
+  const adapter = vertexAdapter({ credentials: CREDS, project: "p", fetch: fetchMock });
+  await expect(adapter.vision!({ messages: [{ role: "user", content: "hej" }], spec: visionSpec })).rejects.toThrow(/vertex vision 403/);
+  expect(seen).toHaveLength(1); // one attempt, one region — no fallback hop
+  expect(seen[0]).toContain("europe-west1");
+});
+
+test("vision ship-dark: no credentials → throws only when called", async () => {
+  const prev = process.env.GOOGLE_VERTEX_CREDENTIALS;
+  delete process.env.GOOGLE_VERTEX_CREDENTIALS;
+  try {
+    const adapter = vertexAdapter({ project: "p" }); // constructing must not crash
+    await expect(adapter.vision!({ messages: [{ role: "user", content: "hej" }], spec: visionSpec })).rejects.toThrow(/credentials/);
+  } finally {
+    if (prev !== undefined) process.env.GOOGLE_VERTEX_CREDENTIALS = prev;
+  }
+});
+
+test("ai.video routes to vertex via override (the EU video-analysis path)", async () => {
+  const { createAI } = await import("../client.js");
+  const cap: { url?: string; body?: any } = {};
+  const ai = createAI({ providers: { vertex: vertexAdapter({ credentials: CREDS, project: "p", fetch: visionFetch(cap) }) } });
+  const { usage } = await ai.video({
+    video: new Uint8Array([0, 0, 0, 1]),
+    prompt: "hvad sker der i klippet?",
+    override: { provider: "vertex", model: "gemini-2.5-flash" },
+  });
+  expect(usage.provider).toBe("vertex");
+  expect(usage.capability).toBe("video");
+  expect(cap.url).toContain("europe-west1-aiplatform.googleapis.com");
+});
+
+test("project falls back to project_id in the credentials (no second env var needed)", async () => {
+  const prevEnv = process.env.GOOGLE_VERTEX_PROJECT;
+  delete process.env.GOOGLE_VERTEX_PROJECT;
+  const cap: { url?: string; body?: any } = {};
+  const credsWithProject = JSON.stringify({
+    client_email: "test@example.iam.gserviceaccount.com",
+    private_key: privateKey,
+    project_id: "proj-from-creds",
+  });
+  try {
+    const adapter = vertexAdapter({ credentials: credsWithProject, fetch: visionFetch(cap) });
+    await adapter.vision!({ messages: [{ role: "user", content: "hej" }], spec: visionSpec });
+    expect(cap.url).toContain("/projects/proj-from-creds/");
+  } finally {
+    if (prevEnv !== undefined) process.env.GOOGLE_VERTEX_PROJECT = prevEnv;
+  }
+});

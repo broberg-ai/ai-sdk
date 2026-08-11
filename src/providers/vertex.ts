@@ -12,8 +12,16 @@
 import { createSign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { toInlineImage } from "./media.js";
-import { freshUsage } from "../cost/usage.js";
-import type { ProviderAdapter, AnimateRequest, AnimateResult } from "../types.js";
+import { partsFrom, type GeminiPart } from "./gemini.js";
+import { freshUsage, computeCost } from "../cost/usage.js";
+import type {
+  ProviderAdapter,
+  AnimateRequest,
+  AnimateResult,
+  ChatRequest,
+  ChatResult,
+  Message,
+} from "../types.js";
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const DEFAULT_REGION = "europe-west1";
@@ -32,6 +40,8 @@ const VERTEX_VEO_PRICE_PER_SEC: Record<string, number> = {
 interface ServiceAccountCredentials {
   client_email: string;
   private_key: string;
+  /** Present in a real service-account key; used as the project fallback (F038). */
+  project_id?: string;
 }
 
 interface VertexOperation {
@@ -126,8 +136,12 @@ export function vertexAdapter(
     return config.region ?? process.env.GOOGLE_VERTEX_REGION ?? DEFAULT_REGION;
   }
   function project(): string {
-    const p = config.project ?? process.env.GOOGLE_VERTEX_PROJECT;
-    if (!p) throw new Error("vertex adapter: project not set (config.project or env GOOGLE_VERTEX_PROJECT)");
+    // The service-account JSON already carries project_id, so falling back to it
+    // spares every consumer a second env var whose value is sitting in the first
+    // one — and spares them a "project not set" error that looks like a bug.
+    const p =
+      config.project ?? process.env.GOOGLE_VERTEX_PROJECT ?? resolveCredentials(config).project_id;
+    if (!p) throw new Error("vertex adapter: project not set (config.project, env GOOGLE_VERTEX_PROJECT, or project_id in the credentials)");
     return p;
   }
   async function accessToken(): Promise<string> {
@@ -209,5 +223,62 @@ export function vertexAdapter(
     return { url: `vertex://${op.name}`, bytes: Buffer.from(videoB64, "base64"), mimeType: videoMime, usage };
   }
 
-  return { name: "vertex", animate };
+  // EU-resident image + VIDEO analysis (F038). Vertex speaks the same
+  // generateContent shape as the Gemini API, so the message→parts mapping is
+  // imported rather than copied. The URL is region-pinned exactly like animate:
+  // personal data (faces, EXIF geo) must not leave the EU, and there is NO
+  // fallback to another region — an EU error propagates to the caller.
+  async function vision(req: ChatRequest): Promise<ChatResult> {
+    const token = await accessToken();
+    const proj = project();
+    const reg = region();
+
+    const systemParts: GeminiPart[] = [];
+    const contents: { role: string; parts: GeminiPart[] }[] = [];
+    for (const m of req.messages as Message[]) {
+      if (m.role === "system") systemParts.push(...partsFrom(m.content));
+      else contents.push({ role: m.role === "assistant" ? "model" : "user", parts: partsFrom(m.content) });
+    }
+    const body: Record<string, unknown> = { contents };
+    if (systemParts.length > 0) body.systemInstruction = { parts: systemParts };
+    const genConfig: Record<string, unknown> = {};
+    if (req.maxTokens !== undefined) genConfig.maxOutputTokens = req.maxTokens;
+    if (req.temperature !== undefined) genConfig.temperature = req.temperature;
+    if (Object.keys(genConfig).length > 0) body.generationConfig = genConfig;
+
+    const url =
+      `https://${reg}-aiplatform.googleapis.com/v1/projects/${proj}` +
+      `/locations/${reg}/publishers/google/models/${req.spec.model}:generateContent`;
+    const res = await fetchImpl(url, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(`vertex vision ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      candidates?: { content?: { parts?: GeminiPart[] } }[];
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    };
+    const text = (data.candidates?.[0]?.content?.parts ?? [])
+      .map((p) => p.text ?? "")
+      .join("")
+      .trim();
+
+    const inputTokens = data.usageMetadata?.promptTokenCount ?? 0;
+    const outputTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
+    const usage = freshUsage({
+      provider: "vertex",
+      model: req.spec.model,
+      transport: "http",
+      capability: "vision",
+      inputTokens,
+      outputTokens,
+    });
+    usage.costUsd = computeCost("vertex", req.spec.model, inputTokens, outputTokens);
+    return { text, usage };
+  }
+
+  return { name: "vertex", animate, vision };
 }

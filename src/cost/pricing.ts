@@ -95,6 +95,13 @@ export const PRICING: Record<string, PricingEntry> = {
   // flash-lite is the default `video` tier (F019) — cheap native video understanding.
   "gemini:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
 
+  // Vertex AI (F038) — the EU-resident route to the SAME Gemini models, so Google's
+  // published Gemini token prices apply. Listed separately because cost lookups key on
+  // `provider:model`: without these rows an EU vision/video call would silently log
+  // $0, which is worse than no tracking (a confident wrong number).
+  "vertex:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+  "vertex:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
+
   // Mistral (direct, La Plateforme). Official prices from mistral.ai/pricing
   // (2026-06-04, per Christian's CD report). EU/Paris-hosted — the designated
   // GDPR-safe provider for client/personal-data workloads (see F015). NB:
