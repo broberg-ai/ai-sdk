@@ -2,13 +2,20 @@
 // it to the provider. The assertions check the ADAPTER WAS NEVER CALLED, not merely
 // that something threw: a throw from inside the call path would still have burned a
 // request, and that is the failure mode this story exists to prevent.
-import { describe, expect, test } from "bun:test";
+import { beforeEach, afterEach, describe, expect, test } from "bun:test";
 import { createAI } from "../client.js";
 import { VoiceUnavailableError } from "./index.js";
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, TtsRequest, DialogueRequest, PodcastResult } from "../types.js";
 
+import { setRetiredVoicesForTests, resetVoiceRegistry } from "./registry.js";
+
+// See resolve.test.ts: no real retirement exists, so the gate is exercised
+// against a fixture rather than against a voice we wrongly declared dead.
 const DEAD = "mads";
+
+beforeEach(() => setRetiredVoicesForTests({ [DEAD]: "retired — test fixture" }));
+afterEach(resetVoiceRegistry);
 
 /** A recording ElevenLabs stand-in — every tts/dialogue call lands in `calls`. */
 function spyProvider() {

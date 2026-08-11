@@ -1,9 +1,17 @@
 // F037.2 — checkVoice(): resolve with fallback, mirroring resolveModel.
-import { describe, expect, test } from "bun:test";
+import { beforeEach, afterEach, describe, expect, test } from "bun:test";
 import { checkVoice, listVoices, VoiceUnavailableError } from "./index.js";
 import { resolveVoice, ELEVENLABS_DANISH_VOICES } from "../providers/elevenlabs.js";
+import { setRetiredVoicesForTests, resetVoiceRegistry } from "./registry.js";
 
+// No curated voice is actually retired today — all 11 were verified before release.
+// The third state is exercised through the test-only hook so these tests keep
+// working the day a REAL retirement lands, without depending on one existing.
 const DEAD = "mads";
+const FIXTURE_NOTE = "retired — test fixture, not a real retirement";
+
+beforeEach(() => setRetiredVoicesForTests({ [DEAD]: FIXTURE_NOTE }));
+afterEach(resetVoiceRegistry);
 
 describe("checkVoice — available", () => {
   test("a live ElevenLabs name resolves to its voice id", () => {
@@ -41,7 +49,7 @@ describe("checkVoice — retired", () => {
     expect(r.fellBack).toBe(true);
     expect(r.voiceId).toBe("xj6X4BCUsv9oxohm1E8o");
     expect(r.requested).toBe(DEAD);
-    expect(r.reason).toContain("voice_not_found");
+    expect(r.reason).toContain(FIXTURE_NOTE);
   });
 
   test("walks a fallback chain in order and takes the first usable one", () => {
@@ -62,7 +70,7 @@ describe("checkVoice — retired", () => {
     expect(r.ok).toBe(false);
     expect(r.fellBack).toBe(false);
     expect(r.status).toBe("retired");
-    expect(r.reason).toContain("ElevenLabs no longer serves");
+    expect(r.reason).toContain(FIXTURE_NOTE);
   });
 
   test("throwIfUnavailable throws a flaggable error", () => {

@@ -146,3 +146,39 @@ exactly the voices we deliberately mark `retired`: a known-good voice and an unk
 provider id behave byte-identically to before. A voice we *know* is dead stops producing
 a confusing provider error and starts producing `VoiceUnavailableError`, or falls back
 when the caller passed `voiceFallback`.
+
+### 3. A false retirement, caught before release — and the probe that caused it
+
+While building F037.1 I probed all five curated ElevenLabs ids with
+`GET /v1/voices/{id}`. Four returned 200; `mads` returned `voice_not_found`, stably,
+three times, with a live control returning 200 each time. I marked it retired, wrote it
+into the registry, cited it as evidence on the card, and shipped it in commit `7d6e9ab`
+as "one of our five Danish voices is already dead".
+
+**It was not dead.** `POST /v1/text-to-speech/BIWC0507fYMfhPcAEIRP` returns 200 and real
+audio. The mistake surfaced only because the three *replacement candidates* I probed
+next failed the same `GET` — and then synthesized perfectly. A voice that is
+"not found" and also works is a contradiction, and the contradiction was in my
+instrument, not in the provider.
+
+**`GET /v1/voices/{id}` answers "is this voice saved in our account", not "can we use
+this voice".** ElevenLabs serves public/shared voices for synthesis whether or not they
+are in your library; `mads` is simply not saved to ours. The negative control I ran did
+not catch it, because a fabricated id fails that endpoint too — the control proved the
+probe could distinguish *something*, not that it distinguished *the right thing*.
+
+Consequences, all applied:
+
+- No curated voice is retired. All 11 ship `available:true`. The five ElevenLabs ids are
+  re-verified by **synthesis** (200, five distinct sha256 outputs, fabricated id → 404),
+  which is what `checkedAt: 2026-08-11` now means.
+- `mads` keeps a `note` — usable, but no published metadata, hence no `gender`. **A
+  caveat is not unavailability**; a picker must not grey it out. There is a test for
+  exactly that confusion.
+- The `retired` state is exercised through a test-only hook
+  (`setRetiredVoicesForTests`), not by a real casualty. That is what the original AC
+  asked for, before a false finding talked me out of it.
+- This strengthens the "no live lookup in v1" non-goal with a better reason than async
+  I/O: **ElevenLabs offers no free liveness check.** The only honest one costs a
+  synthesis call. A cheap-but-wrong probe is worse than none, because it retires
+  working voices.

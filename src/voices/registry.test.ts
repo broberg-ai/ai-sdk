@@ -1,9 +1,11 @@
 // F037.1 — the voice registry + listVoices().
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { listVoices, checkVoice } from "./index.js";
-import { getVoice } from "./registry.js";
+import { getVoice, setRetiredVoicesForTests, resetVoiceRegistry } from "./registry.js";
 import { ELEVENLABS_DANISH_VOICES } from "../providers/elevenlabs.js";
 import { AZURE_DANISH_VOICE_LIST } from "../providers/azure.js";
+
+afterEach(resetVoiceRegistry);
 
 describe("listVoices", () => {
   test("returns every curated voice from both providers", () => {
@@ -33,14 +35,25 @@ describe("listVoices", () => {
     }
   });
 
+  test("the two providers carry their OWN last-checked date, not a shared one", () => {
+    // Collapsing these to one date would claim the Azure roster was re-checked
+    // today, which it was not — there is no Azure key on the machine that built it.
+    const eleven = new Set(listVoices({ provider: "elevenlabs" }).map((v) => v.checkedAt));
+    const azure = new Set(listVoices({ provider: "azure" }).map((v) => v.checkedAt));
+    expect(eleven.size).toBe(1);
+    expect(azure.size).toBe(1);
+    expect([...eleven][0]).not.toBe([...azure][0]);
+  });
+
   test("gender is present where the provider publishes it, never guessed", () => {
     // All 6 Azure rows: gender comes from AZURE_DANISH_VOICE_LIST.
     for (const v of listVoices({ provider: "azure" })) {
       expect(v.gender).toBeDefined();
       expect(["female", "male"]).toContain(v.gender as string);
     }
-    // ElevenLabs: the 4 live voices were labelled by the API; the retired one has
-    // no source left, and an absent gender is honest where a guess would not be.
+    // ElevenLabs: 4 were labelled by the provider's voices endpoint. `mads` is not
+    // saved to the account, so that endpoint describes nothing about it — and an
+    // absent field is honest where a guess from a first name would not be.
     const eleven = listVoices({ provider: "elevenlabs" });
     expect(eleven.filter((v) => v.gender !== undefined)).toHaveLength(4);
     expect(eleven.find((v) => v.gender === undefined)?.name).toBe("mads");
@@ -57,27 +70,51 @@ describe("listVoices", () => {
   });
 });
 
-describe("the retired state — the third state resolveVoice could not express", () => {
-  test("mads is reported dead, with a note saying why and when", () => {
-    const mads = listVoices().find((v) => v.name === "mads");
-    expect(mads).toBeDefined();
-    expect(mads!.available).toBe(false);
-    expect(mads!.status).toBe("retired");
-    expect(mads!.note).toContain("voice_not_found");
-    expect(mads!.note).toContain("2026-08-11");
+describe("what ships: every curated voice is available", () => {
+  test("no curated voice is marked retired", () => {
+    // All 11 were verified before release — the 5 ElevenLabs ids by real synthesis
+    // (POST /v1/text-to-speech/{id} → 200, distinct audio per voice, fabricated id
+    // → 404), the 6 Azure names by F026 against Azure's voices/list.
+    expect(listVoices().filter((v) => !v.available)).toHaveLength(0);
   });
 
-  test("the dead voice is KEPT in the roster, not deleted", () => {
+  test("a caveat is not unavailability", () => {
+    // `mads` carries a note (no published metadata) but is perfectly usable. A
+    // picker must not grey it out.
+    const mads = listVoices().find((v) => v.name === "mads");
+    expect(mads?.available).toBe(true);
+    expect(mads?.status).toBe("available");
+    expect(mads?.note).toContain("usable");
+  });
+});
+
+describe("the retired state — the third state resolveVoice could not express", () => {
+  test("a retired voice reports available:false with a reason", () => {
+    setRetiredVoicesForTests({ camilla: "retired — test fixture" });
+    const camilla = listVoices().find((v) => v.name === "camilla");
+    expect(camilla?.available).toBe(false);
+    expect(camilla?.status).toBe("retired");
+    expect(camilla?.note).toContain("test fixture");
+  });
+
+  test("a retired voice is KEPT in the roster, not deleted", () => {
     // Deleting it is the trap this feature exists to avoid: the friendly name
     // would then be POSTed to the provider as a raw voice id.
-    expect(ELEVENLABS_DANISH_VOICES.mads).toBe("BIWC0507fYMfhPcAEIRP");
-    expect(getVoice("mads")).toBeDefined();
-    expect(checkVoice("mads").ok).toBe(false);
+    setRetiredVoicesForTests({ camilla: "retired — test fixture" });
+    expect(ELEVENLABS_DANISH_VOICES.camilla).toBe("4RklGmuxoAskAbGXplXN");
+    expect(getVoice("camilla")).toBeDefined();
+    expect(checkVoice("camilla").ok).toBe(false);
   });
 
-  test("every other curated voice is still available", () => {
-    const dead = listVoices().filter((v) => !v.available);
-    expect(dead.map((v) => v.name)).toEqual(["mads"]);
+  test("retiring one voice leaves the others alone", () => {
+    setRetiredVoicesForTests({ camilla: "retired — test fixture" });
+    expect(listVoices().filter((v) => !v.available).map((v) => v.name)).toEqual(["camilla"]);
+  });
+
+  test("the test hook cannot leak — reset restores the shipped registry", () => {
+    setRetiredVoicesForTests({ camilla: "retired — test fixture" });
+    resetVoiceRegistry();
+    expect(listVoices().filter((v) => !v.available)).toHaveLength(0);
   });
 });
 
