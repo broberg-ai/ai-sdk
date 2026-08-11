@@ -234,7 +234,15 @@ export const ttsInputSchema = z.object({
   text: z.string(),
   voice: z.string(),
   /** F037: voice to use if `voice` is one we know the provider has retired. Without
-   *  it a retired voice throws VoiceUnavailableError rather than reaching the API. */
+   *  it a retired voice throws VoiceUnavailableError rather than reaching the API.
+   *
+   *  THINK BEFORE SETTING THIS. It is right for batch work where any acceptable voice
+   *  will do (a generated podcast, a bulk render). It is WRONG where the voice is an
+   *  identity a human recognises — a brand voice, a house narrator: falling back means
+   *  your product suddenly speaks with a stranger's voice and says nothing about why.
+   *  There, leave it unset and let the throw alarm you. Silence WITH a message beats
+   *  the wrong audio WITHOUT one. (torrent-search-api's call on their own house voice,
+   *  2026-08-11 — they took the alarm over the fallback, deliberately.) */
   voiceFallback: z.string().optional(),
   lang: z.string().optional(),
   format: z.string().optional(),
