@@ -26,6 +26,17 @@ create. Done 2026-08-11: `roles/aiplatform.user` granted to the existing ai-sdk 
 account (least privilege — no owner), key minted into the gitignored `.env` as
 `GOOGLE_VERTEX_CREDENTIALS`.
 
+**Where the key lives.** A gitignored `.env` on one Mac is not durable — lose the
+machine and the EU route dies with it. The key is therefore also in cardmem's
+Secrets Vault: secret id `019ff120-5dfa-716c-8f93-931a69560050`, project `ai-sdk`,
+mapped to env var `GOOGLE_VERTEX_CREDENTIALS`. It was written straight from disk
+over HTTPS, so the value never passed through an LLM context.
+
+Restore-tested end-to-end 2026-08-11, not assumed: fetched back from the vault →
+byte-identical to `.env` → minted an OAuth token from the *vault copy alone* →
+`europe-west1` answered HTTP 200. A backup you have never restored from is a
+claim, not a backup.
+
 **First live EU verification ever** (F031 was code-complete but never proven):
 token mints, and `gemini-2.5-flash` answers HTTP 200 from **both** `europe-west1` and
 `europe-west4`.
