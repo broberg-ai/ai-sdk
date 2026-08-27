@@ -49,6 +49,7 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
+  { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-small-latest", aliases: ["mistral-small"], provider: "mistral", available: true, status: "available", source: "default" },
 ];
 

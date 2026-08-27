@@ -20,7 +20,16 @@ export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
   cheap: { provider: "mistral", model: "mistral-small-latest", transport: "http" },
   // Vision: small-latest (vision-capable, cheap EU) is the default; override to
   // mistral-large-latest for demanding image/spatial/composition work.
-  vision: { provider: "mistral", model: "mistral-small-latest", transport: "http" },
+  // F041 — bumped from mistral-small on Christian's ask, and the choice is MEASURED,
+  // not assumed from price. On a fine-discrimination test (an 8x10 grid where one cell
+  // differs only in its blue channel, 190->150) across 9 cases:
+  //   mistral-medium-latest  4/9      <- best
+  //   mistral-small-latest   1/6 + 0/3 = 1/9
+  //   mistral-large-latest   0/9      <- WORSE than small, despite costing 5x more
+  // Large ties small on easy colour blocks (4/4 each) and collapses on subtle ones,
+  // so "bigger is better at vision" does not hold in Mistral's lineup. Nobody is good
+  // at this task; medium is simply the only one that sees anything.
+  vision: { provider: "mistral", model: "mistral-medium-latest", transport: "http" },
   // Native video understanding — Gemini leads; flash-lite is the cheap default (F019).
   // NOT Anthropic → out of the F030 phase-out (its own EU epic if/when needed).
   video: { provider: "gemini", model: "gemini-2.5-flash-lite", transport: "http" },

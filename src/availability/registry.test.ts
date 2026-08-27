@@ -112,3 +112,10 @@ test("no tier name is hand-declared on a row it does not belong to", () => {
   // being silently rescued by array order.
   expect(TIER_ALIAS_CONFLICTS).toEqual([]);
 });
+
+test("the vision tier is NOT the same model as the cheap tier", () => {
+  // F041. A tier called `vision` that resolves to whatever `cheap` resolves to gives
+  // a caller no way to ask for better — cms noticed ours had been doing exactly that.
+  expect(DEFAULT_TIER_MAP.vision.model).not.toBe(DEFAULT_TIER_MAP.cheap.model);
+  expect(resolveModel("vision").model).toBe(DEFAULT_TIER_MAP.vision.model);
+});

@@ -236,7 +236,7 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 
 **Route by tier, not by model-string.** Tiers → current model (overridable per call):
 **Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
-`fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=mistral-small-latest · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
+`fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=**mistral-medium-latest** · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
 
 > This block named Claude for `smart`/`powerful`/`vision` for ~3 months after F030 moved them. Nobody was endangered — it UNDERSTATED how EU-safe the defaults are — but the same drift also lived in code (`resolveModel('smart')` answered claude-sonnet-4-6 while the call went to Mistral), and there it was dangerous: that lookup is what a reasonable person would use to show or decide where data goes. Fixed in v0.29 by deriving the registry's tier aliases from the router. **`video` and `embedding` still leave the EU** — do not send personal data through them.
 

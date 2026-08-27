@@ -45,5 +45,6 @@ test("F030: the former Anthropic tiers now default to Mistral EU", () => {
   expect(DEFAULT_TIER_MAP.fast).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
   expect(DEFAULT_TIER_MAP.smart).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
   expect(DEFAULT_TIER_MAP.powerful).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
-  expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
+  // F041: vision moved off small — measured, see the comment in tier-map.ts.
+  expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-medium-latest", transport: "http" });
 });
