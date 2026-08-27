@@ -14,7 +14,7 @@
 | **gemini** | not needed — implicit | ✅ (F040.1) | 2/2 |
 | **vertex** | not needed — implicit | ✅ (F040.1) | 2/2 |
 | **openrouter** | not needed — upstream | ✅ **measured complete** | n/a — ground-truth `usage.cost` |
-| **openai** | not needed — automatic | ✅ (rides the openai-compatible path, unmeasured) | **0/5** |
+| **openai** | not needed — automatic | ✅ **measured** (F040.2) | 2/2 chat models (embeddings do not cache) |
 | **deepseek** (direct) | not needed — automatic | ❓ unverified — no key | **0/2** |
 
 ## The distinction that decides the priority
@@ -159,3 +159,60 @@ never comparable. A control that varies two things at once measures neither.
   OpenRouter cannot answer this** — OpenRouter normalises the usage object, so that
   route measures OpenRouter, not the deepseek adapter. Needs a direct key, which does
   not exist.
+
+
+## F040.2 — OpenAI, measured with the key from the vault
+
+Christian put an OpenAI key in the project vault (`01a044f5-…`); it was fetched
+straight into the gitignored `.env` by a script, so the value never passed through a
+context.
+
+Measured against the real API, `gpt-4o-mini`, identical 7,615-token prefix:
+
+```
+call 1: prompt=7615  cached=   0
+call 2: prompt=7615  cached=7552
+call 3: prompt=7615  cached=7552
+call 4: prompt=7615  cached=7552
+call 5: prompt=7615  cached=7552
+```
+
+`prompt_tokens` **includes** the cached ones, and the shared openai-compatible path
+already subtracts them — so the read-back needed no change. Live through `ai.chat`:
+
+```
+input=63  cached=7552  sum=7615  cost=$0.00057705
+```
+
+**OpenAI's caching is far more reliable than Gemini's:** 4 hits out of 5 calls, versus
+1 out of 6 for Gemini on the same kind of prefix. Worth knowing before anyone builds a
+spend cap that treats "cached" as one behaviour.
+
+### The rate is 50%, and that is the finding
+
+$1.25 vs $2.50 (gpt-4o) and $0.075 vs $0.15 (gpt-4o-mini), read from
+`developers.openai.com/api/docs/pricing` on 2026-08-27.
+
+**Not the 10% Mistral and Gemini charge.** Carrying one uniform cross-provider
+discount across would have understated OpenAI's cost by 4× on the cached half. A test
+now pins the two ratios apart so a later edit cannot quietly converge them.
+
+**The embedding models get NO cached row on purpose.** OpenAI's page lists no cached
+rate for them — embeddings do not cache — so an absent row here is a decision, and a
+test asserts it stays absent. Inventing one is the exact error class this card exists
+to close.
+
+### A trap worth recording: an EMPTY env var defeats `??=`
+
+The live probe first failed with "API key not set" although the key was in `.env`. The
+shell already exported `OPENAI_API_KEY=""`, and `??=` only assigns on null/undefined —
+an empty string is neither. The adapter itself behaves correctly (`if (!apiKey) throw`),
+but any loader using `??=` will silently prefer an empty shell variable over a real
+value in a file. Use a falsy check, not a nullish one.
+
+## What is left
+
+Only **deepseek direct**. Its native API documents `prompt_cache_hit_tokens`, a
+different name from the shared path's field, and there is no direct DeepSeek key —
+measuring it through OpenRouter measures OpenRouter, not the deepseek adapter. It stays
+open and named as unverified.

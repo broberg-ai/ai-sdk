@@ -50,10 +50,17 @@ export const PRICING: Record<string, PricingEntry> = {
   },
 
   // OpenAI. embedding default tier = text-embedding-3-small (no output tokens).
+  // Cached input is 50% of the input rate — $1.25 vs $2.50 (gpt-4o) and $0.075 vs
+  // $0.15 (gpt-4o-mini), read from developers.openai.com/api/docs/pricing on
+  // 2026-08-27. NOTE IT IS 50%, NOT the 10% Mistral and Gemini charge: assuming one
+  // uniform discount across providers would have understated OpenAI's cost by 4x on
+  // the cached half. Caching is automatic above 1,024 tokens — no key, no opt-in.
+  // The embedding models list NO cached price (embeddings do not cache), so they
+  // deliberately get no row here rather than a guessed one.
   "openai:text-embedding-3-small": { inputPer1M: 0.02, outputPer1M: 0, version: V },
   "openai:text-embedding-3-large": { inputPer1M: 0.13, outputPer1M: 0, version: V },
-  "openai:gpt-4o": { inputPer1M: 2.5, outputPer1M: 10.0, version: V },
-  "openai:gpt-4o-mini": { inputPer1M: 0.15, outputPer1M: 0.6, version: V },
+  "openai:gpt-4o": { inputPer1M: 2.5, cacheReadPer1M: 1.25, outputPer1M: 10.0, version: "2026-08-27-developers.openai.com" },
+  "openai:gpt-4o-mini": { inputPer1M: 0.15, cacheReadPer1M: 0.075, outputPer1M: 0.6, version: "2026-08-27-developers.openai.com" },
   // Whisper is priced per minute, not per token — not representable here; transcribe
   // (F5.6) computes its own cost. Listed as 0 so token-based compute never charges it.
   "openai:whisper-1": { inputPer1M: 0, outputPer1M: 0, version: V },
