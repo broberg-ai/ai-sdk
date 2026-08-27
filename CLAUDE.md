@@ -30,6 +30,15 @@ This repo holds the LLM **inventory** (`inventory.json` — prices, modality, GD
 
 ## Releasing / publishing to npm
 
+**A version bump and a publish are ONE action, never two (Christian, 2026-08-27).**
+If you bump `version` in `package.json`, you tag and push in the SAME turn — always,
+without asking. Do not stop to confirm, do not leave a bumped version sitting on
+`main`, do not ask "shall I publish?". The bump IS the decision to publish; asking
+again just costs a turn and leaves consumers on a version that does not contain the
+fix you already told them about. Bump → commit → tag → push → verify against npm,
+every time. (The only thing that still needs his direct order is a bump you were not
+already asked to make — once you are bumping, publishing follows automatically.)
+
 **Never `npm publish` by hand.** Publishing runs through the GitHub Actions
 `publish.yml` workflow using OIDC Trusted Publishing (no token, no secret — npm
 mints provenance from the workflow identity `broberg-ai/ai-sdk`).
