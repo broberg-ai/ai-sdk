@@ -102,31 +102,34 @@ export const PRICING: Record<string, PricingEntry> = {
   "vertex:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
   "vertex:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
 
+  // Cached prompt tokens bill at 10% of the input rate (F039, measured 2026-08-27:
+  // an 8,810-token prefix reported 8,784 cached on the second call WITH a
+  // prompt_cache_key, and 0 without one at every size up to 57k).
   // Mistral (direct, La Plateforme). Official prices from mistral.ai/pricing
   // (2026-06-04, per Christian's CD report). EU/Paris-hosted — the designated
   // GDPR-safe provider for client/personal-data workloads (see F015). NB:
   // medium-3.5 is the premium "Vibe" coding tier ($1.5/$7.5); Large 3 ($0.5/$1.5)
   // is the cheaper frontier general-purpose model despite the higher number.
-  "mistral:mistral-large-latest": { inputPer1M: 0.5, outputPer1M: 1.5, version: MS },
-  "mistral:mistral-large-2512": { inputPer1M: 0.5, outputPer1M: 1.5, version: MS },
-  "mistral:mistral-medium-latest": { inputPer1M: 1.5, outputPer1M: 7.5, version: MS },
-  "mistral:mistral-medium-3.5": { inputPer1M: 1.5, outputPer1M: 7.5, version: MS },
-  "mistral:mistral-medium-3": { inputPer1M: 0.4, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
-  "mistral:mistral-small-latest": { inputPer1M: 0.1, outputPer1M: 0.3, version: MS },
-  "mistral:mistral-small-2603": { inputPer1M: 0.1, outputPer1M: 0.3, version: MS },
-  "mistral:ministral-3b-latest": { inputPer1M: 0.1, outputPer1M: 0.1, version: MS },
-  "mistral:ministral-8b-latest": { inputPer1M: 0.15, outputPer1M: 0.15, version: MS },
-  "mistral:ministral-14b-latest": { inputPer1M: 0.2, outputPer1M: 0.2, version: MS },
-  "mistral:magistral-medium-latest": { inputPer1M: 2.0, outputPer1M: 5.0, version: MS },
-  "mistral:magistral-small-latest": { inputPer1M: 0.5, outputPer1M: 1.5, version: MS },
-  "mistral:devstral-latest": { inputPer1M: 0.4, outputPer1M: 2.0, version: MS },
-  "mistral:codestral-latest": { inputPer1M: 0.3, outputPer1M: 0.9, version: MS },
-  "mistral:open-mistral-nemo": { inputPer1M: 0.15, outputPer1M: 0.15, version: MS },
+  "mistral:mistral-large-latest": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
+  "mistral:mistral-large-2512": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
+  "mistral:mistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
+  "mistral:mistral-medium-3.5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
+  "mistral:mistral-medium-3": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
+  "mistral:mistral-small-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.3, version: MS },
+  "mistral:mistral-small-2603": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.3, version: MS },
+  "mistral:ministral-3b-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.1, version: MS },
+  "mistral:ministral-8b-latest": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },
+  "mistral:ministral-14b-latest": { inputPer1M: 0.2, cacheReadPer1M: 0.02, outputPer1M: 0.2, version: MS },
+  "mistral:magistral-medium-latest": { inputPer1M: 2.0, cacheReadPer1M: 0.2, outputPer1M: 5.0, version: MS },
+  "mistral:magistral-small-latest": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
+  "mistral:devstral-latest": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: MS },
+  "mistral:codestral-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: MS },
+  "mistral:open-mistral-nemo": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },
   // Moderation (F016.4) — per input token; output 0. (OCR is per-page in the adapter.)
-  "mistral:mistral-moderation-latest": { inputPer1M: 0.1, outputPer1M: 0, version: MS },
+  "mistral:mistral-moderation-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
   // Embeddings (F016.5) — per input token.
-  "mistral:mistral-embed": { inputPer1M: 0.1, outputPer1M: 0, version: MS },
-  "mistral:codestral-embed": { inputPer1M: 0.15, outputPer1M: 0, version: MS },
+  "mistral:mistral-embed": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
+  "mistral:codestral-embed": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0, version: MS },
 };
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {

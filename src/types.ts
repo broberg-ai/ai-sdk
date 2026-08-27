@@ -155,6 +155,12 @@ export interface ChatRequest {
   spec: TierSpec;
   tools?: Tool[];
   maxTokens?: number;
+  /** F039 — Mistral prompt caching. A stable application-level id for "the same
+   *  conversation" (a conversation id, a session id). Requests sharing a prefix AND
+   *  this key reuse the cached prefix at 10% of the input rate. Not auto-generated:
+   *  only the caller knows what "the same conversation" means, and an SDK-invented
+   *  key would either collide across tenants or never hit. */
+  promptCacheKey?: string;
   temperature?: number;
   /** "json" → request JSON-object output where the provider supports it (F009). */
   responseFormat?: "json" | "text";

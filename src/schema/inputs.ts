@@ -86,6 +86,9 @@ const callOptions = {
 // ── The 5 capability inputs ────────────────────────────────────────────────
 
 export const chatInputSchema = z.object({
+  /** F039 — reuse a cached prompt prefix on Mistral at 10% of the input rate.
+   *  A stable id for "the same conversation" (conversation id, session id). */
+  promptCacheKey: z.string().optional(),
   prompt: z.string().optional(),
   messages: z.array(messageSchema).optional(),
   system: z.string().optional(),

@@ -38,7 +38,15 @@ interface OAToolCall {
 }
 interface OAResponse {
   choices?: { message?: { content?: string | null; tool_calls?: OAToolCall[] } }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    cost?: number;
+    /** Mistral (F039): how many prompt tokens were served from cache. Note that
+     *  prompt_tokens INCLUDES these, so they must be subtracted before billing —
+     *  computeCost adds cacheReadTokens ON TOP of inputTokens. */
+    prompt_tokens_details?: { cached_tokens?: number };
+  };
   error?: unknown;
 }
 
@@ -95,6 +103,12 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     if (req.maxTokens !== undefined) body.max_tokens = req.maxTokens;
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.responseFormat === "json") body.response_format = { type: "json_object" };
+    // F039: Mistral caches a shared prefix at 10% of the input rate, but ONLY when
+    // the request carries a cache key. Measured 2026-08-27: without it, an identical
+    // 8,810-token prefix reported cached_tokens 0 at every size up to 57k; with it,
+    // the second call reported 8,784. Dropping this field was our bug, not a vendor
+    // limitation.
+    if (req.promptCacheKey !== undefined) body.prompt_cache_key = req.promptCacheKey;
     if (config.costFromResponseField) body.usage = { include: true };
 
     const res = await httpTransport({
@@ -121,13 +135,19 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     const toolCalls: ToolCall[] | undefined = msg?.tool_calls?.map((tc) =>
       fromProviderToolCall(tc, "openai"),
     );
+    const cachedIn = data.usage?.prompt_tokens_details?.cached_tokens;
     const usage = freshUsage({
       provider: config.name,
       model: req.spec.model,
       transport: "http",
       capability: "chat",
-      inputTokens: data.usage?.prompt_tokens ?? 0,
+      // prompt_tokens INCLUDES the cached ones; computeCost adds cacheReadTokens on
+      // top of inputTokens, so billing the raw figure would charge the cached prefix
+      // twice — at full rate AND at the cache rate.
+      inputTokens: (data.usage?.prompt_tokens ?? 0) - (cachedIn ?? 0),
       outputTokens: data.usage?.completion_tokens ?? 0,
+      // Absent field stays undefined: "not reported" is not the same as "zero cached".
+      ...(cachedIn === undefined ? {} : { cacheReadTokens: cachedIn }),
     });
     if (config.costFromResponseField && typeof data.usage?.cost === "number") {
       usage.costUsd = data.usage.cost; // OpenRouter ground-truth beats the estimate
@@ -247,7 +267,15 @@ interface OAStreamChunk {
     };
     finish_reason?: string | null;
   }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    cost?: number;
+    /** Mistral (F039): how many prompt tokens were served from cache. Note that
+     *  prompt_tokens INCLUDES these, so they must be subtracted before billing —
+     *  computeCost adds cacheReadTokens ON TOP of inputTokens. */
+    prompt_tokens_details?: { cached_tokens?: number };
+  };
 }
 
 /** Coerce an OpenAI `message.content` to a string. Most providers return a string,
