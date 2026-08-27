@@ -1,7 +1,7 @@
 # F039 — Prompt caching on Mistral: we drop the parameter that makes it work
 
-> **Status: in progress, 2026-08-27.** Raised by cms, who asked a question we could
-> not answer from memory and then refused to accept the first answer.
+> **Status: shipped in 0.30.0, 2026-08-27.** Raised by cms, who asked a question we
+> could not answer from memory and then refused to accept the first answer.
 
 ## The measurement, and why the first one was not enough
 
@@ -60,6 +60,11 @@ building `@broberg/chat` on the same path for everyone.
 saving happens while the cost we report stays wrong — a confident wrong number, which
 this repo has spent two days establishing is worse than no number.
 
+**And the subtraction that prevents double-billing.** Mistral's `prompt_tokens`
+INCLUDES the cached ones, while `computeCost` adds `cacheReadTokens` ON TOP of
+`inputTokens`. Billing the raw figure would charge the cached prefix twice — once at
+full rate and once at the cache rate.
+
 ### Non-goals
 
 - No automatic key. A cache key is an application-level identity (a conversation,
@@ -90,3 +95,6 @@ either way — nothing is charged at the cache rate — but a caller cannot ask 
 caching happen?" from that field alone. Left as-is: narrowing the type would change
 a field every adapter writes, for a distinction only Mistral currently makes. If a
 consumer ever needs it, that is the moment to add a separate signal, not now.
+
+The AC that demanded `undefined` was **amended down before implementation finished**,
+with the reason recorded on the card rather than the requirement quietly dropped.
