@@ -1,6 +1,8 @@
-import { expect, test, beforeEach } from "bun:test";
-import { resetRegistry, allEntries, canonicalId, getEntry, providerIds } from "./registry.js";
+import { describe, expect, test, beforeEach } from "bun:test";
+import { resetRegistry, allEntries, canonicalId, getEntry, providerIds, TIER_ALIAS_CONFLICTS } from "./registry.js";
 import { listModels } from "./resolve.js";
+import { resolveModel } from "./resolve.js";
+import { DEFAULT_TIER_MAP } from "../routing/tier-map.js";
 
 beforeEach(() => resetRegistry());
 
@@ -40,7 +42,10 @@ test("listModels({ provider }) scopes the read", () => {
 test("canonicalId resolves id and alias; unknown → null", () => {
   expect(canonicalId("claude-opus-4-8")).toBe("claude-opus-4-8");
   expect(canonicalId("opus")).toBe("claude-opus-4-8");
-  expect(canonicalId("powerful")).toBe("claude-opus-4-8"); // second alias
+  // A TIER alias resolves to the model that tier actually calls. This line used
+  // to assert "claude-opus-4-8" — the test ENCODED the drift, which is why three
+  // months of it went unnoticed. A test that asserts the bug cannot report it.
+  expect(canonicalId("powerful")).toBe("mistral-large-latest");
   expect(canonicalId("totally-made-up")).toBeNull();
 });
 
@@ -61,4 +66,49 @@ test("allEntries returns a fresh ModelStatus[] (registry not mutated by callers)
   rows[0]!.available = !rows[0]!.available; // mutate the copy
   const reread = allEntries();
   expect(reread[0]!.available).not.toBe(rows[0]!.available); // original intact
+});
+
+// F030 drift guard — the registry and the router must never disagree about a
+// tier again. They did for ~3 months, and the disagreement crossed the EU
+// border: resolveModel('smart') named a US model while ai.chat({tier:'smart'})
+// called an EU one. Found by fd-sundhed, who were about to display residency
+// from the wrong one.
+describe("resolveModel(tier) === the model that tier actually calls", () => {
+  test("every tier resolves to its DEFAULT_TIER_MAP model and provider", () => {
+    for (const [tier, spec] of Object.entries(DEFAULT_TIER_MAP)) {
+      const r = resolveModel(tier);
+      expect({ tier, model: r.model, provider: r.provider }).toEqual({
+        tier,
+        model: spec.model,
+        provider: spec.provider,
+      });
+    }
+  });
+
+  test("no tier resolves to its own name — that means the alias is missing", () => {
+    // resolveModel is fail-open, so an unknown tier returns the STRING BACK as
+    // if it were a model id. That is what 'vision' and 'cheap' did: a picker
+    // would have rendered the word "vision" as a model name.
+    for (const tier of Object.keys(DEFAULT_TIER_MAP)) {
+      expect(resolveModel(tier).model).not.toBe(tier);
+      expect(resolveModel(tier).status).not.toBe("unknown");
+    }
+  });
+
+  test("model-identity aliases still work — this did not break spawn lookups", () => {
+    // buddy resolves Claude Code models by short name at spawn time.
+    expect(resolveModel("opus").model).toBe("claude-opus-4-8");
+    expect(resolveModel("sonnet").model).toBe("claude-sonnet-4-6");
+    expect(resolveModel("haiku").model).toBe("claude-haiku-4-5");
+    expect(resolveModel("fable").model).toBe("claude-fable-5");
+    expect(resolveModel("mythos").ok).toBe(false);
+    expect(resolveModel("mythos").status).toBe("suspended");
+  });
+});
+
+test("no tier name is hand-declared on a row it does not belong to", () => {
+  // The load-bearing half of the drift guard. Deriving the aliases makes runtime
+  // correct; THIS makes a re-introduced hand-written alias visible instead of
+  // being silently rescued by array order.
+  expect(TIER_ALIAS_CONFLICTS).toEqual([]);
 });

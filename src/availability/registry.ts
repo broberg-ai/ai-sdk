@@ -7,6 +7,7 @@
 // rich capability/price inventory (that is F017 src/catalogue). We only track
 // ids we want to assert status on; anything not here is fail-open (treated
 // available) so we never block a model we simply do not track.
+import { DEFAULT_TIER_MAP } from "../routing/tier-map.js";
 import type { AvailabilityStatus, AvailabilitySource, ModelStatus } from "./types.js";
 
 /** Internal registry row. `aliases[0]` surfaces as ModelStatus.alias. */
@@ -22,26 +23,61 @@ export interface RegistryEntry {
 
 const SUSPENDED_FABLE_MYTHOS = "suspended — US export-control directive (2026-06-12)";
 
-/** Curated defaults. Mirrors DEFAULT_TIER_MAP model ids (src/routing/tier-map.ts)
- *  + the models documented in CLAUDE.md, plus the two ids Anthropic suspended
- *  globally on 2026-06-12. Aliases are the tier / short names a caller or picker
- *  may pass instead of the canonical id. */
+/** Curated defaults. Aliases here are MODEL-IDENTITY names only (short names for
+ *  the model itself). TIER aliases — fast/smart/powerful/cheap/vision/video/
+ *  embedding — are NOT written here: they are derived from DEFAULT_TIER_MAP below,
+ *  because hand-maintaining them in two places is exactly how they drifted.
+ *
+ *  They HAD drifted, and it crossed the EU border: this list said `smart` was
+ *  claude-sonnet-4-6 (Anthropic, US) for the ~3 months after F030 pointed the
+ *  default tiers at Mistral EU, so resolveModel('smart') named a US model while
+ *  ai.chat({tier:'smart'}) called an EU one. Anyone using resolveModel to SHOW or
+ *  DECIDE where data goes — the obvious use — got the wrong answer. Measured by
+ *  fd-sundhed in 0.21.1, still true in 0.28.0, fixed here by deleting the second
+ *  list rather than correcting it. */
 const DEFAULTS: RegistryEntry[] = [
   // ── Anthropic ────────────────────────────────────────────────────────────
-  { id: "claude-haiku-4-5", aliases: ["haiku", "fast"], provider: "anthropic", available: true, status: "available", source: "default" },
-  { id: "claude-sonnet-4-6", aliases: ["sonnet", "smart"], provider: "anthropic", available: true, status: "available", source: "default" },
-  { id: "claude-opus-4-8", aliases: ["opus", "powerful"], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-haiku-4-5", aliases: ["haiku"], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-sonnet-4-6", aliases: ["sonnet"], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-opus-4-8", aliases: ["opus"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-fable-5", aliases: ["fable"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-mythos-5", aliases: ["mythos"], provider: "anthropic", available: false, status: "suspended", note: SUSPENDED_FABLE_MYTHOS, source: "default" },
   // ── Gemini ───────────────────────────────────────────────────────────────
   { id: "gemini-2.5-flash", aliases: ["gemini-flash"], provider: "gemini", available: true, status: "available", source: "default" },
-  { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite", "video"], provider: "gemini", available: true, status: "available", source: "default" },
+  { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite"], provider: "gemini", available: true, status: "available", source: "default" },
   // ── OpenAI ───────────────────────────────────────────────────────────────
-  { id: "text-embedding-3-small", aliases: ["embedding"], provider: "openai", available: true, status: "available", source: "default" },
+  { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-small-latest", aliases: ["mistral-small"], provider: "mistral", available: true, status: "available", source: "default" },
 ];
+
+/** Attach every tier name as an alias of the model that tier ACTUALLY calls.
+ *  One source: DEFAULT_TIER_MAP decides, the registry follows. A tier whose model
+ *  is not in the registry is left unaliased on purpose — resolveModel then reports
+ *  status "unknown" (fail-open) instead of inventing a row, and the drift test
+ *  catches it. */
+export const TIER_ALIAS_CONFLICTS: string[] = [];
+
+function applyTierAliases(entries: RegistryEntry[]): RegistryEntry[] {
+  for (const [tier, spec] of Object.entries(DEFAULT_TIER_MAP)) {
+    const owner = entries.find((e) => e.id === spec.model && e.provider === spec.provider);
+    // A tier name hand-written on any OTHER row is the drift bug returning. It
+    // would resolve correctly TODAY only because seed() lets the last write win
+    // and the rows happen to be ordered favourably — reorder the array and the
+    // tier silently points at the wrong provider again. Record it so a test can
+    // fail on it, then strip it so runtime is right regardless.
+    for (const e of entries) {
+      if (e !== owner && e.aliases.includes(tier)) {
+        TIER_ALIAS_CONFLICTS.push(`${tier} is hand-declared on ${e.id} (${e.provider}) but tier ${tier} calls ${spec.model} (${spec.provider})`);
+        e.aliases = e.aliases.filter((a) => a !== tier);
+      }
+    }
+    if (owner && !owner.aliases.includes(tier)) owner.aliases.push(tier);
+  }
+  return entries;
+}
+applyTierAliases(DEFAULTS);
 
 /** The live overlay, keyed by canonical id. Seeded from DEFAULTS (deep-copied so
  *  resetting is clean). refreshAvailability() mutates this; resolve/listModels
