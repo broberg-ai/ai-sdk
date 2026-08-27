@@ -14,6 +14,19 @@ export interface ResolveOptions {
   /** Throw ModelUnavailableError instead of returning ok:false when there is no
    *  usable fallback. For callers that want to flag rather than degrade. */
   throwIfUnavailable?: boolean;
+  /** Treat an id we do not track as UNUSABLE instead of fail-open.
+   *
+   *  Default is fail-open: we never block a model we simply do not track. That is
+   *  right for liveness, and wrong for a caller who is GATING — cms measured the
+   *  consequence: resolveModel("cheap") answered {ok:true, model:"cheap"}, so a
+   *  consumer following our own instruction to gate on `ok` passed the gate and
+   *  then sent the literal string "cheap" to a provider as a model id. A
+   *  success-shaped non-answer is worse than an error, because an error gets
+   *  handled and a shape does not.
+   *
+   *  Set this when you need "a model you actually know about". Off by default so
+   *  no existing caller changes behaviour. */
+  requireKnown?: boolean;
 }
 
 /** The shared status read — UI pickers grey out `available:false` rows. */
@@ -21,10 +34,12 @@ export function listModels(opts: { provider?: string } = {}): ModelStatus[] {
   return allEntries(opts.provider);
 }
 
-/** Is this id/alias currently usable? Untracked ids are fail-open (true). */
-function isAvailable(requested: string): boolean {
+/** Is this id/alias currently usable? Untracked ids are fail-open (true) unless
+ *  the caller asked for requireKnown. */
+function isAvailable(requested: string, requireKnown = false): boolean {
   const e = getEntry(requested);
-  return e ? e.available : true; // fail-open on unknown
+  if (!e) return !requireKnown; // fail-open on unknown, unless gating
+  return e.available;
 }
 
 /**
@@ -41,7 +56,7 @@ export function resolveModel(requested: string, opts: ResolveOptions = {}): Reso
   const entry = getEntry(requested);
   const provider = opts.provider ?? entry?.provider;
 
-  if (isAvailable(requested)) {
+  if (isAvailable(requested, opts.requireKnown)) {
     return {
       ok: true,
       model: id,
@@ -55,7 +70,7 @@ export function resolveModel(requested: string, opts: ResolveOptions = {}): Reso
   // Requested is suspended — walk the fallback chain for the first available one.
   const chain = opts.fallback === undefined ? [] : Array.isArray(opts.fallback) ? opts.fallback : [opts.fallback];
   for (const fb of chain) {
-    if (isAvailable(fb)) {
+    if (isAvailable(fb, opts.requireKnown)) {
       const fbId = canonicalId(fb) ?? fb;
       return {
         ok: false,
@@ -70,8 +85,12 @@ export function resolveModel(requested: string, opts: ResolveOptions = {}): Reso
   }
 
   // No usable fallback.
+  const unknownAndGating = !entry && opts.requireKnown;
+  const reason = unknownAndGating
+    ? `${id} is not a model this registry knows — requireKnown was set, so it is not assumed usable`
+    : (entry?.note ?? `${id} is unavailable`);
   if (opts.throwIfUnavailable) {
-    throw new ModelUnavailableError(id, entry?.note, provider);
+    throw new ModelUnavailableError(id, reason, provider);
   }
   return {
     ok: false,
@@ -79,7 +98,7 @@ export function resolveModel(requested: string, opts: ResolveOptions = {}): Reso
     requested: id,
     provider,
     fellBack: false,
-    status: entry?.status ?? "suspended",
-    reason: entry?.note ?? `${id} is unavailable`,
+    status: entry?.status ?? "unknown",
+    reason,
   };
 }

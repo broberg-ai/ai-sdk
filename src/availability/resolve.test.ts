@@ -1,4 +1,4 @@
-import { expect, test, beforeEach, afterEach } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { resolveModel, listModels } from "./resolve.js";
 import { resetRegistry } from "./registry.js";
 import { ModelUnavailableError } from "./types.js";
@@ -91,3 +91,63 @@ test("resolveModel + listModels are synchronous (return a value, not a Promise)"
 });
 
 afterEach(() => resetRegistry());
+
+// F022.1 — requireKnown. Measured by cms: resolveModel("cheap") answered
+// {ok:true, model:"cheap"}, so a consumer following our own instruction to gate
+// on `ok` passed the gate and then sent the string "cheap" to a provider as a
+// model id. A success-shaped non-answer is worse than an error.
+describe("requireKnown — the gate can say 'I don't know this one'", () => {
+  test("DEFAULT is unchanged: an untracked id is still fail-open", () => {
+    const r = resolveModel("some-model-we-never-heard-of");
+    expect(r.ok).toBe(true);
+    expect(r.status).toBe("unknown");
+  });
+
+  test("requireKnown turns an untracked id into ok:false with a reason", () => {
+    const r = resolveModel("smrt", { requireKnown: true });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe("unknown");
+    expect(r.reason).toContain("not a model this registry knows");
+    expect(r.reason).toContain("requireKnown");
+  });
+
+  test("a KNOWN model is unaffected by requireKnown", () => {
+    const r = resolveModel("claude-opus-4-8", { requireKnown: true });
+    expect(r.ok).toBe(true);
+    expect(r.model).toBe("claude-opus-4-8");
+  });
+
+  test("a known-but-suspended model still reports its own reason, not the unknown one", () => {
+    const r = resolveModel("mythos", { requireKnown: true });
+    expect(r.ok).toBe(false);
+    expect(r.status).toBe("suspended");
+    expect(r.reason).not.toContain("requireKnown");
+  });
+
+  test("an untracked FALLBACK is refused too, not silently accepted", () => {
+    const r = resolveModel("mythos", { fallback: "also-made-up", requireKnown: true });
+    expect(r.fellBack).toBe(false);
+    expect(r.ok).toBe(false);
+  });
+
+  test("a known fallback still rescues it", () => {
+    const r = resolveModel("mythos", { fallback: "claude-opus-4-8", requireKnown: true });
+    expect(r.fellBack).toBe(true);
+    expect(r.model).toBe("claude-opus-4-8");
+  });
+
+  test("throwIfUnavailable + requireKnown throws, carrying the reason", () => {
+    let caught: unknown;
+    try {
+      resolveModel("smrt", { requireKnown: true, throwIfUnavailable: true });
+    } catch (e) { caught = e; }
+    expect(caught).toBeInstanceOf(ModelUnavailableError);
+    expect((caught as Error).message).toContain("not a model this registry knows");
+  });
+
+  test("REGRESSION: an unknown model no longer claims status 'suspended'", () => {
+    // It used to report status:"suspended" for a model it had never seen —
+    // a confident diagnosis of something it knew nothing about.
+    expect(resolveModel("smrt", { requireKnown: true }).status).toBe("unknown");
+  });
+});

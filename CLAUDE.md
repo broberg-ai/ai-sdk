@@ -240,6 +240,22 @@ const r = resolveModel("fable", { fallback: "claude-opus-4-8" });    // sync, ze
 listModels();  // [{ id, alias?, provider, available, status, note? }] — grey out dead tiers in a picker
 ```
 
+**If you are GATING, pass `requireKnown: true` (v0.29+).** By default an id the
+registry does not track is fail-open — `ok:true`, `status:"unknown"`, and `model`
+is your own input echoed back. That is right for liveness (never block a model we
+simply do not track) and wrong for a gate: cms measured a consumer following the
+instruction above, passing the gate, and then sending the literal string `"cheap"`
+to a provider as a model id. A success-shaped non-answer is worse than an error,
+because an error gets handled and a shape does not.
+```ts
+resolveModel("smrt", { requireKnown: true });  // → { ok:false, status:"unknown", reason: "…not a model this registry knows…" }
+```
+
+**`resolveModel` does NOT tell you where data goes.** It reports provider + model,
+never region — and `video`/`embedding` leave the EU. For residency, read
+`usage.provider`/`usage.model` off the RESPONSE (the route that actually answered);
+a response with no `tier` means a fallback was taken.
+
 **GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
 **Do NOT:** import a provider SDK directly · `fetch` a provider API · hardcode a model-string in app code (route by tier; pin via `override` only) · skip the SDK "just this once" · spawn/launch a model without `resolveModel`. The SDK is the single chokepoint so cost-tracking, fallback, and availability work everywhere.
