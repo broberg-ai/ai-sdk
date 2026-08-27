@@ -41,13 +41,36 @@ export interface GeminiPart {
 }
 interface GeminiResponse {
   candidates?: { content?: { parts?: GeminiPart[] } }[];
-  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; cachedContentTokenCount?: number };
   error?: unknown;
+}
+
+/** Split Gemini's promptTokenCount into billable and cached halves (F040).
+ *
+ *  MEASURED 2026-08-27, not assumed: an 11,408-token repeated prefix reported
+ *  `promptTokenCount: 11408` alongside `cachedContentTokenCount: 11242` — so the
+ *  prompt count INCLUDES the cached tokens and they must be subtracted, because
+ *  computeCost adds cacheReadTokens ON TOP of inputTokens. Getting this direction
+ *  wrong double-bills the cached prefix.
+ *
+ *  Gemini's implicit caching needs no opt-in and no key, but it does need a few
+ *  calls to warm: one run first hit on call 3, another on call 5. So a single
+ *  cold call reporting nothing cached is not evidence that caching is off. */
+function splitCached(meta: { promptTokenCount?: number; cachedContentTokenCount?: number } | undefined): {
+  inputTokens: number;
+  cacheReadTokens?: number;
+} {
+  const prompt = meta?.promptTokenCount ?? 0;
+  const cached = meta?.cachedContentTokenCount;
+  if (cached === undefined) return { inputTokens: prompt };
+  return { inputTokens: Math.max(0, prompt - cached), cacheReadTokens: cached };
 }
 
 /** Exported so the Vertex adapter (F038) reuses this exact mapping — Vertex and the
  *  Gemini API share the generateContent content format, and two copies of it would
  *  drift. */
+export { splitCached };
+
 export function partsFrom(content: string | ContentPart[]): GeminiPart[] {
   if (typeof content === "string") return [{ text: content }];
   return content.map((p): GeminiPart => {
@@ -156,7 +179,7 @@ export function geminiAdapter(
       model: req.spec.model,
       transport: "http",
       capability: "chat",
-      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+      ...splitCached(data.usageMetadata),
       outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
     });
     const result: ChatResult = { text, usage };
@@ -184,6 +207,7 @@ export function geminiAdapter(
     const toolCalls: ToolCall[] = [];
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens: number | undefined;
     let finishReason: string | null = null;
 
     for await (const data of stream) {
@@ -203,7 +227,9 @@ export function geminiAdapter(
       }
       if (candidate?.finishReason) finishReason = candidate.finishReason;
       if (chunk.usageMetadata) {
-        inputTokens = chunk.usageMetadata.promptTokenCount ?? inputTokens;
+        const split = splitCached(chunk.usageMetadata);
+        inputTokens = chunk.usageMetadata.promptTokenCount === undefined ? inputTokens : split.inputTokens;
+        if (split.cacheReadTokens !== undefined) cacheReadTokens = split.cacheReadTokens;
         outputTokens = chunk.usageMetadata.candidatesTokenCount ?? outputTokens;
       }
     }
@@ -218,6 +244,7 @@ export function geminiAdapter(
       capability: "chat",
       inputTokens,
       outputTokens,
+      ...(cacheReadTokens === undefined ? {} : { cacheReadTokens }),
     });
     yield { type: "usage", costUsd: usage.costUsd, model: usage.model, usage };
     yield {
@@ -271,7 +298,7 @@ export function geminiAdapter(
       model: req.spec.model,
       transport: "http",
       capability: "image",
-      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+      ...splitCached(data.usageMetadata),
       outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
     });
     usage.costUsd = config.pricePerImage ?? GEMINI_IMAGE_PRICE_PER_IMAGE[req.spec.model] ?? 0;

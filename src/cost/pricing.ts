@@ -88,19 +88,25 @@ export const PRICING: Record<string, PricingEntry> = {
   "deepseek:deepseek-chat": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
   "deepseek:deepseek-reasoner": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
 
+  // Cached input tokens cost 10% of the input rate — $0.03 vs $0.30 (2.5-flash) and
+  // $0.01 vs $0.10 (2.5-flash-lite), read from ai.google.dev/gemini-api/docs/pricing
+  // on 2026-08-27 rather than recalled. NB the storage fee on that page ($1/1M
+  // tokens/hour) applies to EXPLICIT context caching, where you create a CachedContent
+  // object with a TTL. We use IMPLICIT caching, which has no storage charge — so this
+  // table is not silently under-billing.
   // Google Gemini (direct). Provider key is "gemini" — matches the adapter's
   // usage.provider + the override.provider callers pass. (Image-gen models are
   // priced per-image in the adapter, not here.)
-  "gemini:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
+  "gemini:gemini-2.5-flash": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 2.5, version: "2026-08-27-ai.google.dev" },
   // flash-lite is the default `video` tier (F019) — cheap native video understanding.
-  "gemini:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
+  "gemini:gemini-2.5-flash-lite": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-08-27-ai.google.dev" },
 
   // Vertex AI (F038) — the EU-resident route to the SAME Gemini models, so Google's
   // published Gemini token prices apply. Listed separately because cost lookups key on
   // `provider:model`: without these rows an EU vision/video call would silently log
   // $0, which is worse than no tracking (a confident wrong number).
-  "vertex:gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
-  "vertex:gemini-2.5-flash-lite": { inputPer1M: 0.1, outputPer1M: 0.4, version: "2026-06-04-or-xref" },
+  "vertex:gemini-2.5-flash": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 2.5, version: "2026-08-27-ai.google.dev" },
+  "vertex:gemini-2.5-flash-lite": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-08-27-ai.google.dev" },
 
   // Cached prompt tokens bill at 10% of the input rate (F039, measured 2026-08-27:
   // an 8,810-token prefix reported 8,784 cached on the second call WITH a

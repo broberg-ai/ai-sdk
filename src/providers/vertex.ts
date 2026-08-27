@@ -12,7 +12,7 @@
 import { createSign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { toInlineImage } from "./media.js";
-import { partsFrom, type GeminiPart } from "./gemini.js";
+import { partsFrom, type GeminiPart, splitCached } from "./gemini.js";
 import { freshUsage, computeCost } from "../cost/usage.js";
 import type {
   ProviderAdapter,
@@ -259,14 +259,17 @@ export function vertexAdapter(
     }
     const data = (await res.json()) as {
       candidates?: { content?: { parts?: GeminiPart[] } }[];
-      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; cachedContentTokenCount?: number };
     };
     const text = (data.candidates?.[0]?.content?.parts ?? [])
       .map((p) => p.text ?? "")
       .join("")
       .trim();
 
-    const inputTokens = data.usageMetadata?.promptTokenCount ?? 0;
+    // F040: Vertex serves the same Gemini models and the same usageMetadata shape,
+    // so it reuses gemini.ts's splitter rather than keeping a second copy of the
+    // subtraction rule. promptTokenCount INCLUDES cachedContentTokenCount.
+    const { inputTokens, cacheReadTokens } = splitCached(data.usageMetadata);
     const outputTokens = data.usageMetadata?.candidatesTokenCount ?? 0;
     const usage = freshUsage({
       provider: "vertex",
@@ -275,8 +278,9 @@ export function vertexAdapter(
       capability: "vision",
       inputTokens,
       outputTokens,
+      ...(cacheReadTokens === undefined ? {} : { cacheReadTokens }),
     });
-    usage.costUsd = computeCost("vertex", req.spec.model, inputTokens, outputTokens);
+    usage.costUsd = computeCost("vertex", req.spec.model, inputTokens, outputTokens, cacheReadTokens ?? 0);
     return { text, usage };
   }
 

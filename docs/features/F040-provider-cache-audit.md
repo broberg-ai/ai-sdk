@@ -1,6 +1,8 @@
 # F040 — Four providers cache automatically and we bill them as if they did not
 
-> **Status: backlog.** Audit run 2026-08-27 on Christian's instruction: *"check ALLE
+> **Status: gemini + vertex shipped 2026-08-27 (F040.1). openai + deepseek UNVERIFIED — no key on this machine.**
+>
+> Original status: backlog. Audit run 2026-08-27 on Christian's instruction: *"check ALLE
 > vores modeller i ai-sdk om nogen af dem kan caches og IKKE er det."*
 
 ## The audit
@@ -62,3 +64,55 @@ tier table that was wrong for two months.
 ## Reuse
 
 No `@broberg/*` package owns LLM transport; this repo is the fleet's AI primitive.
+
+
+## F040.1 — what shipped, and what did not
+
+### Gemini + Vertex: measured, wired, live-proven
+
+**Gemini caches implicitly** — no opt-in, no key. Measured on an 11,408-token
+repeated prefix:
+
+```
+promptTokenCount 11408   cachedContentTokenCount 11242
+```
+
+So the prompt count **includes** the cached tokens and they must be subtracted, the
+same direction as Mistral. `splitCached()` in `gemini.ts` owns that rule and Vertex
+imports it rather than keeping a second copy — a guard test fails if the raw pattern
+reappears there, because two copies of one rule is exactly how the tier map and the
+registry drifted apart for two months.
+
+Rates read from `ai.google.dev/gemini-api/docs/pricing` on 2026-08-27, not recalled:
+$0.03 vs $0.30 (2.5-flash) and $0.01 vs $0.10 (2.5-flash-lite) — **10%** for both. The
+storage fee on that page applies to EXPLICIT context caching (a `CachedContent` object
+with a TTL); implicit caching has none, so the table is not silently under-billing.
+
+Live through `ai.chat`:
+
+```
+call 1  input=11406  cached=    0  cost=$0.003424
+call 2  input=  169  cached=11237  cost=$0.000388   ← 89% cheaper
+```
+
+**A correction worth keeping.** My first run concluded that a `systemInstruction`
+prefix does not participate in implicit caching, because 3 calls produced no hit while
+a `contents` prefix hit on call 3. Giving `systemInstruction` the same number of
+attempts showed it hitting on call 5. **The difference was sample size, not placement**
+— the exact trap I had spent the day warning peers about, walked into within an hour.
+
+**And implicit caching is opportunistic, not guaranteed.** In the live run only call 2
+hit; calls 3–6 missed on the same prefix. So this is a real saving to report correctly,
+not a saving to promise. Unlike Mistral's keyed caching, which hit every time.
+
+### openai + deepseek: UNVERIFIED, deliberately
+
+No `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` on this machine, so neither the discount rate
+nor the inclusion semantics (does their prompt count contain the cached tokens?) could
+be measured. Getting that direction wrong silently double-bills or under-bills, so
+nothing was written for them.
+
+`openai` still lacks `cacheReadPer1M` on all 5 rows; `deepseek` still has its cached
+count unread (`prompt_cache_hit_tokens`, a different field name from the shared
+openai-compatible path). **They stay open, and they stay named as unverified rather
+than reported as done.**
