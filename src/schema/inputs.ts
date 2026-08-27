@@ -87,7 +87,9 @@ const callOptions = {
 
 export const chatInputSchema = z.object({
   /** F039 — reuse a cached prompt prefix on Mistral at 10% of the input rate.
-   *  A stable id for "the same conversation" (conversation id, session id). */
+   *  A stable id for "the same conversation" (conversation id, session id).
+   *  Derive it from (tenant, conversation): the key is a shared-prefix identity,
+   *  so two tenants with identical transcripts must get different keys. */
   promptCacheKey: z.string().optional(),
   prompt: z.string().optional(),
   messages: z.array(messageSchema).optional(),

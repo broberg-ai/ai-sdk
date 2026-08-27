@@ -159,7 +159,14 @@ export interface ChatRequest {
    *  conversation" (a conversation id, a session id). Requests sharing a prefix AND
    *  this key reuse the cached prefix at 10% of the input rate. Not auto-generated:
    *  only the caller knows what "the same conversation" means, and an SDK-invented
-   *  key would either collide across tenants or never hit. */
+   *  key would either collide across tenants or never hit.
+   *
+   *  BIND IT TO THE TENANT, not only to the conversation. This key IS a shared-prefix
+   *  identity: two callers passing the same key can be served each other's cached
+   *  prefix. So two tenants with identical transcripts must still get DIFFERENT keys
+   *  — derive it from (tenant, conversation), never from the conversation alone.
+   *  (components' requirement while building @broberg/chat, 2026-08-27, where two
+   *  knowledge bases are written for readers with different permissions.) */
   promptCacheKey?: string;
   temperature?: number;
   /** "json" → request JSON-object output where the provider supports it (F009). */
