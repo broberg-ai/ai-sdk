@@ -30,6 +30,35 @@ export interface OpenAICompatibleConfig {
    *  response's `usage.cost` (USD) as costUsd, falling back to the pricing table.
    *  Only OpenRouter returns this field — openai/deepinfra leave it false. */
   costFromResponseField?: boolean;
+  /** F039.2 — this provider accepts `prompt_cache_key` and caches a shared prefix
+   *  on it. Mistral only, deliberately: an unknown field is ignored by some
+   *  OpenAI-compatible servers and rejected with a 400 by others, so sending it
+   *  everywhere would trade a saving for an outage. Providers that cache
+   *  AUTOMATICALLY (openai, deepseek, gemini) need no key — they only need their
+   *  cached counts read back, which happens for every provider below. */
+  supportsPromptCacheKey?: boolean;
+}
+
+/** A stable cache key derived from the fixed part of the prompt (F039.2).
+ *
+ *  Content-derived on purpose. The key is a shared-prefix identity, so a key
+ *  collision must never mean two callers with DIFFERENT content share a bucket —
+ *  deriving it from the content makes a collision imply the content was identical,
+ *  and identical content cannot leak anything the other party did not already send.
+ *  (An id-derived default — "conversation 42" — would collide across tenants with
+ *  different content. That is the trap components flagged.)
+ *
+ *  Only the leading system message is hashed: it is the part that repeats verbatim
+ *  across every call in an app, which is exactly what caching pays for. */
+function autoCacheKey(messages: { role: string; content: unknown }[]): string | undefined {
+  const system = messages.find((m) => m.role === "system");
+  if (!system || typeof system.content !== "string" || system.content.length < 200) return undefined;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < system.content.length; i++) {
+    h ^= system.content.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `ai-sdk-auto-${h.toString(16)}-${system.content.length}`;
 }
 
 interface OAToolCall {
@@ -108,7 +137,14 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     // 8,810-token prefix reported cached_tokens 0 at every size up to 57k; with it,
     // the second call reported 8,784. Dropping this field was our bug, not a vendor
     // limitation.
-    if (req.promptCacheKey !== undefined) body.prompt_cache_key = req.promptCacheKey;
+    // ON BY DEFAULT (F039.2). Opt-in was the wrong default: it only saves money for
+    // callers who read a changelog, and this repo already learned that lesson once —
+    // ~91% of Mistral spend was invisible because per-repo cost-sink wiring drifted.
+    // `promptCache: false` turns it off; an explicit promptCacheKey always wins.
+    if (config.supportsPromptCacheKey && req.promptCache !== false) {
+      const k = req.promptCacheKey ?? autoCacheKey(req.messages);
+      if (k !== undefined) body.prompt_cache_key = k;
+    }
     if (config.costFromResponseField) body.usage = { include: true };
 
     const res = await httpTransport({

@@ -22,7 +22,7 @@ async function chatCapturing(
     return new Response(JSON.stringify(json), { status: 200 });
   }) as unknown as typeof fetch;
   try {
-    const adapter = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl: "https://x/v1", apiKey: "k" });
+    const adapter = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl: "https://x/v1", apiKey: "k", supportsPromptCacheKey: true });
     // Await FIRST: object-literal properties evaluate in order, so `sent` read
     // before the await would capture the empty object every time — a test that
     // passes on an absent field by accident.
@@ -47,7 +47,7 @@ describe("the request carries the cache key — or nothing", () => {
     expect(sent.prompt_cache_key).toBe("conversation-42");
   });
 
-  test("no promptCacheKey → the field is ABSENT, not empty-string", async () => {
+  test("no key and no system prompt → the field is ABSENT, not empty-string", async () => {
     // Asserted on the captured body, not on the absence of an error: an empty
     // string would be a different (and wrong) cache identity, not "no key".
     const { sent } = await chatCapturing(okBody({ prompt_tokens: 10, completion_tokens: 2 }));
@@ -105,5 +105,95 @@ describe("cached tokens bill at 10% of the input rate", () => {
     expect(cached).toBeLessThan(uncached);
     // ~90% off the prompt half.
     expect(cached / uncached).toBeLessThan(0.15);
+  });
+});
+
+
+// F039.2 — caching is ON BY DEFAULT. Opt-in only saves money for callers who read
+// a changelog; this repo already learned that once, when ~91% of Mistral spend was
+// invisible because per-repo cost-sink wiring drifted (F034).
+const bigSystem = "Du er en assistent med en lang fast instruktion. ".repeat(20);
+
+describe("on by default", () => {
+  test("a long system prompt gets an auto key with NO caller involvement", async () => {
+    const { sent } = await chatCapturing(okBody({ prompt_tokens: 500, completion_tokens: 2 }), {
+      ...baseReq,
+      messages: [{ role: "system", content: bigSystem }, { role: "user", content: "hi" }],
+    });
+    expect(typeof sent.prompt_cache_key).toBe("string");
+    expect(sent.prompt_cache_key as string).toStartWith("ai-sdk-auto-");
+  });
+
+  test("the auto key is CONTENT-derived: same prompt → same key, different → different", async () => {
+    // This is the security property. A collision must imply identical content, so
+    // that sharing a cached prefix cannot reveal anything the other caller did not
+    // already send. An id-derived key ("conversation 42") would collide across
+    // tenants whose content DIFFERS — the trap components flagged.
+    const mk = async (sys: string) =>
+      (await chatCapturing(okBody({ prompt_tokens: 500, completion_tokens: 2 }), {
+        ...baseReq,
+        messages: [{ role: "system", content: sys }, { role: "user", content: "hi" }],
+      })).sent.prompt_cache_key;
+    expect(await mk(bigSystem)).toBe((await mk(bigSystem)) as string);
+    expect(await mk(bigSystem)).not.toBe((await mk(bigSystem + "x")) as string);
+  });
+
+  test("the user turn does NOT change the key — only the cacheable prefix does", async () => {
+    const mk = async (user: string) =>
+      (await chatCapturing(okBody({ prompt_tokens: 500, completion_tokens: 2 }), {
+        ...baseReq,
+        messages: [{ role: "system", content: bigSystem }, { role: "user", content: user }],
+      })).sent.prompt_cache_key;
+    expect(await mk("spørgsmål et")).toBe((await mk("et helt andet spørgsmål")) as string);
+  });
+
+  test("promptCache:false opts out — visibly, in the API", async () => {
+    const { sent } = await chatCapturing(okBody({ prompt_tokens: 500, completion_tokens: 2 }), {
+      ...baseReq,
+      promptCache: false,
+      messages: [{ role: "system", content: bigSystem }, { role: "user", content: "hi" }],
+    });
+    expect("prompt_cache_key" in sent).toBe(false);
+  });
+
+  test("an explicit key always wins over the auto one", async () => {
+    const { sent } = await chatCapturing(okBody({ prompt_tokens: 500, completion_tokens: 2 }), {
+      ...baseReq,
+      promptCacheKey: "tenant-7:conversation-42",
+      messages: [{ role: "system", content: bigSystem }, { role: "user", content: "hi" }],
+    });
+    expect(sent.prompt_cache_key).toBe("tenant-7:conversation-42");
+  });
+
+  test("a SHORT system prompt gets no key — nothing to gain, and a key is not free of thought", async () => {
+    const { sent } = await chatCapturing(okBody({ prompt_tokens: 20, completion_tokens: 2 }), {
+      ...baseReq,
+      messages: [{ role: "system", content: "kort" }, { role: "user", content: "hi" }],
+    });
+    expect("prompt_cache_key" in sent).toBe(false);
+  });
+});
+
+describe("the key is only sent where the provider understands it", () => {
+  test("a provider without supportsPromptCacheKey never receives the field", async () => {
+    // An unknown field is ignored by some OpenAI-compatible servers and rejected
+    // with a 400 by others. Sending it everywhere would trade a saving for an outage.
+    const real = globalThis.fetch;
+    let sent: Record<string, unknown> = {};
+    globalThis.fetch = (async (_u: string, init: { body?: string }) => {
+      sent = JSON.parse(init.body ?? "{}");
+      return new Response(JSON.stringify(okBody({ prompt_tokens: 500, completion_tokens: 2 })), { status: 200 });
+    }) as unknown as typeof fetch;
+    try {
+      const adapter = makeOpenAICompatibleAdapter({ name: "openrouter", baseUrl: "https://x/v1", apiKey: "k" });
+      await adapter.chat!({
+        ...baseReq,
+        promptCacheKey: "explicit",
+        messages: [{ role: "system", content: bigSystem }, { role: "user", content: "hi" }],
+      });
+    } finally {
+      globalThis.fetch = real;
+    }
+    expect("prompt_cache_key" in sent).toBe(false);
   });
 });

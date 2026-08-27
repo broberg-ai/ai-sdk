@@ -91,6 +91,9 @@ export const chatInputSchema = z.object({
    *  Derive it from (tenant, conversation): the key is a shared-prefix identity,
    *  so two tenants with identical transcripts must get different keys. */
   promptCacheKey: z.string().optional(),
+  /** F039.2 — prompt caching is ON by default on providers that support it.
+   *  false opts out; an explicit promptCacheKey always wins. */
+  promptCache: z.boolean().optional(),
   prompt: z.string().optional(),
   messages: z.array(messageSchema).optional(),
   system: z.string().optional(),
@@ -271,6 +274,9 @@ export const availabilitySchema = z.object({
 });
 
 export const aiConfigSchema = z.object({
+  /** F039.2 — client-wide opt-out from prompt caching (default: on where the
+   *  provider supports it). A per-call `promptCache` wins over this. */
+  promptCache: z.boolean().optional(),
   defaults: z.record(tierSchema, tierSpecSchema).optional(),
   // Functions can't be deeply validated — z.custom asserts the TS type and
   // passes the value through untouched.

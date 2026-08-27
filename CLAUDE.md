@@ -265,6 +265,23 @@ never region — and `video`/`embedding` leave the EU. For residency, read
 `usage.provider`/`usage.model` off the RESPONSE (the route that actually answered);
 a response with no `tier` means a fallback was taken.
 
+**Prompt caching is ON by default (v0.31+).** Mistral caches a repeated prompt prefix
+at 10% of the input rate, but only when the request carries a cache key — we used to
+drop it, so every consumer paid full price for an identical system instruction on every
+message. Now the SDK derives one automatically from the system prompt's content
+(content-derived on purpose: a key collision then implies the content was identical, so
+sharing a cached prefix cannot leak). Measured: an 8,810-token instruction costs
+$0.004411 the first time and $0.000458 every time after — **90% off**.
+```ts
+ai.chat({ system, prompt })                              // cached automatically
+ai.chat({ system, prompt, promptCache: false })          // opt out for this call
+ai.chat({ system, prompt, promptCacheKey: `${tenant}:${conversation}` })  // your own key
+createAI({ promptCache: false })                         // opt out client-wide
+```
+**Pass your own key when one system prompt serves several tenants** — the key is a
+shared-prefix identity, so derive it from (tenant, conversation), never the conversation
+alone. Only Mistral takes a key; openai/deepseek/gemini cache automatically.
+
 **GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
 **Do NOT:** import a provider SDK directly · `fetch` a provider API · hardcode a model-string in app code (route by tier; pin via `override` only) · skip the SDK "just this once" · spawn/launch a model without `resolveModel`. The SDK is the single chokepoint so cost-tracking, fallback, and availability work everywhere.

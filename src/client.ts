@@ -378,7 +378,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
-          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey });
+          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey, promptCache: input.promptCache ?? cfg.promptCache });
         },
       });
     },

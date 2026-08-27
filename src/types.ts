@@ -168,6 +168,11 @@ export interface ChatRequest {
    *  (components' requirement while building @broberg/chat, 2026-08-27, where two
    *  knowledge bases are written for readers with different permissions.) */
   promptCacheKey?: string;
+  /** F039.2 — prompt caching is ON by default where the provider supports it.
+   *  Set false to opt out (e.g. a one-shot call whose prefix will never repeat).
+   *  Off has no cost benefit and no penalty; a cache MISS was measured to cost
+   *  exactly the same as a call with no key at all. */
+  promptCache?: boolean;
   temperature?: number;
   /** "json" → request JSON-object output where the provider supports it (F009). */
   responseFormat?: "json" | "text";
