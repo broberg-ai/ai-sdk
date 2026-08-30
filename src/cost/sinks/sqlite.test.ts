@@ -63,3 +63,34 @@ test("empty/unwritten DB summarises to zero total", async () => {
   expect(s.totalUsd).toBe(0);
   expect(s.byProvider).toEqual({});
 });
+
+test("an existing db from an earlier version gains the region column instead of failing", async () => {
+  // The trap CREATE TABLE IF NOT EXISTS sets: it is a no-op on an existing table, so
+  // without a migration every INSERT after this release would fail for anyone who
+  // already had a cost db. Build the OLD schema by hand, then open the sink over it.
+  const { Database } = await import("bun:sqlite");
+  const path = `/tmp/ai-sdk-migrate-${Date.now()}.db`;
+  const old = new Database(path);
+  old.run(`CREATE TABLE ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, provider TEXT NOT NULL,
+    model TEXT NOT NULL, tier TEXT, transport TEXT NOT NULL, capability TEXT NOT NULL,
+    purpose TEXT, input_tokens INTEGER NOT NULL, output_tokens INTEGER NOT NULL,
+    cache_read_tokens INTEGER NOT NULL, cache_creation_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL, latency_ms INTEGER NOT NULL,
+    subprocess INTEGER NOT NULL DEFAULT 0)`);
+  old.run(`INSERT INTO ai_usage (ts,provider,model,transport,capability,input_tokens,
+    output_tokens,cache_read_tokens,cache_creation_tokens,cost_usd,latency_ms)
+    VALUES ('2026-01-01','mistral','m','http','chat',1,1,0,0,0.1,10)`);
+  old.close();
+
+  const sink = sqliteSink({ dbPath: path });
+  await sink.record(usage({ region: "eu" }));
+
+  // Read it BACK from a fresh connection — the sink's own opinion is what lies.
+  const db = new Database(path, { readonly: true });
+  const rows = db.query(`SELECT region FROM ai_usage ORDER BY id`).all() as { region: string }[];
+  expect(rows.length).toBe(2);
+  expect(rows[0]!.region).toBe("unknown"); // the pre-existing row, truthfully unknown
+  expect(rows[1]!.region).toBe("eu");      // strict equality on what we wrote
+  db.close();
+});

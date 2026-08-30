@@ -44,6 +44,36 @@ export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
  * - `configMap` is the client-level AiConfig.defaults (per-tier full specs).
  * - `override` is a per-call Partial<TierSpec> — only the fields it sets win.
  */
+/** Refuse an override that names a different provider without naming a model (F043.2).
+ *
+ *  Exported and called at EVERY spec merge, not only inside resolveTier. The first
+ *  version guarded only the six capabilities that route via a tier; image, animate,
+ *  trainStyle, ocr, moderate, podcast, tts, transcribe and batch merge the override
+ *  themselves and skipped it entirely — so `ai.image({override:{provider:"fal"}})`
+ *  still posted BFL's flux-2-pro to fal, the exact misleading upstream error this was
+ *  written to kill. A guard at six of fifteen call sites is a guard you cannot rely on.
+ *
+ *  We REFUSE rather than re-resolve: choosing a model for the new provider would be
+ *  the SDK making a price decision on the caller's behalf, visible only on the bill.
+ *
+ *  `knownProviders` (when given) lets an UNREGISTERED provider through — that is a
+ *  typo, and "no provider adapter registered" is the useful thing to say about it. */
+export function assertOverrideProvider(
+  base: { provider: string; model: string },
+  override: Partial<TierSpec> | undefined,
+  label: string,
+  knownProviders?: readonly string[],
+): void {
+  if (!override?.provider || override.model !== undefined) return;
+  if (override.provider === base.provider) return;
+  if (knownProviders !== undefined && !knownProviders.includes(override.provider)) return;
+  throw new Error(
+    `createAI: override sets provider "${override.provider}", but "${label}" resolves to model ` +
+      `"${base.model}", which belongs to "${base.provider}". Set a model too, e.g. ` +
+      `override: { provider: "${override.provider}", model: "<a ${override.provider} model>" }.`,
+  );
+}
+
 export function resolveTier(
   tier: Tier,
   override?: Partial<TierSpec>,
@@ -51,28 +81,6 @@ export function resolveTier(
   knownProviders?: readonly string[],
 ): TierSpec {
   const base = configMap?.[tier] ?? DEFAULT_TIER_MAP[tier];
-  // F043: a provider-only override used to keep the TIER's model, so
-  // `override:{provider:"anthropic"}` on tier "cheap" sent mistral-small-latest to
-  // Anthropic's endpoint. Measured by coverletter 4/4 with distinct request_ids, and
-  // it is the natural thing to write — it was literally the advice given to a repo
-  // working around a missing Mistral key, so the escape hatch produced an error that
-  // looked like "Anthropic is down".
-  //
-  // We REFUSE rather than re-resolve. Picking a model for the new provider would mean
-  // the SDK making a price choice on the caller's behalf, and the bill would be the
-  // only place that choice was visible. An explicit error costs one line to fix and
-  // cannot be misread.
-  // A provider the client has never heard of is a TYPO, and "no adapter registered
-  // for \"nope\"" is the useful thing to say about it. Telling that caller to also set
-  // a model would send them down a road that cannot work, so the mismatch guard steps
-  // aside and lets the registry answer.
-  const providerIsReal = knownProviders === undefined || knownProviders.includes(override?.provider ?? "");
-  if (providerIsReal && override?.provider && override.model === undefined && override.provider !== base.provider) {
-    throw new Error(
-      `createAI: override sets provider "${override.provider}", but tier "${tier}" resolves to model ` +
-        `"${base.model}", which belongs to "${base.provider}". Set a model too, e.g. ` +
-        `override: { provider: "${override.provider}", model: "<a ${override.provider} model>" }.`,
-    );
-  }
+  assertOverrideProvider(base, override, tier, knownProviders);
   return { ...base, ...override };
 }

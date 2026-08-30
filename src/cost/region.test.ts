@@ -4,18 +4,43 @@
 // their EU default, once moved. A test that only checks the default would pass on a
 // hard-coded "eu" — which is exactly the bug this feature exists to prevent.
 import { expect, test } from "bun:test";
-import { classifyRegionName, regionOfProvider } from "./region.js";
+import { classifyRegionName, regionOfProvider, regionOfHost } from "./region.js";
 import { freshUsage } from "./usage.js";
 import { defaultProviders } from "../providers/registry.js";
 import { bflAdapter } from "../providers/bfl.js";
 import { azureAdapter } from "../providers/azure.js";
 
-test("fixed-endpoint providers report their real region", () => {
-  expect(regionOfProvider("mistral")).toBe("eu");
-  expect(regionOfProvider("deepl")).toBe("eu");
+test("providers with a truly fixed endpoint report their region by name", () => {
   expect(regionOfProvider("openai")).toBe("us");
   expect(regionOfProvider("anthropic")).toBe("us");
-  expect(regionOfProvider("deepseek")).toBe("cn");
+  expect(regionOfProvider("elevenlabs")).toBe("us");
+});
+
+test("a provider whose base URL is configurable is NOT in the name table", () => {
+  // mistral and deepl both accept config.baseUrl, so their region is a property of
+  // the URL. Claiming "eu" by name would be a false EU claim on the designated
+  // personal-data route — the exact failure this module exists to prevent, which the
+  // first version of it committed. Found in review of F042 itself.
+  expect(regionOfProvider("mistral")).toBe("unknown");
+  expect(regionOfProvider("deepl")).toBe("unknown");
+});
+
+test("region comes from the HOST a call will actually hit", () => {
+  expect(regionOfHost("https://api.mistral.ai/v1")).toBe("eu");
+  expect(regionOfHost("https://api.deepl.com")).toBe("eu");
+  expect(regionOfHost("https://api-free.deepl.com")).toBe("eu");
+  expect(regionOfHost("https://api.openai.com/v1")).toBe("us");
+  expect(regionOfHost("https://api.deepseek.com/v1")).toBe("cn");
+  expect(regionOfHost("https://openrouter.ai/api/v1")).toBe("unknown");
+});
+
+test("a custom gateway in front of an EU provider does NOT inherit its EU claim", () => {
+  // The concrete regression: mistralAdapter({ baseUrl: "https://my-gateway.example" })
+  // used to report "eu" because the table was keyed on the name.
+  expect(regionOfHost("https://my-gateway.example/v1")).toBe("unknown");
+  expect(regionOfHost("https://mistral.some-cloud.us/v1")).toBe("unknown");
+  expect(regionOfHost("not a url")).toBe("unknown");
+  expect(regionOfHost(undefined)).toBe("unknown");
 });
 
 test("aggregators report unknown — they pick their own upstream, so we cannot know", () => {
@@ -59,14 +84,14 @@ test('"unknown" is NOT a positive residency claim — only "eu" is', () => {
 
 test("freshUsage stamps the provider's region when the adapter passes none", () => {
   const u = freshUsage({
-    provider: "mistral",
-    model: "mistral-small-latest",
+    provider: "openai",
+    model: "gpt-4o-mini",
     transport: "http",
     capability: "chat",
     inputTokens: 10,
     outputTokens: 5,
   });
-  expect(u.region).toBe("eu");
+  expect(u.region).toBe("us");
 });
 
 test("an explicit region from the adapter wins over the provider table", () => {

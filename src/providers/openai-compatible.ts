@@ -6,6 +6,7 @@ import { httpTransport, errorBody } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
 import { toolCallArgs, toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
+import { regionOfHost } from "../cost/region.js";
 import type {
   ProviderAdapter,
   ChatRequest,
@@ -178,7 +179,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
       },
     });
     if (!res.ok) {
-      throw new Error(`${config.name} ${res.status}: ${errorBody(res.json)}`);
+      throw new Error(`${config.name} ${res.status}: ${errorBody(res.json, res.text)}`);
     }
     const data = res.json as OAResponse;
     const msg = data.choices?.[0]?.message;
@@ -193,6 +194,9 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     const usage = freshUsage({
       provider: config.name,
       model: req.spec.model,
+      // From the URL we actually called, not from config.name — mistral and deepseek
+      // both take a baseUrl, and a custom gateway must not inherit their EU/CN claim.
+      region: regionOfHost(config.baseUrl),
       transport: "http",
       capability: "chat",
       // prompt_tokens INCLUDES the cached ones; computeCost adds cacheReadTokens on
@@ -272,6 +276,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
         const usage = freshUsage({
           provider: config.name,
           model: req.spec.model,
+          region: regionOfHost(config.baseUrl),
           transport: "http",
           capability: "chat",
           inputTokens: chunk.usage.prompt_tokens ?? 0,

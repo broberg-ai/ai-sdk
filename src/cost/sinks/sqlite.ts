@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   tier TEXT,
   transport TEXT NOT NULL,
   capability TEXT NOT NULL,
+  region TEXT NOT NULL DEFAULT 'unknown',
   purpose TEXT,
   input_tokens INTEGER NOT NULL,
   output_tokens INTEGER NOT NULL,
@@ -44,12 +45,21 @@ export function sqliteSink(config: SqliteSinkConfig): CostSink {
   const init = async () => {
     const db = await openDb(config.dbPath);
     db.run(CREATE_TABLE);
+    // CREATE TABLE IF NOT EXISTS does NOTHING to a table that already exists, so a
+    // consumer with a db from an earlier version keeps the old columns and every
+    // INSERT would fail on the new one. The DEFAULT means existing rows read back as
+    // 'unknown' — which is the truthful answer for a call made before we recorded it,
+    // not a placeholder.
+    const cols = db.query(`PRAGMA table_info(ai_usage)`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === "region")) {
+      db.run(`ALTER TABLE ai_usage ADD COLUMN region TEXT NOT NULL DEFAULT 'unknown'`);
+    }
     const insert = db.prepare(
       `INSERT INTO ai_usage
-         (ts, provider, model, tier, transport, capability, purpose,
+         (ts, provider, model, tier, transport, capability, region, purpose,
           input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
           cost_usd, latency_ms, subprocess)
-       VALUES ($ts, $provider, $model, $tier, $transport, $capability, $purpose,
+       VALUES ($ts, $provider, $model, $tier, $transport, $capability, $region, $purpose,
           $input, $output, $cacheRead, $cacheCreation, $cost, $latency, $subprocess)`,
     );
     return insert;
@@ -65,6 +75,7 @@ export function sqliteSink(config: SqliteSinkConfig): CostSink {
         $tier: usage.tier ?? null,
         $transport: usage.transport,
         $capability: usage.capability,
+        $region: usage.region,
         $purpose: usage.purpose ?? null,
         $input: usage.inputTokens,
         $output: usage.outputTokens,

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { DEFAULT_TIER_MAP, resolveTier } from "./tier-map.js";
+import { DEFAULT_TIER_MAP, assertOverrideProvider, resolveTier } from "./tier-map.js";
 import type { Tier, TierSpec } from "../types.js";
 
 test("DEFAULT_TIER_MAP covers all 6 tiers", () => {
@@ -85,4 +85,18 @@ test("an inherited Object key steps aside for the registry, like any unknown pro
   const known = ["mistral", "anthropic", "openai"];
   expect(() => resolveTier("cheap", { provider: "constructor" }, undefined, known)).not.toThrow();
   expect(() => resolveTier("cheap", { provider: "anthropic" }, undefined, known)).toThrow(/belongs to "mistral"/);
+});
+
+// F043.2 round two: the guard was at 6 of 15 spec merges. The nine capabilities that
+// merge the override themselves skipped it entirely, so ai.image({override:{provider}})
+// still posted BFL's model to fal — the very error the guard was written to kill.
+test("assertOverrideProvider refuses a provider-only override at ANY spec merge", () => {
+  const bfl = { provider: "bfl", model: "flux-2-pro", transport: "http" as const };
+  const known = ["bfl", "fal", "mistral"];
+  expect(() => assertOverrideProvider(bfl, { provider: "fal" }, "image", known)).toThrow(/belongs to "bfl"/);
+  expect(() => assertOverrideProvider(bfl, { provider: "fal", model: "fal-ai/x" }, "image", known)).not.toThrow();
+  expect(() => assertOverrideProvider(bfl, { provider: "bfl" }, "image", known)).not.toThrow();
+  expect(() => assertOverrideProvider(bfl, undefined, "image", known)).not.toThrow();
+  // An unregistered provider defers to the registry's own, more useful error.
+  expect(() => assertOverrideProvider(bfl, { provider: "nope" }, "image", known)).not.toThrow();
 });

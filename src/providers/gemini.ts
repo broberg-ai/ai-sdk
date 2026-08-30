@@ -162,7 +162,7 @@ export function geminiAdapter(
       },
     });
     if (!res.ok) {
-      throw new Error(`gemini ${res.status}: ${errorBody(res.json)}`);
+      throw new Error(`gemini ${res.status}: ${errorBody(res.json, res.text)}`);
     }
     const data = res.json as GeminiResponse;
     const parts = data.candidates?.[0]?.content?.parts ?? [];
@@ -348,7 +348,7 @@ export function geminiAdapter(
       if (opData.error) throw new Error(`gemini animate: ${opData.error.message ?? "operation error"}`);
       if (opData.done) {
         videoUri = opData.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
-        if (!videoUri) throw new Error(`gemini animate: done but no video uri: ${JSON.stringify(opData.response).slice(0, 300)}`);
+        if (!videoUri) throw new Error(`gemini animate: done but no video uri: ${errorBody(opData.response)}`);
         break;
       }
       if (Date.now() >= deadline) throw new Error("gemini animate: timed out");

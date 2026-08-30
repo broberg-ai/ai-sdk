@@ -17,8 +17,19 @@ export async function httpTransport(req: TransportRequest): Promise<HttpResponse
           ? body
           : JSON.stringify(body),
   });
-  const json: unknown = await res.json().catch(() => undefined);
-  return { ok: res.ok, status: res.status, json };
+  // Read the body ONCE as text, then try to parse it. Reading .json() directly
+  // discarded the body whenever it would not parse — so the very case errorBody was
+  // written for (an HTML 502 from a gateway) produced "(no body)" and the outage page
+  // we wanted to show was already gone. Keeping the text costs nothing and is the
+  // difference between a debuggable message and a status code.
+  const text = await res.text().catch(() => "");
+  let json: unknown;
+  try {
+    json = text ? JSON.parse(text) : undefined;
+  } catch {
+    json = undefined;
+  }
+  return { ok: res.ok, status: res.status, json, text };
 }
 
 /** Render a provider error body for an exception message, without ever throwing.
@@ -34,7 +45,8 @@ export async function httpTransport(req: TransportRequest): Promise<HttpResponse
  *
  *  Same family as the two other faults measured that day: a missing value degrading
  *  into something that does not look like a missing value. Here it must look like one. */
-export function errorBody(json: unknown, fallback = "(no body)"): string {
+export function errorBody(json: unknown, rawText?: string): string {
+  const fallback = rawText && rawText.trim() ? rawText.slice(0, 300) : "(no body)";
   if (json === undefined || json === null) return fallback;
   if (typeof json === "string") return json.slice(0, 300);
   try {

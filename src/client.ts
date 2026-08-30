@@ -1,7 +1,7 @@
 // createAI() — the facade factory. Resolves routing, picks a provider adapter,
 // delegates the call, stamps call-context metadata onto Usage, and reports to the
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
-import { resolveTier } from "./routing/tier-map.js";
+import { assertOverrideProvider, resolveTier } from "./routing/tier-map.js";
 import { resolveModel } from "./availability/resolve.js";
 import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
@@ -174,6 +174,27 @@ export function createAI(config: AiConfig = {}): AiClient {
   }
 
   const providerNames = Object.keys(providers);
+
+  /** THE ONE PLACE a non-tier capability merges its override (F043.2). The guard used
+   *  to live inside resolveTier, which nine capabilities never call — so they merged
+   *  the override themselves and skipped it, and ai.image({override:{provider:"fal"}})
+   *  still posted BFL's flux-2-pro to fal.
+   *
+   *  NOT used by tts/podcast/transcribe, and the reason is measured rather than
+   *  assumed: the guard exists because a foreign model id gets POSTED to the provider.
+   *  Azure's TTS never sends spec.model at all — it reads req.voiceId and puts the
+   *  model only in the usage record — so `ai.tts({override:{provider:"azure"}})` is a
+   *  legitimate, already-tested call with nothing to refuse. Guarding it broke that
+   *  test, and the test was right. Speech routes by VOICE; the model is an engine hint
+   *  each adapter interprets for itself. */
+  function withOverride(
+    base: TierSpec,
+    override: Partial<TierSpec> | undefined,
+    label: string,
+  ): TierSpec {
+    assertOverrideProvider(base, override, label, providerNames);
+    return { ...base, ...override };
+  }
 
   function pickProvider(name: string): ProviderAdapter {
     // Object.hasOwn, not a bare lookup: `providers` inherits from Object.prototype, so
@@ -488,7 +509,7 @@ export function createAI(config: AiConfig = {}): AiClient {
             ? DEFAULT_LORA_IMAGE_SPEC
             : DEFAULT_IMAGE_SPEC;
       return runCapability({
-        primary: { ...base, ...input.override },
+        primary: withOverride(base, input.override, "image"),
         fallback: input.fallback,
         capability: "image",
         purpose: input.purpose,
@@ -523,7 +544,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         ? `${input.prompt.trim()} ${ANIMATE_AUDIO_DIRECTIVE}`
         : ANIMATE_AUDIO_DIRECTIVE;
       return runCapability({
-        primary: { ...DEFAULT_ANIMATE_SPEC, ...input.override },
+        primary: withOverride(DEFAULT_ANIMATE_SPEC, input.override, "animate"),
         fallback: input.fallback,
         capability: "animate",
         purpose: input.purpose,
@@ -547,7 +568,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     async trainStyle(input: TrainStyleInput): Promise<TrainStyleResult> {
       input = trainStyleInputSchema.parse(input);
       return runCapability({
-        primary: { ...DEFAULT_TRAINSTYLE_SPEC, ...input.override },
+        primary: withOverride(DEFAULT_TRAINSTYLE_SPEC, input.override, "trainStyle"),
         fallback: input.fallback,
         capability: "trainStyle",
         purpose: input.purpose,
@@ -573,7 +594,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     async ocr(input: OcrInput): Promise<OcrResult> {
       input = ocrInputSchema.parse(input);
       return runCapability({
-        primary: { ...DEFAULT_OCR_SPEC, ...input.override },
+        primary: withOverride(DEFAULT_OCR_SPEC, input.override, "ocr"),
         fallback: input.fallback,
         capability: "ocr",
         purpose: input.purpose,
@@ -592,7 +613,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       input = moderationInputSchema.parse(input);
       const items = Array.isArray(input.input) ? input.input : [input.input];
       return runCapability({
-        primary: { ...DEFAULT_MODERATION_SPEC, ...input.override },
+        primary: withOverride(DEFAULT_MODERATION_SPEC, input.override, "moderate"),
         fallback: input.fallback,
         capability: "moderation",
         purpose: input.purpose,
@@ -707,7 +728,7 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     batch: {
       async submit(input: { requests: BatchRequestItem[]; override?: TierSpec }): Promise<BatchJob> {
-        const spec = { ...DEFAULT_BATCH_SPEC, ...input.override };
+        const spec = withOverride(DEFAULT_BATCH_SPEC, input.override, "batch");
         const adapter = pickProvider(spec.provider);
         if (!adapter.batchSubmit) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
         return adapter.batchSubmit({ items: input.requests, spec });

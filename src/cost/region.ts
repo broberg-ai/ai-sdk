@@ -27,14 +27,55 @@
  */
 export type Region = "eu" | "us" | "cn" | "unknown";
 
+/** Region by HOST — the primary derivation, because it reads the thing that actually
+ *  decides: the URL we are about to call.
+ *
+ *  The first version of this module keyed on provider NAME and carved out three
+ *  adapters as "the configurable ones". That carve-out was wrong: `mistralAdapter`
+ *  and `deeplAdapter` also take a `baseUrl`, so pointing Mistral — our designated
+ *  personal-data route — at a non-EU gateway still reported `region: "eu"`. A false
+ *  EU claim, in the module written to prevent false EU claims. Found in review of
+ *  F042 itself, which is the honest place to record it.
+ *
+ *  An unlisted host is "unknown", never a guess: a custom gateway is exactly the case
+ *  where we cannot know, and the whole contract is that only "eu" is a claim. */
+const HOST_REGION: Record<string, Region> = {
+  "api.mistral.ai": "eu",
+  "api.deepl.com": "eu",
+  "api-free.deepl.com": "eu",
+  "api.eu.bfl.ai": "eu",
+  "api.openai.com": "us",
+  "api.anthropic.com": "us",
+  "api.deepinfra.com": "us",
+  "generativelanguage.googleapis.com": "us",
+  "api.elevenlabs.io": "us",
+  "fal.run": "us",
+  "queue.fal.run": "us",
+  "api.deepseek.com": "cn",
+  // Aggregators: the host is theirs, the upstream is not ours to know.
+  "openrouter.ai": "unknown",
+  "router.requesty.ai": "unknown",
+};
+
+/** Region of the endpoint a call will actually hit. Never throws — a residency
+ *  reading must not be able to break a call that already succeeded. */
+export function regionOfHost(url: string | undefined): Region {
+  if (!url) return "unknown";
+  try {
+    const host = new URL(url).host.toLowerCase();
+    return Object.hasOwn(HOST_REGION, host) ? (HOST_REGION[host] as Region) : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 /** Adapters whose endpoint is FIXED in code — there is no config that moves them, so
  *  the provider name IS the region. Anything absent here must pass its region
  *  explicitly; the fallback is `"unknown"`, never a guess in the reassuring direction. */
 const FIXED_PROVIDER_REGION: Record<string, Region> = {
-  // api.mistral.ai — Paris. The designated EU/GDPR route for personal data.
-  mistral: "eu",
-  // api.deepl.com / api-free.deepl.com — EU-hosted (Falun, Sweden).
-  deepl: "eu",
+  // NB: mistral and deepl are deliberately ABSENT — both take a config.baseUrl, so
+  // their region is a property of the URL, not of the name. They derive via
+  // regionOfHost. Anything left here genuinely cannot be moved by config.
   openai: "us",
   anthropic: "us",
   // generativelanguage.googleapis.com is Google's GLOBAL endpoint, not a US-pinned one.

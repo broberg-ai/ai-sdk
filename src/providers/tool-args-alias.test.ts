@@ -53,3 +53,30 @@ test("end to end: a message history using `args` reaches the provider intact", a
   // Strict equality on the serialised payload: "contains" would pass on "{}" too.
   expect(call!.function.arguments).toBe('{"city":"Aalborg"}');
 });
+
+// THE TEST THAT WAS MISSING. The original "end to end" test called the adapter
+// directly and never touched chatInputSchema — so it passed while the public facade
+// still rejected `args` with the exact error we had told consumers was fixed. A test
+// that exercises the one path nobody uses proves nothing about the path everyone uses.
+test("the PUBLIC facade accepts `args` — validation, not just the adapter", async () => {
+  const { chatInputSchema } = await import("../schema/inputs.js");
+  const hist = (tc: unknown) => ({
+    messages: [
+      { role: "user", content: "x" },
+      { role: "assistant", content: "", toolCalls: [tc] },
+    ],
+  });
+
+  expect(() => chatInputSchema.parse(hist({ id: "c1", name: "f", args: { a: 1 } }))).not.toThrow();
+  expect(() => chatInputSchema.parse(hist({ id: "c1", name: "f", arguments: { a: 1 } }))).not.toThrow();
+
+  // Zod STRIPS unknown keys, so declaring `arguments` optional alone would have
+  // dropped `args` silently. Assert the value SURVIVES parsing, not merely that
+  // parsing succeeded — that distinction is the whole bug.
+  const parsed = chatInputSchema.parse(hist({ id: "c1", name: "f", args: { city: "Aalborg" } }));
+  const tc = (parsed.messages![1] as { toolCalls: { args?: Record<string, unknown> }[] }).toolCalls[0];
+  expect(tc!.args).toEqual({ city: "Aalborg" });
+
+  // A tool call with NEITHER spelling is still a malformed tool call.
+  expect(() => chatInputSchema.parse(hist({ id: "c1", name: "f" }))).toThrow();
+});

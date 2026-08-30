@@ -7,6 +7,7 @@
 // `to`/`from` — NOT the free-form names the chat-based route accepts ("Danish").
 // This adapter does not translate names to codes; pass DeepL's own codes.
 import { freshUsage } from "../cost/usage.js";
+import { regionOfHost } from "../cost/region.js";
 import type { ProviderAdapter, TranslateRequest, TranslateResult } from "../types.js";
 
 /** USD per 1000 characters. UNVERIFIED ESTIMATE — DeepL's own pricing pages
@@ -55,6 +56,7 @@ export function deeplAdapter(
 
     const usage = freshUsage({
       provider: "deepl",
+      region: regionOfHost(baseUrl(apiKey)),
       model: req.spec.model,
       transport: "http",
       capability: "translate",

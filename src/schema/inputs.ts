@@ -50,11 +50,28 @@ export const toolSchema = z.object({
   parameters: z.record(z.unknown()),
 });
 
-export const toolCallSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  arguments: z.record(z.unknown()),
-});
+// F043.4. `arguments` is ours and canonical; `args` is what @broberg/chat emits.
+// The TYPE accepted both from the start — this SCHEMA did not, and chatInputSchema
+// runs on every ai.chat()/ai.chatStream(), so the fix never reached a real consumer:
+// a message history using `args` still failed with
+// "messages.0.toolCalls.0.arguments — Required", verbatim the error we said was fixed.
+// The end-to-end test that "proved" it called the adapter directly and skipped
+// validation entirely — a test that exercised the one path nobody uses.
+//
+// Zod also STRIPS unknown keys, so making `arguments` optional alone would have
+// silently dropped `args` on the floor. Both keys must be declared, and at least one
+// present.
+export const toolCallSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    arguments: z.record(z.unknown()).optional(),
+    args: z.record(z.unknown()).optional(),
+  })
+  .refine((tc) => tc.arguments !== undefined || tc.args !== undefined, {
+    message: "tool call needs `arguments` (canonical) or `args` (@broberg/chat's spelling)",
+    path: ["arguments"],
+  });
 
 export const contentPartSchema = z.union([
   z.object({ type: z.literal("text"), text: z.string() }),

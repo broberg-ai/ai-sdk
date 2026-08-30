@@ -4,7 +4,7 @@
 // is a direct SSML REST call, region-pinned to an EU host. Audio out is MP3 bytes;
 // billed per character. Key + region from AZURE_SPEECH_KEY / AZURE_SPEECH_REGION.
 import { freshUsage } from "../cost/usage.js";
-import { classifyRegionName } from "../cost/region.js";
+import { classifyRegionName, type Region } from "../cost/region.js";
 import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
 
 /** USD per 1000 characters. ≈ Azure neural standard ($16 / 1M chars) — verify on
@@ -134,6 +134,22 @@ export function azureAdapter(
   }
   /** STT host. Default = regional cognitive host; a resource name (config/env) →
    *  the custom-domain host (some resources require it). Live-verified per resource. */
+  /** Residency of the STT host we will ACTUALLY call. sttBaseUrl() may come from a
+   *  custom URL or a resource name, neither of which derives from region() — so
+   *  reading region() here reported "eu" for a call to a US resource whenever
+   *  AZURE_SPEECH_REGION was left at its default. Exactly the failure F042 exists to
+   *  prevent, found in review of F042. A resource host carries no region in its name,
+   *  so it is honestly "unknown" unless an explicit region says otherwise. */
+  function sttRegion(): Region {
+    if (config.sttBaseUrl || config.resource || process.env.AZURE_SPEECH_RESOURCE) {
+      // An explicitly-set region still wins — the caller told us where the resource is.
+      return config.region ?? process.env.AZURE_SPEECH_REGION
+        ? classifyRegionName(region())
+        : "unknown";
+    }
+    return classifyRegionName(region());
+  }
+
   function sttBaseUrl(): string {
     if (config.sttBaseUrl) return config.sttBaseUrl.replace(/\/$/, "");
     const resource = config.resource ?? process.env.AZURE_SPEECH_RESOURCE;
@@ -236,7 +252,7 @@ export function azureAdapter(
     const usage = freshUsage({
       provider: "azure",
       model: req.spec.model,
-      region: classifyRegionName(region()),
+      region: sttRegion(),
       transport: "http",
       capability: "transcribe",
       inputTokens: 0,

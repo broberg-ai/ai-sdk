@@ -27,6 +27,10 @@ export interface HttpResponse {
   ok: boolean;
   status: number;
   json: unknown;
+  /** The raw body as text. `json` is undefined when it would not parse; `text` still
+   *  holds what the server actually said, which is the only useful thing to show on a
+   *  gateway error. */
+  text: string;
 }
 
 /** Subprocess transport result — already normalized from the `claude -p` JSON.

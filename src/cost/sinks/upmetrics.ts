@@ -68,6 +68,10 @@ export function upmetricsSink(config: UpmetricsSinkConfig): CostSink {
             ...usage.labels,
             capability: usage.capability,
             transport: usage.transport,
+            // F042: data residency of the route that answered. Rides in tags like
+            // capability/transport — no ingest-schema change, and without it the one
+            // field built for auditability existed only in memory.
+            region: usage.region,
             sdk: SDK_TAG,
           },
         };

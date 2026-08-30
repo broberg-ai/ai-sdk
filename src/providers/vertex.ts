@@ -15,6 +15,7 @@ import { toInlineImage } from "./media.js";
 import { partsFrom, type GeminiPart, splitCached } from "./gemini.js";
 import { freshUsage, computeCost } from "../cost/usage.js";
 import { classifyRegionName } from "../cost/region.js";
+import { errorBody } from "../transport/http.js";
 import type {
   ProviderAdapter,
   AnimateRequest,
@@ -193,7 +194,7 @@ export function vertexAdapter(
       if (opData.done) {
         const video = opData.response?.videos?.[0];
         if (!video) {
-          throw new Error(`vertex animate: done but no video in response: ${JSON.stringify(opData.response).slice(0, 300)}`);
+          throw new Error(`vertex animate: done but no video in response: ${errorBody(opData.response)}`);
         }
         if (!video.bytesBase64Encoded) {
           if (video.gcsUri) {
@@ -201,7 +202,7 @@ export function vertexAdapter(
               `vertex animate: response returned a gcsUri ("${video.gcsUri}") — GCS download not yet supported (F031.x); this build only handles inline bytes`,
             );
           }
-          throw new Error(`vertex animate: done but no bytesBase64Encoded in response: ${JSON.stringify(opData.response).slice(0, 300)}`);
+          throw new Error(`vertex animate: done but no bytesBase64Encoded in response: ${errorBody(opData.response)}`);
         }
         videoB64 = video.bytesBase64Encoded;
         videoMime = video.mimeType ?? "video/mp4";

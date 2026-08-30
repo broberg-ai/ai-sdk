@@ -280,6 +280,10 @@ const { text, usage } = await ai.chat({ prompt, tier: "smart" });
 if (usage.region !== "eu") throw new Error(`personal data would have left the EU (${usage.region})`);
 ```
 
+`usage.region` is written to the cost sinks too (upmetrics tags, a `region` column in
+sqlite that migrates itself), so residency is auditable after the fact and not only
+in-process.
+
 **Only `"eu"` is a positive residency claim.** `"unknown"` means we cannot say — an
 aggregator picked its own upstream, or the region string is one we do not recognise —
 so `region !== "us"` is NOT an EU check; it passes every OpenRouter call. `video` and
@@ -306,7 +310,20 @@ createAI({ promptCache: false })                         // opt out client-wide
 shared-prefix identity, so derive it from (tenant, conversation), never the conversation
 alone. Only Mistral takes a key; openai/deepseek/gemini cache automatically.
 
-**`override` needs BOTH provider and model (v0.35+).** `override:{provider:"anthropic"}`
+**Reading a tool call back? `arguments` OR `args` both work (v0.36+).** The type
+accepted both from v0.35, but the request SCHEMA did not — so a message history using
+`args` still failed validation with the exact error we said was fixed. Fixed properly in
+0.36; if you bridge `@broberg/chat` and this SDK, take 0.36+. One TypeScript note: on a
+`Message` you read back, `arguments` is now optional, so `msg.toolCalls[0].arguments.x`
+needs a narrow under `strict`. That is a compile break in a minor bump — we said it
+"cannot break anyone" when we shipped it, and that was wrong.
+
+**`override` needs BOTH provider and model (v0.35+, enforced everywhere from v0.36).**
+0.35 guarded only the six capabilities that route via a tier; `image`, `animate`,
+`trainStyle`, `ocr`, `moderate` and `batch` merged the override themselves and skipped
+it. Speech (`tts`/`podcast`/`transcribe`) is deliberately exempt — measured: Azure's TTS
+never sends `spec.model`, it routes by voice, so there is nothing to refuse there.
+ `override:{provider:"anthropic"}`
 alone used to keep the tier's model and post `mistral-small-latest` to Anthropic — a 404
 that reads as "Anthropic is down". It now refuses with a message naming the fix. We do
 not pick a model for you: that would be the SDK making a price decision on your behalf,

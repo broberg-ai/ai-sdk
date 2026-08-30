@@ -151,7 +151,7 @@ export function anthropicAdapter(
         body,
       },
     });
-    if (!res.ok) throw new Error(`anthropic ${res.status}: ${errorBody(res.json)}`);
+    if (!res.ok) throw new Error(`anthropic ${res.status}: ${errorBody(res.json, res.text)}`);
 
     const data = res.json as AnthropicResponse;
     const blocks = data.content ?? [];

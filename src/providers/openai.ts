@@ -35,7 +35,7 @@ export function openaiAdapter(
       },
     });
     if (!res.ok) {
-      throw new Error(`openai ${res.status}: ${errorBody(res.json)}`);
+      throw new Error(`openai ${res.status}: ${errorBody(res.json, res.text)}`);
     }
     const data = res.json as {
       data?: { embedding: number[] }[];
