@@ -284,6 +284,20 @@ if (usage.region !== "eu") throw new Error(`personal data would have left the EU
 sqlite that migrates itself), so residency is auditable after the fact and not only
 in-process.
 
+**You can also ask BEFORE the call (v0.36.4+):** `regionOfHost`, `regionOfProvider` and
+`classifyRegionName` are exported, so a fail-closed guard can refuse before any bytes
+leave — which `usage.region` alone cannot do, since it is only readable once the call
+has happened.
+```ts
+import { regionOfHost } from "@broberg/ai-sdk";
+if (regionOfHost("https://api.mistral.ai/v1") !== "eu") throw new Error("not EU");
+```
+**What that pre-check can and cannot tell you:** it answers for the HOST you hand it.
+For a default-configured adapter that is the provider's real endpoint; if you set your
+own `baseUrl`, you must reason about your own host — the SDK cannot know where your
+gateway forwards to. Saying more than that would be a claim wearing the costume of a
+check, which is the exact fault this field exists to remove.
+
 **Only `"eu"` is a positive residency claim.** `"unknown"` means we cannot say — an
 aggregator picked its own upstream, or the region string is one we do not recognise —
 so `region !== "us"` is NOT an EU check; it passes every OpenRouter call. `video` and

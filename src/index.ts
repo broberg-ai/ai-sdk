@@ -93,6 +93,11 @@ export type {
   UpmetricsCostTimeseries,
 } from "./cost/upmetrics-read.js";
 export { getPrice } from "./cost/pricing.js";
+// F043.8 — the region API was reachable only from inside the package. A consumer
+// could read usage.region AFTER a call and had no way to ask "where would this go?"
+// BEFORE one, which is the half needed to build a fail-closed guard. Two consumers
+// (sanne, super) were blocked on a capability that already existed and had no door.
+export { regionOfHost, regionOfProvider, classifyRegionName, type Region } from "./cost/region.js";
 export type { PricingEntry } from "./cost/pricing.js";
 export {
   httpTransport,
