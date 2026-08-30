@@ -181,3 +181,50 @@ test("an inherited Object key is unknown, not a function off the prototype", () 
     expect(typeof regionOfProvider(key)).toBe("string");
   }
 });
+
+// F043.8 round two — components measured every one of these against 0.36.5.
+test("a BARE hostname is valid input — the trap that made the fix useless", () => {
+  // "api.mistral.ai" is the most natural thing to hand a function called
+  // regionOfHost. It answered "unknown", so a fail-closed guard built on it rejected
+  // everything — the exact fault we had just warned about in regionOfProvider, one
+  // function to the left. We fixed the name-keyed one and left this with the same shape.
+  expect(regionOfHost("api.mistral.ai")).toBe("eu");
+  expect(regionOfHost("https://api.mistral.ai/v1")).toBe("eu");
+  expect(regionOfHost("api.mistral.ai/v1")).toBe("eu");
+  expect(regionOfHost("api.mistral.ai:443")).toBe("eu");
+  expect(regionOfHost("  api.mistral.ai  ")).toBe("eu");
+});
+
+test("case does not matter — and it did NOT work before, on a bare host", () => {
+  // components listed this as working. It was not: an uppercase BARE host failed at
+  // the URL parse, before case was ever considered. Worth a test in both forms.
+  expect(regionOfHost("API.MISTRAL.AI")).toBe("eu");
+  expect(regionOfHost("HTTPS://API.MISTRAL.AI/v1")).toBe("eu");
+});
+
+test("a suffix must never inherit the EU claim", () => {
+  // The one that would actually hurt: an endsWith() check would hand evil.com Mistral's
+  // residency. Exact match only, asserted from both a URL and a bare host.
+  expect(regionOfHost("https://api.mistral.ai.evil.com/v1")).toBe("unknown");
+  expect(regionOfHost("api.mistral.ai.evil.com")).toBe("unknown");
+  expect(regionOfHost("notapi.mistral.ai")).toBe("unknown");
+  expect(regionOfHost("evil.com/api.mistral.ai")).toBe("unknown");
+});
+
+test("credentials in the authority do not smuggle a host past the check", () => {
+  // user@evil.com is a real URL shape; the host is evil.com, not the part before the @.
+  expect(regionOfHost("https://api.mistral.ai@evil.com/v1")).toBe("unknown");
+  expect(regionOfHost("api.mistral.ai@evil.com")).toBe("unknown");
+});
+
+test("a Region handed back in is answered by identity, not by 'unknown'", () => {
+  // "eu" is what this function RETURNS and what a consumer compares against, so
+  // passing it in is the obvious mistake. Answering "unknown" to "eu" is the confident
+  // wrong answer this module keeps having to remove.
+  expect(classifyRegionName("eu")).toBe("eu");
+  expect(classifyRegionName("us")).toBe("us");
+  expect(classifyRegionName("cn")).toBe("cn");
+  expect(classifyRegionName("EU")).toBe("eu");
+  // …and a genuinely unrecognised name is still unknown.
+  expect(classifyRegionName("atlantis-north1")).toBe("unknown");
+});

@@ -300,6 +300,10 @@ has happened.
 import { regionOfHost } from "@broberg/ai-sdk";
 if (regionOfHost("https://api.mistral.ai/v1") !== "eu") throw new Error("not EU");
 ```
+**`regionOfHost` takes a full URL OR a bare hostname** (v0.36.6+) — `"api.mistral.ai"`,
+`"api.mistral.ai:443"` and `"https://api.mistral.ai/v1"` all answer `"eu"`. Up to 0.36.5
+a bare hostname answered `"unknown"`, so a guard built on it rejected everything.
+
 **Build the guard on `regionOfHost`, never on `regionOfProvider`.** A name cannot answer
 for residency when the provider takes a `baseUrl`, so `regionOfProvider("mistral")` is
 `"unknown"` — and a guard written as `regionOfProvider(p) === "eu"` therefore rejects

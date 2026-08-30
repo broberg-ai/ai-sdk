@@ -59,14 +59,36 @@ const HOST_REGION: Record<string, Region> = {
 
 /** Region of the endpoint a call will actually hit. Never throws — a residency
  *  reading must not be able to break a call that already succeeded. */
-export function regionOfHost(url: string | undefined): Region {
-  if (!url) return "unknown";
+export function regionOfHost(hostOrUrl: string | undefined): Region {
+  if (!hostOrUrl) return "unknown";
+  // A BARE HOSTNAME IS VALID INPUT. The first version required a full URL, so
+  // regionOfHost("api.mistral.ai") — the most natural thing to hand a function with
+  // that name — answered "unknown", and a fail-closed guard built on it rejected
+  // EVERYTHING including the one EU route. Found by components immediately after we
+  // shipped the warning about the same trap in regionOfProvider: we fixed the
+  // name-keyed function and left the host-keyed one with the identical shape.
+  const trimmed = hostOrUrl.trim();
+  if (!trimmed) return "unknown";
+  let host = "";
   try {
-    const host = new URL(url).host.toLowerCase();
-    return Object.hasOwn(HOST_REGION, host) ? (HOST_REGION[host] as Region) : "unknown";
+    host = new URL(trimmed).host;
   } catch {
-    return "unknown";
+    /* not a URL — handled below */
   }
+  // A SUCCESSFUL PARSE IS NOT A USABLE HOST. new URL("api.mistral.ai:443") does NOT
+  // throw: it reads "api.mistral.ai:" as a SCHEME and "443" as the path, and hands back
+  // host === "". So the catch never ran and the answer was "unknown" — a call that
+  // succeeded and told us nothing, which is the shape this whole module keeps removing.
+  // Falling through on an empty host is the difference between "parsed" and "answered".
+  if (!host) {
+    // Read it as a host: take only the authority, so "api.mistral.ai/v1" and
+    // "api.mistral.ai:443" both resolve, and drop any credentials before the @.
+    host = trimmed.split("/")[0]!.split("@").pop()!.split(":")[0]!;
+  }
+  host = host.toLowerCase();
+  // Exact match only — never a suffix test. "api.mistral.ai.evil.com" must not inherit
+  // Mistral's EU claim, and an endsWith() check is how that would happen.
+  return Object.hasOwn(HOST_REGION, host) ? (HOST_REGION[host] as Region) : "unknown";
 }
 
 /** Adapters whose endpoint is FIXED in code — there is no config that moves them, so
@@ -135,6 +157,11 @@ export function classifyRegionName(name: string | undefined): Region {
   if (!name) return "unknown";
   const n = name.trim().toLowerCase();
   if (!n) return "unknown";
+  // A Region value passed straight back in. "eu" is what this function RETURNS and
+  // what a consumer compares against, so handing it in is the obvious mistake — and
+  // answering "unknown" to "eu" is the kind of confident wrong answer this module
+  // keeps having to remove. Identity is the honest reply.
+  if (n === "eu" || n === "us" || n === "cn" || n === "unknown") return n as Region;
   // GCP-style: europe-west1, europe-north1, us-central1, …
   if (n.startsWith("europe-")) return "eu";
   if (n.startsWith("us-")) return "us";
