@@ -196,6 +196,23 @@ export function createAI(config: AiConfig = {}): AiClient {
     return { ...base, ...override };
   }
 
+  /** Merge an override WITHOUT the provider/model guard, stating why in the call.
+   *
+   *  The guard exists because a foreign model id gets POSTED to the provider. Where
+   *  the provider never sends spec.model, there is nothing to refuse and guarding
+   *  breaks a legitimate call. That exemption is real — but until now a raw
+   *  `{...base, ...override}` looked identical whether it was DELIBERATE or FORGOTTEN,
+   *  and telling those two apart by counting call sites is exactly what failed three
+   *  times in the fleet this week.
+   *
+   *  So the exemption gets a name and a mandatory reason, and a structural test
+   *  forbids the raw spread everywhere else. `why` is unused at runtime on purpose:
+   *  its whole job is to make a silent exemption impossible to write. */
+  function mergeUnguarded(base: TierSpec, override: Partial<TierSpec> | undefined, why: string): TierSpec {
+    void why;
+    return { ...base, ...override };
+  }
+
   function pickProvider(name: string): ProviderAdapter {
     // Object.hasOwn, not a bare lookup: `providers` inherits from Object.prototype, so
     // providers["constructor"] returns a FUNCTION and passes the !adapter check. The
@@ -643,7 +660,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       });
       const chars = input.script.reduce((n, t) => n + t.text.length, 0);
       return runCapability({
-        primary: { ...DEFAULT_PODCAST_SPEC, ...input.override },
+        primary: mergeUnguarded(DEFAULT_PODCAST_SPEC, input.override, "routes by voice, not by model — the adapter never sends spec.model"),
         fallback: input.fallback,
         capability: "podcast",
         purpose: input.purpose,
@@ -665,7 +682,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       // failure and retried against the fallback chain.
       const { voiceId } = checkVoice(input.voice, { fallback: input.voiceFallback, throwIfUnavailable: true });
       return runCapability({
-        primary: { ...DEFAULT_TTS_SPEC, ...input.override },
+        primary: mergeUnguarded(DEFAULT_TTS_SPEC, input.override, "routes by voice, not by model — the adapter never sends spec.model"),
         fallback: input.fallback,
         capability: "tts",
         purpose: input.purpose,
@@ -705,7 +722,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       input = transcribeInputSchema.parse(input);
       const audio = await resolveAudio(input.audio);
       return runCapability({
-        primary: { ...DEFAULT_TRANSCRIBE_SPEC, ...input.override },
+        primary: mergeUnguarded(DEFAULT_TRANSCRIBE_SPEC, input.override, "routes by voice, not by model — the adapter never sends spec.model"),
         fallback: input.fallback,
         capability: "transcribe",
         purpose: input.purpose,
