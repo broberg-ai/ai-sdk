@@ -2,7 +2,7 @@
 // param (?key=), not a header. System turns map to systemInstruction; assistant
 // maps to role "model". Token counts come from usageMetadata. Tools normalized
 // via F4.5. No @google/generative-ai package — plain fetch through httpTransport.
-import { httpTransport } from "../transport/http.js";
+import { httpTransport, errorBody } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
 import { toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
@@ -162,7 +162,7 @@ export function geminiAdapter(
       },
     });
     if (!res.ok) {
-      throw new Error(`gemini ${res.status}: ${JSON.stringify(res.json).slice(0, 300)}`);
+      throw new Error(`gemini ${res.status}: ${errorBody(res.json)}`);
     }
     const data = res.json as GeminiResponse;
     const parts = data.candidates?.[0]?.content?.parts ?? [];

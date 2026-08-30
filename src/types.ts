@@ -4,6 +4,12 @@
 // later stories reference (Usage, Tool, CostSink, Budget) are defined here so the
 // whole tree compiles against one contract.
 
+// Region is the one shape defined outside this file: its VALUES are a judgement
+// about real-world data residency that belongs next to the table making it, not in
+// a pure type module. Re-exported here so a consumer imports it beside Usage.
+import type { Region } from "./cost/region.js";
+export type { Region };
+
 // ── Transport + routing ────────────────────────────────────────────────────
 
 /** How a call reaches the model. `http` = provider REST API; `subprocess` = local
@@ -62,8 +68,9 @@ export type ContentPart =
 export interface Message {
   role: Role;
   content: string | ContentPart[];
-  /** Set on assistant messages that called tools. */
-  toolCalls?: ToolCall[];
+  /** Set on assistant messages that called tools. Accepts either spelling of the
+   *  arguments field — see ToolCallLike. */
+  toolCalls?: ToolCallLike[];
   /** Set on `tool` role messages — which call this result answers. */
   toolCallId?: string;
 }
@@ -76,12 +83,33 @@ export interface Tool {
   parameters: Record<string, unknown>;
 }
 
-/** A model's request to invoke a tool, normalized across providers (F4.5). */
+/** A model's request to invoke a tool, normalized across providers (F4.5).
+ *  This is what we EMIT — `arguments` is always present on a ToolCall we return. */
 export interface ToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
 }
+
+/** What we ACCEPT when a tool call is handed BACK to us in a message history.
+ *
+ *  F043. `@broberg/chat` spells the same field `args`, consistently across its
+ *  ModelEvent / ChatFrame / ChatTool.run. Two packages describing the same thing
+ *  with two names cost cms a production outage: a rename living in a workaround was
+ *  deleted along with the workaround, and the next call failed with
+ *  `messages.1.toolCalls.0.arguments — Required`.
+ *
+ *  So we read both and keep emitting `arguments`. Accepting is cheap and cannot
+ *  break anyone; renaming would have broken a consumer who adopted the same day, and
+ *  asking every consumer that bridges the two packages to remember a translation is
+ *  how this happens again. Precedence is `arguments` when both are set. */
+export type ToolCallLike = {
+  id: string;
+  name: string;
+  arguments?: Record<string, unknown>;
+  args?: Record<string, unknown>;
+};
+
 
 // ── Usage + cost ───────────────────────────────────────────────────────────
 
@@ -92,6 +120,14 @@ export interface Usage {
   provider: string;
   model: string;
   tier?: Tier;
+  /** Data-residency of the endpoint that ACTUALLY answered (F042). Derived from the
+   *  host/region the request used, not from the provider's name — vertex, azure and
+   *  bfl are EU by default but a consumer can point them elsewhere.
+   *
+   *  **Only `"eu"` is a positive residency claim.** `"unknown"` means we cannot say
+   *  (an aggregator picked its own upstream, or the region string is one we do not
+   *  recognise) — it is NOT a synonym for safe, so `region !== "us"` is not an EU check. */
+  region: Region;
   transport: Transport;
   inputTokens: number;
   outputTokens: number;

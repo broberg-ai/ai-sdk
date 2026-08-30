@@ -48,3 +48,30 @@ test("F030: the former Anthropic tiers now default to Mistral EU", () => {
   // F041: vision moved off small — measured, see the comment in tier-map.ts.
   expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-medium-latest", transport: "http" });
 });
+
+// F043 — a provider-only override used to carry the TIER's model to the new provider.
+test("override with a provider but no model is REFUSED, not silently mismatched", () => {
+  // The measured failure: tier "cheap" → mistral-small-latest, posted to Anthropic.
+  expect(() => resolveTier("cheap", { provider: "anthropic" })).toThrow(/belongs to "mistral"/);
+  // The error must name the fix, not just the problem.
+  expect(() => resolveTier("cheap", { provider: "anthropic" })).toThrow(/Set a model too/);
+});
+
+test("provider + model together is allowed — that is the supported escape hatch", () => {
+  const spec = resolveTier("cheap", { provider: "anthropic", model: "claude-haiku-4-5" });
+  expect(spec.provider).toBe("anthropic");
+  expect(spec.model).toBe("claude-haiku-4-5");
+});
+
+test("an override naming the SAME provider needs no model", () => {
+  // Nothing is mismatched here, so refusing would break a legitimate call.
+  const spec = resolveTier("cheap", { provider: "mistral" });
+  expect(spec.provider).toBe("mistral");
+  expect(spec.model).toBe(DEFAULT_TIER_MAP.cheap.model);
+});
+
+test("a model-only override still works (same provider, different model)", () => {
+  const spec = resolveTier("cheap", { model: "mistral-large-latest" });
+  expect(spec.provider).toBe("mistral");
+  expect(spec.model).toBe("mistral-large-latest");
+});

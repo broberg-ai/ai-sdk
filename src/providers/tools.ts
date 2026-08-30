@@ -2,7 +2,7 @@
 // ToolCall shape; each provider has its own. toProviderTools builds the request
 // tools array; fromProviderToolCall parses one tool-call out of a response.
 // OpenAI, DeepInfra and OpenRouter share the OpenAI-compatible format.
-import type { Tool, ToolCall } from "../types.js";
+import type { ToolCallLike, Tool, ToolCall } from "../types.js";
 
 type ToolProvider = "openai" | "deepinfra" | "openrouter" | "gemini" | "anthropic";
 
@@ -88,4 +88,11 @@ function parseArgs(raw: unknown): Record<string, unknown> {
     }
   }
   return {};
+}
+
+/** Read a tool call's arguments regardless of which spelling the caller used.
+ *  `arguments` is ours and wins; `args` is what @broberg/chat emits. See ToolCallLike
+ *  in types.ts for why both are accepted rather than one of us renaming. */
+export function toolCallArgs(tc: ToolCallLike): Record<string, unknown> {
+  return tc.arguments ?? tc.args ?? {};
 }

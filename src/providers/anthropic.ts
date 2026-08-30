@@ -2,10 +2,10 @@
 // transports: http (api.anthropic.com/v1/messages) and subprocess (claude -p,
 // Max plan, costUsd 0). Critical for the xrt81 vision pilot. Tools normalized
 // via F4.5. No @anthropic-ai/sdk package — plain fetch through httpTransport.
-import { httpTransport } from "../transport/http.js";
+import { httpTransport, errorBody } from "../transport/http.js";
 import { subprocessTransport } from "../transport/subprocess.js";
 import { streamTransport } from "../transport/stream.js";
-import { toProviderTools, fromProviderToolCall } from "./tools.js";
+import { toolCallArgs, toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
 import type {
   ProviderAdapter,
@@ -111,7 +111,7 @@ export function anthropicAdapter(
           blocks.push(...(contentBlocks(m.content) as unknown[]));
         }
         for (const tc of m.toolCalls) {
-          blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments });
+          blocks.push({ type: "tool_use", id: tc.id, name: tc.name, input: toolCallArgs(tc) });
         }
         messages.push({ role: "assistant", content: blocks });
         continue;
@@ -151,7 +151,7 @@ export function anthropicAdapter(
         body,
       },
     });
-    if (!res.ok) throw new Error(`anthropic ${res.status}: ${JSON.stringify(res.json).slice(0, 300)}`);
+    if (!res.ok) throw new Error(`anthropic ${res.status}: ${errorBody(res.json)}`);
 
     const data = res.json as AnthropicResponse;
     const blocks = data.content ?? [];

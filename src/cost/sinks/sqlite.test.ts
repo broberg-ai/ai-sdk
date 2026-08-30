@@ -14,6 +14,7 @@ const usage = (over: Partial<Usage> = {}): Usage => ({
   provider: "anthropic",
   model: "claude-haiku-4-5",
   tier: "fast",
+  region: "us" as const,
   transport: "http",
   inputTokens: 100,
   outputTokens: 50,

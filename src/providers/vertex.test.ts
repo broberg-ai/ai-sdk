@@ -277,3 +277,24 @@ test("project falls back to project_id in the credentials (no second env var nee
     if (prevEnv !== undefined) process.env.GOOGLE_VERTEX_PROJECT = prevEnv;
   }
 });
+
+// F042 — usage.region. Tested at BOTH the EU default and a moved region on purpose:
+// asserting only the default would pass against a hard-coded "eu", which is exactly
+// the lie this field exists to prevent.
+test("usage.region is read from the configured region, not assumed from the provider", async () => {
+  const mk = (region?: string) =>
+    vertexAdapter({
+      credentials: CREDS,
+      project: "my-project",
+      ...(region ? { region } : {}),
+      fetch: vertexFetch({ calls: [], videoB64: Buffer.from([1]).toString("base64") }),
+      pollIntervalMs: 1,
+    });
+  const req = { image: new Uint8Array([0x89, 0x50, 0x4e, 0x47]), prompt: "x", spec };
+
+  const eu = await mk().animate!(req);
+  expect(eu.usage.region).toBe("eu");
+
+  const moved = await mk("us-central1").animate!(req);
+  expect(moved.usage.region).toBe("us");
+});

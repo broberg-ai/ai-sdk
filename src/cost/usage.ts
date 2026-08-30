@@ -3,6 +3,7 @@
 // ./pricing.ts (F3.6); until a model is priced, computeCost returns 0 so calls
 // still complete (cost just shows $0 rather than throwing).
 import { getPrice } from "./pricing.js";
+import { regionOfProvider, type Region } from "./region.js";
 import type { Usage, Transport, Capability } from "../types.js";
 
 /**
@@ -47,6 +48,11 @@ export function freshUsage(args: {
   outputTokens: number;
   cacheReadTokens?: number;
   cacheCreationTokens?: number;
+  /** Data residency of the endpoint this call ACTUALLY used (F042). Pass it from any
+   *  adapter whose region a consumer can change — vertex, azure, bfl. Omitting it
+   *  falls back to the fixed provider table, which does not list those three, so a
+   *  forgetful adapter degrades to "unknown" rather than to a false "eu". */
+  region?: Region;
   subprocess?: boolean;
 }): Usage {
   const cacheReadTokens = args.cacheReadTokens ?? 0;
@@ -65,6 +71,7 @@ export function freshUsage(args: {
   const usage: Usage = {
     provider: args.provider,
     model: args.model,
+    region: args.region ?? regionOfProvider(args.provider),
     transport: args.transport,
     inputTokens: args.inputTokens,
     outputTokens: args.outputTokens,

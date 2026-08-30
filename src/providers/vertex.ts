@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { toInlineImage } from "./media.js";
 import { partsFrom, type GeminiPart, splitCached } from "./gemini.js";
 import { freshUsage, computeCost } from "../cost/usage.js";
+import { classifyRegionName } from "../cost/region.js";
 import type {
   ProviderAdapter,
   AnimateRequest,
@@ -213,6 +214,10 @@ export function vertexAdapter(
     const usage = freshUsage({
       provider: "vertex",
       model: req.spec.model,
+      // Read from the SAME region() that built the URL above — this adapter is EU by
+      // default, but config.region / GOOGLE_VERTEX_REGION can move it, and a residency
+      // field that ignores the override is worse than none.
+      region: classifyRegionName(region()),
       transport: "http",
       capability: "animate",
       inputTokens: 0,
@@ -274,6 +279,10 @@ export function vertexAdapter(
     const usage = freshUsage({
       provider: "vertex",
       model: req.spec.model,
+      // Read from the SAME region() that built the URL above — this adapter is EU by
+      // default, but config.region / GOOGLE_VERTEX_REGION can move it, and a residency
+      // field that ignores the override is worse than none.
+      region: classifyRegionName(region()),
       transport: "http",
       capability: "vision",
       inputTokens,

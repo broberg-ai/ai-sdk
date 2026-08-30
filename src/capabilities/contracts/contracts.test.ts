@@ -6,6 +6,7 @@ import type { ChatResult, Usage } from "../../types.js";
 const usage = (): Usage => ({
   provider: "anthropic",
   model: "claude-sonnet-4-6",
+  region: "eu" as const,
   transport: "http",
   inputTokens: 10,
   outputTokens: 5,

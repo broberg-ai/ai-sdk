@@ -10,6 +10,7 @@ import type { CostSink, Usage } from "../../types.js";
 const fakeUsage = (): Usage => ({
   provider: "anthropic",
   model: "claude-haiku-4-5",
+  region: "eu" as const,
   transport: "http",
   inputTokens: 1,
   outputTokens: 1,

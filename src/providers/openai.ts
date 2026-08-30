@@ -2,7 +2,7 @@
 // shared OpenAI-compatible core; embedding uses the /embeddings endpoint. No
 // openai npm package — plain fetch through httpTransport.
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
-import { httpTransport } from "../transport/http.js";
+import { httpTransport, errorBody } from "../transport/http.js";
 import { freshUsage } from "../cost/usage.js";
 import type {
   ProviderAdapter,
@@ -35,7 +35,7 @@ export function openaiAdapter(
       },
     });
     if (!res.ok) {
-      throw new Error(`openai ${res.status}: ${JSON.stringify(res.json).slice(0, 300)}`);
+      throw new Error(`openai ${res.status}: ${errorBody(res.json)}`);
     }
     const data = res.json as {
       data?: { embedding: number[] }[];

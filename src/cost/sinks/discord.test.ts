@@ -5,6 +5,7 @@ import type { Usage } from "../../types.js";
 const usage = (over: Partial<Usage> = {}): Usage => ({
   provider: "anthropic",
   model: "claude-sonnet-4-6",
+  region: "eu" as const,
   transport: "http",
   inputTokens: 100,
   outputTokens: 50,

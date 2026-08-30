@@ -4,6 +4,7 @@
 // is a direct SSML REST call, region-pinned to an EU host. Audio out is MP3 bytes;
 // billed per character. Key + region from AZURE_SPEECH_KEY / AZURE_SPEECH_REGION.
 import { freshUsage } from "../cost/usage.js";
+import { classifyRegionName } from "../cost/region.js";
 import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
 
 /** USD per 1000 characters. ≈ Azure neural standard ($16 / 1M chars) — verify on
@@ -144,6 +145,9 @@ export function azureAdapter(
     const usage = freshUsage({
       provider: "azure",
       model,
+      // Same region() that picked the host. westeurope by default, but
+      // config.region / AZURE_SPEECH_REGION can point this at eastus.
+      region: classifyRegionName(region()),
       transport: "http",
       capability: "tts",
       inputTokens: 0,
@@ -232,6 +236,7 @@ export function azureAdapter(
     const usage = freshUsage({
       provider: "azure",
       model: req.spec.model,
+      region: classifyRegionName(region()),
       transport: "http",
       capability: "transcribe",
       inputTokens: 0,

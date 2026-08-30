@@ -2,9 +2,9 @@
 // and OpenRouter (F4.4) all speak this wire format — only base URL, key and a
 // couple of headers differ. The adapter uses httpTransport (F2.4) for the wire
 // I/O and the F4.5 tool contract for tool round-tripping.
-import { httpTransport } from "../transport/http.js";
+import { httpTransport, errorBody } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
-import { toProviderTools, fromProviderToolCall } from "./tools.js";
+import { toolCallArgs, toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
 import type {
   ProviderAdapter,
@@ -92,7 +92,7 @@ export function toOpenAIMessage(m: Message): Record<string, unknown> {
       base.tool_calls = m.toolCalls.map((tc) => ({
         id: tc.id,
         type: "function",
-        function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+        function: { name: tc.name, arguments: JSON.stringify(toolCallArgs(tc)) },
       }));
     }
     return base;
@@ -118,34 +118,52 @@ export function toOpenAIMessage(m: Message): Record<string, unknown> {
   return { role: m.role, content };
 }
 
+/** THE ONE PLACE a chat body is built (F043).
+ *
+ *  chat() and chatStream() used to construct this separately, and the prompt-cache
+ *  key was added to only one of them — so every streamed call paid full price for a
+ *  system prompt it had already sent, silently, behind a type that says the two take
+ *  the same request. components (#24153) and sanne (#24154) each measured it in the
+ *  published 0.34.0 tarball before we noticed.
+ *
+ *  Keeping one builder is the actual fix. Copying the missing lines across would have
+ *  closed this instance and left the next added field free to drift the same way.
+ *  chatStream adds only `stream` + `stream_options` on top of what comes back here. */
+function buildChatBody(
+  req: ChatRequest,
+  config: Pick<OpenAICompatibleConfig, "supportsPromptCacheKey" | "costFromResponseField">,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model: req.spec.model,
+    messages: req.messages.map(toOpenAIMessage),
+  };
+  if (req.tools) body.tools = toProviderTools(req.tools, "openai");
+  if (req.maxTokens !== undefined) body.max_tokens = req.maxTokens;
+  if (req.temperature !== undefined) body.temperature = req.temperature;
+  if (req.responseFormat === "json") body.response_format = { type: "json_object" };
+  // F039: Mistral caches a shared prefix at 10% of the input rate, but ONLY when the
+  // request carries a cache key. Measured 2026-08-27: without it, an identical
+  // 8,810-token prefix reported cached_tokens 0 at every size up to 57k; with it, the
+  // second call reported 8,784. Dropping this field was our bug, not a vendor limit.
+  // ON BY DEFAULT (F039.2). Opt-in was the wrong default: it only saves money for
+  // callers who read a changelog, and this repo already learned that lesson once —
+  // ~91% of Mistral spend was invisible because per-repo cost-sink wiring drifted.
+  // `promptCache: false` turns it off; an explicit promptCacheKey always wins.
+  if (config.supportsPromptCacheKey && req.promptCache !== false) {
+    const k = req.promptCacheKey ?? autoCacheKey(req.messages);
+    if (k !== undefined) body.prompt_cache_key = k;
+  }
+  if (config.costFromResponseField) body.usage = { include: true };
+  return body;
+}
+
 export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): ProviderAdapter {
   async function chat(req: ChatRequest): Promise<ChatResult> {
     const apiKey = config.apiKey ?? process.env[`${config.name.toUpperCase()}_API_KEY`];
     if (!apiKey) {
       throw new Error(`${config.name} adapter: API key not set (env ${config.name.toUpperCase()}_API_KEY)`);
     }
-    const body: Record<string, unknown> = {
-      model: req.spec.model,
-      messages: req.messages.map(toOpenAIMessage),
-    };
-    if (req.tools) body.tools = toProviderTools(req.tools, "openai");
-    if (req.maxTokens !== undefined) body.max_tokens = req.maxTokens;
-    if (req.temperature !== undefined) body.temperature = req.temperature;
-    if (req.responseFormat === "json") body.response_format = { type: "json_object" };
-    // F039: Mistral caches a shared prefix at 10% of the input rate, but ONLY when
-    // the request carries a cache key. Measured 2026-08-27: without it, an identical
-    // 8,810-token prefix reported cached_tokens 0 at every size up to 57k; with it,
-    // the second call reported 8,784. Dropping this field was our bug, not a vendor
-    // limitation.
-    // ON BY DEFAULT (F039.2). Opt-in was the wrong default: it only saves money for
-    // callers who read a changelog, and this repo already learned that lesson once —
-    // ~91% of Mistral spend was invisible because per-repo cost-sink wiring drifted.
-    // `promptCache: false` turns it off; an explicit promptCacheKey always wins.
-    if (config.supportsPromptCacheKey && req.promptCache !== false) {
-      const k = req.promptCacheKey ?? autoCacheKey(req.messages);
-      if (k !== undefined) body.prompt_cache_key = k;
-    }
-    if (config.costFromResponseField) body.usage = { include: true };
+    const body = buildChatBody(req, config);
 
     const res = await httpTransport({
       spec: req.spec,
@@ -160,7 +178,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
       },
     });
     if (!res.ok) {
-      throw new Error(`${config.name} ${res.status}: ${JSON.stringify(res.json).slice(0, 300)}`);
+      throw new Error(`${config.name} ${res.status}: ${errorBody(res.json)}`);
     }
     const data = res.json as OAResponse;
     const msg = data.choices?.[0]?.message;
@@ -204,16 +222,10 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
       throw new Error(`${config.name} adapter: API key not set (env ${config.name.toUpperCase()}_API_KEY)`);
     }
     const body: Record<string, unknown> = {
-      model: req.spec.model,
-      messages: req.messages.map(toOpenAIMessage),
+      ...buildChatBody(req, config),
       stream: true,
       stream_options: { include_usage: true },
     };
-    if (req.tools) body.tools = toProviderTools(req.tools, "openai");
-    if (req.maxTokens !== undefined) body.max_tokens = req.maxTokens;
-    if (req.temperature !== undefined) body.temperature = req.temperature;
-    if (req.responseFormat === "json") body.response_format = { type: "json_object" };
-    if (config.costFromResponseField) body.usage = { include: true };
 
     const stream = streamTransport({
       spec: req.spec,

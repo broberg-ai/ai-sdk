@@ -23,6 +23,9 @@ function stubUsage(
   return {
     provider,
     model,
+    // Stubs answer no network, so there is no endpoint whose residency we could
+    // report. "unknown" is the truthful reading — not a placeholder "eu".
+    region: "unknown",
     transport,
     inputTokens: 0,
     outputTokens: 0,

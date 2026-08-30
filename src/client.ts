@@ -173,6 +173,8 @@ export function createAI(config: AiConfig = {}): AiClient {
     if (budget) await budget.record(usage.costUsd);
   }
 
+  const providerNames = Object.keys(providers);
+
   function pickProvider(name: string): ProviderAdapter {
     const adapter = providers[name];
     if (!adapter) {
@@ -311,7 +313,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     );
     const estOut = input.maxTokens ?? 512;
     const routes: TierSpec[] = [
-      resolveTier(tier, input.override, cfg.defaults),
+      resolveTier(tier, input.override, cfg.defaults, providerNames),
       ...(input.fallback ?? []).map((f) =>
         typeof f === "string" ? resolveTier(f, undefined, cfg.defaults) : f,
       ),
@@ -335,6 +337,12 @@ export function createAI(config: AiConfig = {}): AiClient {
           maxTokens: input.maxTokens,
           temperature: input.temperature,
           responseFormat: input.responseFormat,
+          // F043: these two were dropped here, so a streamed call could not cache even
+          // after the adapter learned how. A chat UI streams every turn and repeats the
+          // same system prompt each time — the call shape with the most to gain was the
+          // one paying full price. Kept identical to the chat branch above on purpose.
+          promptCacheKey: input.promptCacheKey,
+          promptCache: input.promptCache ?? cfg.promptCache,
         })) {
           if (ev.type === "text" || ev.type === "tool_call") emitted = true;
           if (ev.type === "usage") {
@@ -367,7 +375,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         0,
       );
       return runCapability({
-        primary: resolveTier(tier, input.override, cfg.defaults),
+        primary: resolveTier(tier, input.override, cfg.defaults, providerNames),
         fallback: input.fallback,
         capability: "chat",
         tier,
@@ -390,7 +398,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       const tier = input.tier ?? VISION_DEFAULT_TIER;
       const messages: Message[] = buildVisionMessages(input);
       return runCapability({
-        primary: resolveTier(tier, input.override, cfg.defaults),
+        primary: resolveTier(tier, input.override, cfg.defaults, providerNames),
         fallback: input.fallback,
         capability: "vision",
         tier,
@@ -411,7 +419,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       const tier = input.tier ?? VIDEO_DEFAULT_TIER;
       const messages: Message[] = buildVideoMessages(input);
       return runCapability({
-        primary: resolveTier(tier, input.override, cfg.defaults),
+        primary: resolveTier(tier, input.override, cfg.defaults, providerNames),
         fallback: input.fallback,
         capability: "video",
         tier,
@@ -434,7 +442,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       const messages: Message[] = buildTranslateMessages(input);
       const estIn = estTokens(input.text) + 40;
       const res = await runCapability<TranslateResult>({
-        primary: resolveTier(tier, input.override, cfg.defaults),
+        primary: resolveTier(tier, input.override, cfg.defaults, providerNames),
         fallback: input.fallback,
         capability: "translate",
         tier,
@@ -650,7 +658,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       const tier = input.tier ?? EMBEDDING_DEFAULT_TIER;
       const text = Array.isArray(input.text) ? input.text : [input.text];
       return runCapability({
-        primary: resolveTier(tier, input.override, cfg.defaults),
+        primary: resolveTier(tier, input.override, cfg.defaults, providerNames),
         fallback: input.fallback,
         capability: "embedding",
         tier,

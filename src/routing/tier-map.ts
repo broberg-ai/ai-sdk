@@ -48,7 +48,31 @@ export function resolveTier(
   tier: Tier,
   override?: Partial<TierSpec>,
   configMap?: Partial<Record<Tier, TierSpec>>,
+  knownProviders?: readonly string[],
 ): TierSpec {
   const base = configMap?.[tier] ?? DEFAULT_TIER_MAP[tier];
+  // F043: a provider-only override used to keep the TIER's model, so
+  // `override:{provider:"anthropic"}` on tier "cheap" sent mistral-small-latest to
+  // Anthropic's endpoint. Measured by coverletter 4/4 with distinct request_ids, and
+  // it is the natural thing to write — it was literally the advice given to a repo
+  // working around a missing Mistral key, so the escape hatch produced an error that
+  // looked like "Anthropic is down".
+  //
+  // We REFUSE rather than re-resolve. Picking a model for the new provider would mean
+  // the SDK making a price choice on the caller's behalf, and the bill would be the
+  // only place that choice was visible. An explicit error costs one line to fix and
+  // cannot be misread.
+  // A provider the client has never heard of is a TYPO, and "no adapter registered
+  // for \"nope\"" is the useful thing to say about it. Telling that caller to also set
+  // a model would send them down a road that cannot work, so the mismatch guard steps
+  // aside and lets the registry answer.
+  const providerIsReal = knownProviders === undefined || knownProviders.includes(override?.provider ?? "");
+  if (providerIsReal && override?.provider && override.model === undefined && override.provider !== base.provider) {
+    throw new Error(
+      `createAI: override sets provider "${override.provider}", but tier "${tier}" resolves to model ` +
+        `"${base.model}", which belongs to "${base.provider}". Set a model too, e.g. ` +
+        `override: { provider: "${override.provider}", model: "<a ${override.provider} model>" }.`,
+    );
+  }
   return { ...base, ...override };
 }

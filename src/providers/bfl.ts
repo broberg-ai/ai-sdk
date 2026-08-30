@@ -21,6 +21,7 @@
 // a face never transits a non-EU host. BFL returns the real `cost` in credits
 // (1 credit = $0.01, official) → usage.costUsd is exact, not estimated.
 import { freshUsage } from "../cost/usage.js";
+import type { Region } from "../cost/region.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
 
 const EU_BASE = "https://api.eu.bfl.ai";
@@ -86,6 +87,18 @@ export async function bflCredits(
   return { credits, usd: credits * BFL_CREDIT_USD };
 }
 
+/** Residency of a BFL base URL (F042). Only the dedicated EU host is an EU claim;
+ *  the global api.bfl.ai auto-failovers to the US, so where a call landed is not
+ *  something we can observe from here — "unknown" is the truthful answer, and it is
+ *  deliberately not "us" (a failover MAY have stayed in the EU; we just cannot say). */
+function bflRegion(base: string): Region {
+  try {
+    return new URL(base).host.toLowerCase() === "api.eu.bfl.ai" ? "eu" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
   const doFetch = config.fetch ?? fetch;
   const base = config.baseUrl ?? EU_BASE;
@@ -143,6 +156,7 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
     const usage = freshUsage({
       provider: "bfl",
       model: req.spec.model,
+      region: bflRegion(base),
       transport: "http",
       capability: "image",
       inputTokens: 0,

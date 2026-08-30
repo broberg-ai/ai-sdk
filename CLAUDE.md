@@ -249,6 +249,14 @@ const r = resolveModel("fable", { fallback: "claude-opus-4-8" });    // sync, ze
 listModels();  // [{ id, alias?, provider, available, status, note? }] — grey out dead tiers in a picker
 ```
 
+**A tier fails CLOSED; a model id fails OPEN — and the difference was written nowhere.**
+Measured by coverletter (2026-08-30): `ai.chat({tier:"chaep"})` throws and lists the
+valid tiers, `{tier:"CHEAP"}` throws (case-sensitive, no normalisation), `{tier:""}`
+throws. But `resolveModel("chaep")` returns `{ok:true, model:"chaep"}`. Both contracts
+are deliberate; only one of them was documented, and it was the fail-open half. So: a
+misspelt TIER can never route your call to a different model than the one in your code
+— the bill cannot surprise you there. A misspelt MODEL ID can, unless you gate.
+
 **If you are GATING, pass `requireKnown: true` (v0.29+).** By default an id the
 registry does not track is fail-open — `ok:true`, `status:"unknown"`, and `model`
 is your own input echoed back. That is right for liveness (never block a model we
@@ -260,12 +268,28 @@ because an error gets handled and a shape does not.
 resolveModel("smrt", { requireKnown: true });  // → { ok:false, status:"unknown", reason: "…not a model this registry knows…" }
 ```
 
-**`resolveModel` does NOT tell you where data goes.** It reports provider + model,
-never region — and `video`/`embedding` leave the EU. For residency, read
-`usage.provider`/`usage.model` off the RESPONSE (the route that actually answered);
-a response with no `tier` means a fallback was taken.
+**`resolveModel` does NOT tell you where data goes** — it reports provider + model,
+never region. **Read `usage.region` off the RESPONSE instead (v0.35+, F042):**
+`"eu" | "us" | "cn" | "unknown"`, derived from the endpoint that ACTUALLY answered, not
+from the provider's name. That distinction is the whole feature: `vertex`, `azure` and
+`bfl` are EU by default but each takes an override, so a provider-name table would
+report `eu` for a call someone had pointed at `us-central1`.
 
-**Prompt caching is ON by default (v0.31+).** Mistral caches a repeated prompt prefix
+```ts
+const { text, usage } = await ai.chat({ prompt, tier: "smart" });
+if (usage.region !== "eu") throw new Error(`personal data would have left the EU (${usage.region})`);
+```
+
+**Only `"eu"` is a positive residency claim.** `"unknown"` means we cannot say — an
+aggregator picked its own upstream, or the region string is one we do not recognise —
+so `region !== "us"` is NOT an EU check; it passes every OpenRouter call. `video` and
+`embedding` still leave the EU, and a response with no `tier` means a fallback was taken.
+
+**Prompt caching is ON by default (v0.31+) — and reaches STREAMING only from v0.35.**
+Up to and including 0.34, `chatStream` sent no cache key at all: not less cache, none.
+Measured in the published tarball by components and sanne, not by us. If you stream —
+and a chat UI always does, on the one call shape that repeats the same system prompt
+every turn — take v0.35+. Mistral caches a repeated prompt prefix
 at 10% of the input rate, but only when the request carries a cache key — we used to
 drop it, so every consumer paid full price for an identical system instruction on every
 message. Now the SDK derives one automatically from the system prompt's content
@@ -281,6 +305,17 @@ createAI({ promptCache: false })                         // opt out client-wide
 **Pass your own key when one system prompt serves several tenants** — the key is a
 shared-prefix identity, so derive it from (tenant, conversation), never the conversation
 alone. Only Mistral takes a key; openai/deepseek/gemini cache automatically.
+
+**`override` needs BOTH provider and model (v0.35+).** `override:{provider:"anthropic"}`
+alone used to keep the tier's model and post `mistral-small-latest` to Anthropic — a 404
+that reads as "Anthropic is down". It now refuses with a message naming the fix. We do
+not pick a model for you: that would be the SDK making a price decision on your behalf,
+visible only on the bill.
+
+**Every text tier is Mistral, so a new adopter needs `MISTRAL_API_KEY` before the
+default route works at all.** Reaching for `override:{provider:"anthropic"}` to get
+moving is understandable and must not become permanent — an un-rolled-back workaround
+turns the EU default into a Claude default one repo at a time, with nobody deciding it.
 
 **GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
