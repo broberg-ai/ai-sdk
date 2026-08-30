@@ -143,7 +143,18 @@ export function classifyRegionName(name: string | undefined): Region {
   return "unknown";
 }
 
-/** Region for an adapter whose endpoint is fixed. Unknown provider → `"unknown"`. */
+/** Region for an adapter whose endpoint is fixed. Unknown provider → `"unknown"`.
+ *
+ *  **DO NOT BUILD A RESIDENCY GUARD ON THIS.** Use {@link regionOfHost} on the base URL
+ *  the call will actually use. Found by a consumer building exactly that guard (super,
+ *  2026-08-30): `regionOfProvider("mistral")` is `"unknown"` — correct, because Mistral
+ *  takes a `baseUrl` and a name cannot answer for residency — but a guard written as
+ *  `regionOfProvider(p) === "eu"` therefore REJECTS Mistral, which is the only EU route
+ *  we have. It fails closed and is useless: it filters out the thing it exists to allow.
+ *
+ *  The trap is invisible from the signature, which is why it is written here rather than
+ *  only in the docs. This function answers "is this provider's endpoint fixed, and where
+ *  is it?" — a narrower question than "where will my call go?". */
 export function regionOfProvider(provider: string): Region {
   // Object.hasOwn, NOT a bare lookup + ??. A plain object inherits from
   // Object.prototype, so FIXED_PROVIDER_REGION["constructor"] returns a FUNCTION and

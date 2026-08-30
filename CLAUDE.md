@@ -300,6 +300,12 @@ has happened.
 import { regionOfHost } from "@broberg/ai-sdk";
 if (regionOfHost("https://api.mistral.ai/v1") !== "eu") throw new Error("not EU");
 ```
+**Build the guard on `regionOfHost`, never on `regionOfProvider`.** A name cannot answer
+for residency when the provider takes a `baseUrl`, so `regionOfProvider("mistral")` is
+`"unknown"` — and a guard written as `regionOfProvider(p) === "eu"` therefore rejects
+**Mistral, the only EU route we have.** Fail-closed and useless: it filters out the thing
+it exists to allow. Found by a consumer building that exact guard, not by us.
+
 **What that pre-check can and cannot tell you:** it answers for the HOST you hand it.
 For a default-configured adapter that is the provider's real endpoint; if you set your
 own `baseUrl`, you must reason about your own host — the SDK cannot know where your
