@@ -75,3 +75,14 @@ test("a model-only override still works (same provider, different model)", () =>
   expect(spec.provider).toBe("mistral");
   expect(spec.model).toBe("mistral-large-latest");
 });
+
+test("an inherited Object key steps aside for the registry, like any unknown provider", () => {
+  // providers["constructor"] returns Object.prototype.constructor — truthy — so the
+  // client's "no adapter registered" guard used to be skipped and the caller got a
+  // confusing "does not support chat" instead. Found in security review of F043.
+  // Here: given the real provider list, "constructor" is NOT one of them, so the
+  // mismatch guard defers and lets the registry produce the useful error.
+  const known = ["mistral", "anthropic", "openai"];
+  expect(() => resolveTier("cheap", { provider: "constructor" }, undefined, known)).not.toThrow();
+  expect(() => resolveTier("cheap", { provider: "anthropic" }, undefined, known)).toThrow(/belongs to "mistral"/);
+});

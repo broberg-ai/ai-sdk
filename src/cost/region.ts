@@ -104,5 +104,15 @@ export function classifyRegionName(name: string | undefined): Region {
 
 /** Region for an adapter whose endpoint is fixed. Unknown provider → `"unknown"`. */
 export function regionOfProvider(provider: string): Region {
-  return FIXED_PROVIDER_REGION[provider] ?? "unknown";
+  // Object.hasOwn, NOT a bare lookup + ??. A plain object inherits from
+  // Object.prototype, so FIXED_PROVIDER_REGION["constructor"] returns a FUNCTION and
+  // the ?? fallback never fires — putting a function where a Region belongs. It fails
+  // safe against `region === "eu"`, but it serialises to nothing, so a cost sink would
+  // record a Usage with no region at all: a missing value that does not look like one,
+  // in the very feature built to stop that. Not reachable today (every caller passes a
+  // hardcoded adapter name) — fixed because "not reachable yet" is not a property we
+  // control from here.
+  return Object.hasOwn(FIXED_PROVIDER_REGION, provider)
+    ? (FIXED_PROVIDER_REGION[provider] as Region)
+    : "unknown";
 }

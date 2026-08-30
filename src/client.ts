@@ -176,7 +176,13 @@ export function createAI(config: AiConfig = {}): AiClient {
   const providerNames = Object.keys(providers);
 
   function pickProvider(name: string): ProviderAdapter {
-    const adapter = providers[name];
+    // Object.hasOwn, not a bare lookup: `providers` inherits from Object.prototype, so
+    // providers["constructor"] returns a FUNCTION and passes the !adapter check. The
+    // caller then got "provider \"constructor\" does not support chat" instead of "no
+    // provider adapter registered" — it fails closed, but on exactly the override path
+    // F043.2 just fixed for giving a misleading message, so leaving it would be
+    // inconsistent with that change.
+    const adapter = Object.hasOwn(providers, name) ? providers[name] : undefined;
     if (!adapter) {
       throw new Error(
         `createAI: no provider adapter registered for "${name}". Registered: ${Object.keys(providers).join(", ") || "(none)"}`,

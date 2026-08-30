@@ -146,3 +146,13 @@ test("azure: the configured region decides, not the provider name", async () => 
   expect(a.usage.region).toBe("eu");
   expect(b.usage.region).toBe("us");
 });
+
+test("an inherited Object key is unknown, not a function off the prototype", () => {
+  // A bare `TABLE[name] ?? "unknown"` returns Object.prototype.constructor here, so the
+  // fallback never fires and usage.region becomes a function — which then vanishes
+  // through JSON.stringify into a cost sink. Found in security review of this feature.
+  for (const key of ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"]) {
+    expect(regionOfProvider(key)).toBe("unknown");
+    expect(typeof regionOfProvider(key)).toBe("string");
+  }
+});
