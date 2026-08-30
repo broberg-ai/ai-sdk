@@ -4,6 +4,7 @@
 // from MISTRAL_API_KEY when not passed.
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
+import { regionOfHost } from "../cost/region.js";
 import type {
   ProviderAdapter,
   OcrRequest,
@@ -77,6 +78,11 @@ export function mistralAdapter(
     const pagesProcessed = data.usage_info?.pages_processed ?? pages.length;
     const usage = freshUsage({
       provider: "mistral",
+      // From the URL we actually called. mistral is deliberately ABSENT from the
+      // provider-name table (config.baseUrl can move it), so omitting this here made
+      // these four report "unknown" instead of "eu" — a regression shipped in 0.36.0
+      // that broke the very enforcement we told consumers to write.
+      region: regionOfHost(baseUrl),
       model: req.spec.model,
       transport: "http",
       capability: "ocr",
@@ -116,6 +122,11 @@ export function mistralAdapter(
     const estIn = req.input.reduce((n, s) => n + Math.ceil(s.length / 4), 0);
     const usage = freshUsage({
       provider: "mistral",
+      // From the URL we actually called. mistral is deliberately ABSENT from the
+      // provider-name table (config.baseUrl can move it), so omitting this here made
+      // these four report "unknown" instead of "eu" — a regression shipped in 0.36.0
+      // that broke the very enforcement we told consumers to write.
+      region: regionOfHost(baseUrl),
       model: req.spec.model,
       transport: "http",
       capability: "moderation",
@@ -143,6 +154,11 @@ export function mistralAdapter(
     const vectors = (data.data ?? []).map((d) => d.embedding);
     const usage = freshUsage({
       provider: "mistral",
+      // From the URL we actually called. mistral is deliberately ABSENT from the
+      // provider-name table (config.baseUrl can move it), so omitting this here made
+      // these four report "unknown" instead of "eu" — a regression shipped in 0.36.0
+      // that broke the very enforcement we told consumers to write.
+      region: regionOfHost(baseUrl),
       model: req.spec.model,
       transport: "http",
       capability: "embedding",
@@ -171,6 +187,11 @@ export function mistralAdapter(
     const data = (await res.json()) as { text?: string };
     const usage = freshUsage({
       provider: "mistral",
+      // From the URL we actually called. mistral is deliberately ABSENT from the
+      // provider-name table (config.baseUrl can move it), so omitting this here made
+      // these four report "unknown" instead of "eu" — a regression shipped in 0.36.0
+      // that broke the very enforcement we told consumers to write.
+      region: regionOfHost(baseUrl),
       model: req.spec.model,
       transport: "http",
       capability: "transcribe",
