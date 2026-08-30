@@ -734,13 +734,13 @@ export function createAI(config: AiConfig = {}): AiClient {
         return adapter.batchSubmit({ items: input.requests, spec });
       },
       async status(jobId: string, override?: TierSpec): Promise<BatchJob> {
-        const spec = { ...DEFAULT_BATCH_SPEC, ...override };
+        const spec = withOverride(DEFAULT_BATCH_SPEC, override, "batch.status");
         const adapter = pickProvider(spec.provider);
         if (!adapter.batchStatus) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
         return adapter.batchStatus({ jobId, spec });
       },
       async results(jobId: string, override?: TierSpec): Promise<BatchResultItem[]> {
-        const spec = { ...DEFAULT_BATCH_SPEC, ...override };
+        const spec = withOverride(DEFAULT_BATCH_SPEC, override, "batch.results");
         const adapter = pickProvider(spec.provider);
         if (!adapter.batchResults) throw new Error(`createAI: provider "${spec.provider}" does not support batch`);
         return adapter.batchResults({ jobId, spec });
