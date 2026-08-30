@@ -284,6 +284,14 @@ if (usage.region !== "eu") throw new Error(`personal data would have left the EU
 sqlite that migrates itself), so residency is auditable after the fact and not only
 in-process.
 
+> **Skip 0.36.0–0.36.2 if you enforce EU residency.** In that window Mistral's `ocr`,
+> `moderate`, `embedding` and `transcribe` reported `"unknown"` instead of `"eu"`.
+> **It failed CLOSED** — a guard written as `if (region !== "eu") reject` was REFUSING
+> your own legitimate EU calls, not letting anything through. Nothing went the wrong
+> way; a surface could simply stop working with no obvious cause. Say it that way round
+> when you pass it on: "the region was wrong" makes a reader assume the opposite, and
+> the opposite is the incident this was not. Fixed in 0.36.3.
+
 **You can also ask BEFORE the call (v0.36.4+):** `regionOfHost`, `regionOfProvider` and
 `classifyRegionName` are exported, so a fail-closed guard can refuse before any bytes
 leave — which `usage.region` alone cannot do, since it is only readable once the call
