@@ -374,16 +374,28 @@ leaked would take the whole fleet offline at once instead of one surface. Store 
 your project's vault with `env_var_name: "MISTRAL_API_KEY"` set, so the next session
 knows where to write it; a vaulted key with no env-var mapping is one nobody wires up.
 
-**EU embeddings already work — no new account, the same Mistral key (measured 2026-08-31).**
-`ai.embedding` defaults to `openai:text-embedding-3-small`, which is US. The EU route is
-one line at the call site:
-```ts
-ai.embedding({ input, override: { provider: "mistral", model: "mistral-embed" } });
-```
-It costs **$0.10/1M vs $0.02/1M — 5x** the US default, and it returns a DIFFERENT vector
-length, so an existing index has to be rebuilt, not topped up. Both halves are the
-decision; the price alone is not. Unmeasured as of this date: the exact dimension count
-and retrieval quality, because this repo has no Mistral key of its own to probe with.
+**EU embeddings already work — no new account, the same Mistral key.** `ai.embedding`
+defaults to `openai:text-embedding-3-small`. Measured with live calls 2026-08-31, not
+read off a table:
+
+| route | dims | `usage.region` | $/1M |
+|---|---|---|---|
+| `openai:text-embedding-3-small` (default) | 1536 | `us` | 0.02 |
+| `override:{provider:"mistral", model:"mistral-embed"}` | **1024** | `eu` | 0.10 |
+| `override:{provider:"mistral", model:"codestral-embed"}` | **1536** | `eu` | 0.15 |
+
+**`region:"us"` here is measured, not assumed from a provider name** — the default route
+is a direct call to `api.openai.com`, not an aggregator, so there is no hidden CN upstream
+to worry about on this path. (There would be on OpenRouter, which is why `openrouter.ai`
+reports `"unknown"` rather than a region.)
+
+**The dimension column is the one that costs money, not the price column.** Two models
+produce vectors in different spaces, so switching embedding model at any point means
+**re-embedding the whole corpus** — the old vectors cannot be queried with the new model,
+whatever their length. `codestral-embed` matches the default's 1536 so the *column and
+index config* survive, but the *content* still does not. Practical consequence: build a
+corpus you intend to ship on the model you intend to ship, or pay for it twice. At these
+rates the 5x is 8 dollars on a 100M-token corpus; the rebuild is the real bill.
 
 **GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
