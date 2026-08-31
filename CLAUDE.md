@@ -366,6 +366,25 @@ default route works at all.** Reaching for `override:{provider:"anthropic"}` to 
 moving is understandable and must not become permanent — an un-rolled-back workaround
 turns the EU default into a Claude default one repo at a time, with nobody deciding it.
 
+**One Mistral account per repo, never a shared fleet key (Christian, 2026-08-31).** Get
+your own from the vault (`cardmem_list_secrets` on your project) or ask Christian to
+create one; do not borrow another repo's. A shared key makes the Mistral dashboard's
+usage graph unreadable — every repo's spend lands in one line — and revoking a key that
+leaked would take the whole fleet offline at once instead of one surface. Store it in
+your project's vault with `env_var_name: "MISTRAL_API_KEY"` set, so the next session
+knows where to write it; a vaulted key with no env-var mapping is one nobody wires up.
+
+**EU embeddings already work — no new account, the same Mistral key (measured 2026-08-31).**
+`ai.embedding` defaults to `openai:text-embedding-3-small`, which is US. The EU route is
+one line at the call site:
+```ts
+ai.embedding({ input, override: { provider: "mistral", model: "mistral-embed" } });
+```
+It costs **$0.10/1M vs $0.02/1M — 5x** the US default, and it returns a DIFFERENT vector
+length, so an existing index has to be rebuilt, not topped up. Both halves are the
+decision; the price alone is not. Unmeasured as of this date: the exact dimension count
+and retrieval quality, because this repo has no Mistral key of its own to probe with.
+
 **GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
 **Do NOT:** import a provider SDK directly · `fetch` a provider API · hardcode a model-string in app code (route by tier; pin via `override` only) · skip the SDK "just this once" · spawn/launch a model without `resolveModel`. The SDK is the single chokepoint so cost-tracking, fallback, and availability work everywhere.
