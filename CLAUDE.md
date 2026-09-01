@@ -234,6 +234,32 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 // also: ai.vision · ai.video · ai.translate · ai.image · ai.embedding · ai.transcribe · ai.ocr · ai.moderate · ai.contracts.{extract,classify,…}
 ```
 
+**Pin with `^`, and keep it moving.** Under 1.0.0 npm's caret means PATCH-ONLY, so
+`^0.36.6` reaches 0.36.7 and never 0.37.0. That is the right behaviour for this package
+in both directions, and it is not the bug it looks like:
+
+- **Our minors DO break working consumers.** Measured over the last 16 releases, four
+  times: `0.21.0` moved every text tier off Anthropic (a repo with only
+  `ANTHROPIC_API_KEY` lost its route); `0.34.0` moved the `vision` tier from
+  mistral-small to mistral-medium; `0.35.0` made a tool call's `arguments` optional (a
+  compile break under `strict`); `0.36.0` made `override:{provider}` without a model
+  throw where it used to run. A range like `>=0.36.6 <1` adopts the next one of those
+  automatically.
+- **Our patches are the fixes you most need.** `0.36.3` and `0.36.6` both repaired
+  guards that were refusing legitimate EU calls. Caret takes those.
+
+**So the range is right and the SILENCE is the defect.** A stale pin looks identical to
+a current one: `^0.34.0` reads as "tracking 0.34.x" and is in fact frozen while the
+package is three minors ahead — measured on a real consumer, and it cost them a claim
+about a capability they could not actually reach. **And the break is not always loud:**
+the `vision` move would have thrown nothing at all, just quietly billed a different
+model. Do not reason that a breaking minor will announce itself.
+
+**Check the gap rather than trusting the caret.** Discovery already serves both numbers
+side by side — `GET https://discovery.broberg.ai/api/sessions/<your-session>` returns
+your `enrolled` version next to the `available` one. Read it when you touch AI code, and
+bump deliberately.
+
 **Route by tier, not by model-string.** Tiers → current model (overridable per call):
 **Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
 `fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=**mistral-medium-latest** · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
