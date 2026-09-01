@@ -1,7 +1,67 @@
 {
-  "generatedAt": "2026-08-27T20:46:29.843Z",
-  "modelCount": 417,
+  "generatedAt": "2026-09-01T08:20:58.639Z",
+  "modelCount": 420,
   "models": [
+    {
+      "provider": "ibm-granite",
+      "model": "ibm-granite/granite-4.2-8b",
+      "name": "IBM: Granite 4.2 8B",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.09999999999999999,
+        "output": 0.15,
+        "cacheReadPer1M": 0.049999999999999996
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 131072,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Granite 4.2 8B is a dense reasoning model from IBM. It is suited for mathematics, code generation, multilingual dialogue, and agentic workflows that need multi-step reasoning. It supports full, low-effort,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "tencent",
+      "model": "tencent/hy4-preview",
+      "name": "Tencent: Hy4 preview",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.834,
+        "output": 2.501,
+        "cacheReadPer1M": 0.041999999999999996
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Tencent: Hy4 preview is a mixture-of-experts model from Tencent, with 49B active parameters out of 770B total. It is designed for coding agents, complex tool-use workflows, and productivity tasks that...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
     {
       "provider": "inclusionai",
       "model": "inclusionai/ling-3.0-flash-fin:free",
@@ -101,6 +161,40 @@
       "gdprSafe": false
     },
     {
+      "provider": "z-ai",
+      "model": "z-ai/glm-5.3-flash:batch",
+      "name": "Z.ai: GLM 5.3 Flash (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.15,
+        "output": 0.5,
+        "cacheReadPer1M": 0.03
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048575,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "GLM-5.3-Flash is a native multimodal model from Z.ai. It is suited for efficient coding and long-horizon agent tasks. Its hybrid sparse and linear attention architecture maintains accurate long-context behavior while...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "meta",
       "model": "meta/muse-spark-1.2-contributor",
       "name": "Meta: Muse Spark 1.2 Contributor",
@@ -141,9 +235,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Vision Exp",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.22,
-        "output": 0.66,
-        "cacheReadPer1M": 0.007
+        "input": 0.44,
+        "output": 1.32,
+        "cacheReadPer1M": 0.014
       },
       "inputModalities": [
         "text",
@@ -232,9 +326,9 @@
       "name": "Z.ai: GLM Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.4,
-        "output": 4.4,
-        "cacheReadPer1M": 0.26
+        "input": 1.17,
+        "output": 3.9600000000000004,
+        "cacheReadPer1M": 0.234
       },
       "inputModalities": [
         "text"
@@ -242,7 +336,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 1310720,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -297,7 +391,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 1310720,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -378,9 +472,9 @@
       "name": "Google: Gemini 3.7 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.375,
-        "output": 1.875,
-        "cacheReadPer1M": 0.0375
+        "input": 0.75,
+        "output": 3.75,
+        "cacheReadPer1M": 0.075
       },
       "inputModalities": [
         "text",
@@ -507,6 +601,35 @@
       "gdprSafe": false
     },
     {
+      "provider": "qwen",
+      "model": "qwen/qwen3.8-2.4t-a95b:batch",
+      "name": "Qwen: Qwen3.8 2.4T A95B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 2.5,
+        "output": 6.25,
+        "cacheReadPer1M": 0.5
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1010000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Qwen3.8 2.4T A95B is an open-weight sparse mixture-of-experts model from Qwen and the open-weight variant of [Qwen3.8 Max](/qwen/qwen3.8-max), with 95 billion active parameters out of 2.4 trillion total. It is...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "bytedance-seed",
       "model": "bytedance-seed/seed-2.0-code",
       "name": "ByteDance Seed: Seed-2.0-Code",
@@ -544,9 +667,39 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0813",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.122,
-        "output": 3.366,
-        "cacheReadPer1M": 0.037399999999999996
+        "input": 1.1154,
+        "output": 3.3461999999999996,
+        "cacheReadPer1M": 0.03718
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "frontier"
+      ],
+      "description": "DeepSeek V4 Pro 0813 is a large-scale mixture-of-experts model from DeepSeek. This is the GA release of DeepSeek V4 Pro.",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek/deepseek-v4-pro-0813:batch",
+      "name": "DeepSeek: DeepSeek V4 Pro 0813 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.32,
+        "output": 3.9600000000000004,
+        "cacheReadPer1M": 0.13
       },
       "inputModalities": [
         "text"
@@ -753,6 +906,37 @@
       "name": "Meta: Muse Glimmer 30B",
       "pricing": {
         "unit": "per_1m_tokens",
+        "input": 0.3,
+        "output": 1.2,
+        "cacheReadPer1M": 0.04
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 131072,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Muse Glimmer 30B is a dense, open-weight multimodal model from Meta Superintelligence Labs, distilled from Muse Spark and optimized for autonomous agents on consumer hardware. It is suited for long-horizon...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "meta",
+      "model": "meta/muse-glimmer-30b:batch",
+      "name": "Meta: Muse Glimmer 30B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
         "input": 0.35,
         "output": 1.5,
         "cacheReadPer1M": 0.04
@@ -852,9 +1036,9 @@
       "name": "DeepSeek V4 Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.03,
-        "output": 0.09999999999999999,
-        "cacheReadPer1M": 0.007
+        "input": 0.049999999999999996,
+        "output": 0.16,
+        "cacheReadPer1M": 0.013000000000000001
       },
       "inputModalities": [
         "text"
@@ -883,9 +1067,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0731",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.09999999999999999,
-        "cacheReadPer1M": 0.01
+        "input": 0.065,
+        "output": 0.18,
+        "cacheReadPer1M": 0.016
       },
       "inputModalities": [
         "text"
@@ -894,6 +1078,37 @@
         "text"
       ],
       "contextLength": 1310720,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "DeepSeek V4 Flash 0731 is a sparse mixture-of-experts model from DeepSeek, with 13B active parameters out of 284B total. This re-post-trained revision is suited for coding, reasoning, and agent workflows....",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek/deepseek-v4-flash-0731:batch",
+      "name": "DeepSeek: DeepSeek V4 Flash 0731 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.14,
+        "output": 0.28,
+        "cacheReadPer1M": 0.03
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -927,6 +1142,42 @@
         "text"
       ],
       "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "reasoning",
+        "fast",
+        "edge"
+      ],
+      "description": "Inkling Small is an open-weight multimodal mixture-of-experts model from Thinking Machines Lab, with 12B active parameters out of 276B total. It is positioned as the smaller, more efficient member of...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "thinkingmachines",
+      "model": "thinkingmachines/inkling-small:batch",
+      "name": "Thinking Machines: Inkling Small (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.5,
+        "output": 1.2,
+        "cacheReadPer1M": 0.09999999999999999
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "audio"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 524288,
       "supportsTools": true,
       "supportsStructuredOutput": false,
       "categories": [],
@@ -1386,9 +1637,9 @@
       "name": "Thinking Machines: Inkling",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.95,
+        "input": 1,
         "output": 4.05,
-        "cacheReadPer1M": 0.16
+        "cacheReadPer1M": 0.16999999999999998
       },
       "inputModalities": [
         "text",
@@ -1547,6 +1798,38 @@
       "gdprSafe": false
     },
     {
+      "provider": "moonshotai",
+      "model": "moonshotai/kimi-k3:batch",
+      "name": "MoonshotAI: Kimi K3 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 3,
+        "output": 15,
+        "cacheReadPer1M": 0.3
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Kimi K3 is a 2.8T parameter open-weight multimodal reasoning model from Moonshot AI. It is suited for complex coding, knowledge work, and long-horizon agentic workflows, and is particularly strong at...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "meta",
       "model": "meta/muse-spark-1.1",
       "name": "Meta: Muse Spark 1.1",
@@ -1583,36 +1866,6 @@
     },
     {
       "provider": "kwaipilot",
-      "model": "kwaipilot/kat-coder-air-v2.5",
-      "name": "Kwaipilot: KAT-Coder-Air V2.5",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.6,
-        "cacheReadPer1M": 0.03
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 256000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "coding"
-      ],
-      "description": "KAT-Coder-Air V2.5 is a flagship-level Agentic Coding model that can directly hand over an entire issue or an entire business workflow to it, allowing it to autonomously locate and make...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "kwaipilot",
       "model": "kwaipilot/kat-coder-pro-v2.5",
       "name": "Kwaipilot: KAT-Coder-Pro V2.5",
       "pricing": {
@@ -1627,7 +1880,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 256000,
+      "contextLength": 262144,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -2168,9 +2421,9 @@
       "name": "Tencent: Hy3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0825,
-        "output": 0.33,
-        "cacheReadPer1M": 0.020625
+        "input": 0.13199999999999998,
+        "output": 0.5279999999999999,
+        "cacheReadPer1M": 0.032999999999999995
       },
       "inputModalities": [
         "text"
@@ -2622,38 +2875,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "moonshotai",
-      "model": "moonshotai/kimi-k2.7-code:batch",
-      "name": "MoonshotAI: Kimi K2.7 Code (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.95,
-        "output": 4,
-        "cacheReadPer1M": 0.19
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "coding"
-      ],
-      "description": "MoonshotAI: Kimi K2.7 Code is a coding-focused model in Moonshot AI's Kimi K2 family, built to complete end-to-end programming tasks reliably over long contexts. It uses a native multimodal mixture-of-experts...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
       "provider": "~anthropic",
       "model": "~anthropic/claude-fable-latest",
       "name": "Anthropic: Claude Fable Latest",
@@ -2712,7 +2933,7 @@
         "agentic"
       ],
       "description": "Claude Fable 5 is a Mythos-class model from Anthropic, built for autonomous knowledge work and coding. It supports text, image, and file inputs with text output, with reasoning support and...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -2817,9 +3038,9 @@
       "name": "NVIDIA: Nemotron 3 Ultra",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6,
-        "output": 3.5999999999999996,
-        "cacheReadPer1M": 0.19999999999999998
+        "input": 0.5,
+        "output": 2.2,
+        "cacheReadPer1M": 0.09999999999999999
       },
       "inputModalities": [
         "text"
@@ -2827,7 +3048,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 512288,
+      "contextLength": 262144,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -3566,6 +3787,37 @@
       "gdprSafe": true
     },
     {
+      "provider": "mistralai",
+      "model": "mistralai/mistral-medium-3-5:batch",
+      "name": "Mistral: Mistral Medium 3.5 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.75,
+        "output": 3.75
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Mistral Medium 3.5 is a dense 128B instruction-following model from Mistral AI. It supports text and image inputs with text output, and is designed for agentic workflows, coding, and complex...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "eu",
+      "gdprSafe": true
+    },
+    {
       "provider": "nvidia",
       "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
       "name": "NVIDIA: Nemotron 3 Nano Omni (free)",
@@ -3745,9 +3997,9 @@
       "name": "Google Gemini Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.375,
-        "output": 1.875,
-        "cacheReadPer1M": 0.0375
+        "input": 0.75,
+        "output": 3.75,
+        "cacheReadPer1M": 0.075
       },
       "inputModalities": [
         "text",
@@ -4092,7 +4344,7 @@
         "frontier"
       ],
       "description": "GPT-5.5 is OpenAI’s frontier model designed for complex professional workloads, building on GPT-5.4 with stronger reasoning, higher reliability, and improved token efficiency on hard tasks. It features a 1M+ token...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -4136,9 +4388,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.87,
-        "output": 1.74,
-        "cacheReadPer1M": 0.0725
+        "input": 1.5999999999999999,
+        "output": 3.1999999999999997,
+        "cacheReadPer1M": 0.135
       },
       "inputModalities": [
         "text"
@@ -4166,9 +4418,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.07798000000000001,
-        "output": 0.15596000000000002,
-        "cacheReadPer1M": 0.015595999999999999
+        "input": 0.08092,
+        "output": 0.16184,
+        "cacheReadPer1M": 0.016184
       },
       "inputModalities": [
         "text"
@@ -4482,9 +4734,9 @@
       "name": "Z.ai: GLM 5.1",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.26,
-        "output": 3.9600000000000004,
-        "cacheReadPer1M": 0.234
+        "input": 0.966,
+        "output": 3.036,
+        "cacheReadPer1M": 0.1794
       },
       "inputModalities": [
         "text"
@@ -4576,6 +4828,37 @@
         "input": 0.09,
         "output": 0.33999999999999997,
         "cacheReadPer1M": 0.049999999999999996
+      },
+      "inputModalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Gemma 4 31B Instruct is Google DeepMind's 30.7B dense multimodal model supporting text and image input with text output. Features a 256K token context window, configurable thinking/reasoning mode, native function...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemma-4-31b-it:batch",
+      "name": "Google: Gemma 4 31B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.39,
+        "output": 0.9700000000000001
       },
       "inputModalities": [
         "image",
@@ -4699,8 +4982,8 @@
       "name": "Arcee AI: Trinity Large Thinking",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.22,
-        "output": 0.85,
+        "input": 0.25,
+        "output": 0.7999999999999999,
         "cacheReadPer1M": 0.06
       },
       "inputModalities": [
@@ -4711,7 +4994,7 @@
       ],
       "contextLength": 262144,
       "supportsTools": true,
-      "supportsStructuredOutput": true,
+      "supportsStructuredOutput": false,
       "categories": [],
       "goodFor": [
         "agentic",
@@ -5294,6 +5577,37 @@
       "gdprSafe": false
     },
     {
+      "provider": "qwen",
+      "model": "qwen/qwen3.5-9b:batch",
+      "name": "Qwen: Qwen3.5-9B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.16999999999999998,
+        "output": 0.25
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Qwen3.5-9B is a multimodal foundation model from the Qwen3.5 family, designed to deliver strong reasoning, coding, and visual understanding in an efficient 9B-parameter architecture. It uses a unified vision-language design...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "openai",
       "model": "openai/gpt-5.4-pro",
       "name": "OpenAI: GPT-5.4 Pro",
@@ -5625,8 +5939,8 @@
       "name": "Qwen: Qwen3.5-122B-A10B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.26,
-        "output": 2.08
+        "input": 0.29,
+        "output": 2.4
       },
       "inputModalities": [
         "text",
@@ -6241,9 +6555,9 @@
       "name": "MoonshotAI: Kimi K2.5",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6,
-        "output": 3,
-        "cacheReadPer1M": 0.09999999999999999
+        "input": 0.44999999999999996,
+        "output": 2.25,
+        "cacheReadPer1M": 0.07
       },
       "inputModalities": [
         "text",
@@ -6877,9 +7191,9 @@
       "name": "Mistral: Devstral 2 2512",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.44,
-        "output": 2.2,
-        "cacheReadPer1M": 0.044
+        "input": 0.39999999999999997,
+        "output": 2,
+        "cacheReadPer1M": 0.04
       },
       "inputModalities": [
         "text",
@@ -7191,9 +7505,9 @@
       "name": "DeepSeek: DeepSeek V3.2",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.26,
-        "output": 0.38,
-        "cacheReadPer1M": 0.13
+        "input": 0.26899999999999996,
+        "output": 0.39999999999999997,
+        "cacheReadPer1M": 0.13449999999999998
       },
       "inputModalities": [
         "text"
@@ -7243,7 +7557,7 @@
         "frontier"
       ],
       "description": "Claude Opus 4.5 is Anthropic’s frontier reasoning model optimized for complex software engineering, agentic workflows, and long-horizon computer use. It offers strong multimodal capabilities, competitive performance across real-world coding and...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -7280,34 +7594,6 @@
       "isModerated": true,
       "source": "openrouter",
       "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "allenai",
-      "model": "allenai/olmo-3-32b-think",
-      "name": "AllenAI: Olmo 3 32B Think",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.5
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 65536,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "reasoning"
-      ],
-      "description": "Olmo 3 32B Think is a large-scale, 32-billion-parameter model purpose-built for deep reasoning, complex logic chains and advanced instruction-following scenarios. Its capacity enables strong performance on demanding evaluation tasks and...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -7587,7 +7873,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 32000,
+      "contextLength": 32768,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -7993,8 +8279,8 @@
       "name": "Qwen: Qwen3 VL 30B A3B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.13,
-        "output": 0.52
+        "input": 0.15,
+        "output": 0.6
       },
       "inputModalities": [
         "text",
@@ -8379,39 +8665,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/gpt-5-codex:batch",
-      "name": "OpenAI: GPT-5 Codex (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.625,
-        "output": 5,
-        "cacheReadPer1M": 0.0625
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 400000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "coding",
-        "frontier"
-      ],
-      "description": "GPT-5-Codex is a specialized version of GPT-5 optimized for software engineering and coding workflows. It is designed for both interactive development sessions and long, independent execution of complex engineering tasks....",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
       "gdprSafe": false
     },
     {
@@ -9006,6 +9259,34 @@
     },
     {
       "provider": "openai",
+      "model": "openai/gpt-oss-120b:batch",
+      "name": "OpenAI: gpt-oss-120b (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.15,
+        "output": 0.6
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 131072,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "gpt-oss-120b is an open-weight, 117B-parameter Mixture-of-Experts (MoE) language model from OpenAI designed for high-reasoning, agentic, and general-purpose production use cases. It activates 5.1B parameters per forward pass and is optimized...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
       "model": "openai/gpt-oss-20b",
       "name": "OpenAI: gpt-oss-20b",
       "pricing": {
@@ -9027,6 +9308,32 @@
       "goodFor": [
         "agentic"
       ],
+      "description": "gpt-oss-20b is an open-weight 21B parameter model released by OpenAI under the Apache 2.0 license. It uses a Mixture-of-Experts (MoE) architecture with 3.6B active parameters per forward pass, optimized for...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
+      "model": "openai/gpt-oss-20b:batch",
+      "name": "OpenAI: gpt-oss-20b (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.049999999999999996,
+        "output": 0.19999999999999998
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 131072,
+      "supportsTools": false,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [],
       "description": "gpt-oss-20b is an open-weight 21B parameter model released by OpenAI under the Apache 2.0 license. It uses a Mixture-of-Experts (MoE) architecture with 3.6B active parameters per forward pass, optimized for...",
       "isModerated": false,
       "source": "openrouter",
@@ -9854,38 +10161,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "openai",
-      "model": "openai/o3-pro:batch",
-      "name": "OpenAI: o3 Pro (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 10,
-        "output": 40
-      },
-      "inputModalities": [
-        "text",
-        "file",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "frontier"
-      ],
-      "description": "The o-series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o3-pro model uses more compute to think harder and provide consistently...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "google",
       "model": "google/gemini-2.5-pro-preview",
       "name": "Google: Gemini 2.5 Pro Preview 06-05",
@@ -10090,35 +10365,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "arcee-ai",
-      "model": "arcee-ai/virtuoso-large",
-      "name": "Arcee AI: Virtuoso Large",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.75,
-        "output": 1.2
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "frontier"
-      ],
-      "description": "Virtuoso‑Large is Arcee's top‑tier general‑purpose LLM at 72 B parameters, tuned to tackle cross‑domain reasoning, creative writing and enterprise QA. Unlike many 70 B peers, it retains the 128 k...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "meta-llama",
       "model": "meta-llama/llama-guard-4-12b",
       "name": "Meta: Llama Guard 4 12B",
@@ -10301,40 +10547,6 @@
         "input": 1.1,
         "output": 4.4,
         "cacheReadPer1M": 0.275
-      },
-      "inputModalities": [
-        "image",
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o4-mini-high is the same model as [o4-mini](/openai/o4-mini) with reasoning_effort set to high. OpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o4-mini-high:batch",
-      "name": "OpenAI: o4 Mini High (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.55,
-        "output": 2.2,
-        "cacheReadPer1M": 0.1375
       },
       "inputModalities": [
         "image",
@@ -10699,7 +10911,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.19999999999999998,
-        "output": 0.7999999999999999
+        "output": 0.696
       },
       "inputModalities": [
         "text",
@@ -10728,9 +10940,8 @@
       "name": "Meta: Llama 4 Scout",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.11,
-        "output": 0.33999999999999997,
-        "cacheReadPer1M": 0.055
+        "input": 0.09999999999999999,
+        "output": 0.3
       },
       "inputModalities": [
         "text",
@@ -10789,37 +11000,6 @@
         "unit": "per_1m_tokens",
         "input": 150,
         "output": 600
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "frontier"
-      ],
-      "description": "The o1 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o1-pro:batch",
-      "name": "OpenAI: o1-pro (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 75,
-        "output": 300
       },
       "inputModalities": [
         "text",
@@ -11005,7 +11185,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 262144,
+      "contextLength": 131072,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -11172,38 +11352,6 @@
         "input": 1.1,
         "output": 4.4,
         "cacheReadPer1M": 0.55
-      },
-      "inputModalities": [
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o3-mini-high is the same model as [o3-mini](/openai/o3-mini) with reasoning_effort set to high. o3-mini is a cost-efficient language model optimized for STEM reasoning tasks, particularly excelling in science, mathematics, and...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o3-mini-high:batch",
-      "name": "OpenAI: o3 Mini High (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.55,
-        "output": 2.2,
-        "cacheReadPer1M": 0.275
       },
       "inputModalities": [
         "text",
@@ -11637,38 +11785,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "openai",
-      "model": "openai/o1:batch",
-      "name": "OpenAI: o1 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 7.5,
-        "output": 30,
-        "cacheReadPer1M": 3.75
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "The latest and strongest model family from OpenAI, o1 is designed to spend more time thinking before responding. The o1 model series is trained with large-scale reinforcement learning to reason...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "cohere",
       "model": "cohere/command-r7b-12-2024",
       "name": "Cohere: Command R7B (12-2024)",
@@ -11939,7 +12055,7 @@
       "name": "Magnum v4 72B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 3,
+        "input": 2.5,
         "output": 5
       },
       "inputModalities": [
@@ -11985,32 +12101,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "thedrummer",
-      "model": "thedrummer/rocinante-12b",
-      "name": "TheDrummer: Rocinante 12B",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 0.5
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 65536,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "Rocinante 12B is designed for engaging storytelling and rich prose. Early testers have reported: - Expanded vocabulary with unique and expressive word choices - Enhanced creativity for vivid narratives -...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -12868,7 +12958,7 @@
         "audio",
         "agentic"
       ],
-      "description": "Your prompt will be processed by a meta-model and routed to one of dozens of models (see below), optimizing for the best possible output. To see which model was used,...",
+      "description": "The Auto Router automatically selects the best model for your prompt, powered by the wisdom of the market. It routes you based on what the OpenRouter community collectively spends on...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -12934,7 +13024,7 @@
       "name": "Mancer: Weaver (alpha)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.5,
+        "input": 0.39999999999999997,
         "output": 0.75
       },
       "inputModalities": [
