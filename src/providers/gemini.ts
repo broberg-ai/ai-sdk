@@ -121,7 +121,7 @@ export function geminiAdapter(
 
   function resolveKey(): string {
     const apiKey = config.apiKey ?? process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("gemini adapter: API key not set (env GOOGLE_API_KEY)");
+    if (!apiKey) throw new Error("gemini adapter: API key not set (env GOOGLE_API_KEY or GEMINI_API_KEY)");
     return apiKey;
   }
 

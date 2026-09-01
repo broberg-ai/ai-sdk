@@ -100,7 +100,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
 
   async function image(req: ImageRequest): Promise<ImageResult> {
     const apiKey = resolveKey();
-    if (!apiKey) throw new Error("fal adapter: FAL_KEY not set");
+    if (!apiKey) throw new Error("fal adapter: API key not set (env FAL_KEY or FAL_API_KEY)");
     const headers = authHeaders(apiKey);
 
     const body: Record<string, unknown> = { prompt: req.prompt };
@@ -141,7 +141,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
 
   async function animate(req: AnimateRequest): Promise<AnimateResult> {
     const apiKey = resolveKey();
-    if (!apiKey) throw new Error("fal adapter: FAL_KEY not set");
+    if (!apiKey) throw new Error("fal adapter: API key not set (env FAL_KEY or FAL_API_KEY)");
     const headers = authHeaders(apiKey);
 
     // Input image: a URL passes through; raw bytes are uploaded to fal storage
@@ -183,7 +183,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
 
   async function trainStyle(req: TrainStyleRequest): Promise<TrainStyleResult> {
     const apiKey = resolveKey();
-    if (!apiKey) throw new Error("fal adapter: FAL_KEY not set");
+    if (!apiKey) throw new Error("fal adapter: API key not set (env FAL_KEY or FAL_API_KEY)");
     const headers = authHeaders(apiKey);
 
     const body: Record<string, unknown> = {

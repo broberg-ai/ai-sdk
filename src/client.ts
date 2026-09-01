@@ -98,11 +98,32 @@ const DEFAULT_ANIMATE_SPEC: TierSpec = {
   model: "veo-3.1-generate-preview",
   transport: "http",
 };
-/** Default audio directive appended to every ai.animate prompt (F024, Christian's
- *  preference): no generated speech (it's the weak link, esp. non-English), but
- *  ambient sounds matched to the scene are wanted. A soft prompt instruction. */
+/** Default audio directive for ai.animate (F024, Christian's preference): no
+ *  generated speech (it's the weak link, esp. non-English), but ambient sounds
+ *  matched to the scene are wanted. A soft prompt instruction. */
 const ANIMATE_AUDIO_DIRECTIVE =
   "No spoken dialogue, no talking, no voiceover. Include natural ambient background sounds that match the environment.";
+
+/** Does the route we ACTUALLY resolved to produce an audio track? (F045)
+ *
+ *  This used to be appended to every animate prompt unconditionally. super measured a
+ *  Kling clip we generated through fal and found NO audio stream at all — so on that
+ *  route the directive is not merely wasted tokens, it describes a world with sound to
+ *  a model that can only draw. The instruction that cannot be obeyed still competes for
+ *  attention with the one that can.
+ *
+ *  Keyed on the MODEL, not the provider: fal also serves Veo (`fal-ai/veo3.1/...`),
+ *  which does have audio, so "fal means silent" would be wrong the moment someone
+ *  overrides to Veo through the aggregator. Unknown models get the directive — the
+ *  historical behaviour, and the safe direction: a silent model ignores a sentence
+ *  about sound, while withholding it from an audio model silently degrades the output
+ *  we ship by default. */
+function routeHasAudio(spec: { provider: string; model: string }): boolean {
+  const m = spec.model.toLowerCase();
+  // Known silent image-to-video families. Measured: Kling v2.5 (ffprobe, 0 audio streams).
+  if (m.includes("kling") || m.includes("seedance") || m.includes("wan-")) return false;
+  return true;
+}
 /** EU-resident finetuned-portrait route (F023) — BFL, used by ai.image when a
  *  `finetune` id is supplied. Hard-pinned to api.eu.bfl.ai inside the adapter. */
 const DEFAULT_BFL_FINETUNE_SPEC: TierSpec = {
@@ -556,10 +577,11 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async animate(input: AnimateInput): Promise<AnimateResult> {
       input = animateInputSchema.parse(input);
-      // Append the default audio directive (no speech, ambient sounds matched to scene).
-      const prompt = input.prompt?.trim()
-        ? `${input.prompt.trim()} ${ANIMATE_AUDIO_DIRECTIVE}`
-        : ANIMATE_AUDIO_DIRECTIVE;
+      // The audio directive is decided per RESOLVED route, INSIDE invoke — not here.
+      // Built up front it would be computed before withOverride and before any
+      // fallback, i.e. from a spec the call may never use: exactly the gap between
+      // what we say and what we send that F045 is about.
+      const basePrompt = input.prompt?.trim() ?? "";
       return runCapability({
         primary: withOverride(DEFAULT_ANIMATE_SPEC, input.override, "animate"),
         fallback: input.fallback,
@@ -571,9 +593,12 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.animate) throw new Error(`createAI: provider "${spec.provider}" does not support animate`);
+          const prompt = routeHasAudio(spec)
+            ? `${basePrompt} ${ANIMATE_AUDIO_DIRECTIVE}`.trim()
+            : basePrompt;
           return adapter.animate({
             image: input.image,
-            prompt,
+            prompt: prompt || undefined,
             durationSec: input.durationSec,
             resolution: input.resolution,
             spec,

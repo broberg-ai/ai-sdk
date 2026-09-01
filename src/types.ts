@@ -273,7 +273,9 @@ export interface ImageResult {
 
 /** Image-to-video generation (F024) — animate a still into a short clip. */
 export interface AnimateRequest {
-  /** Input image: a URL (passed through) or raw bytes (uploaded to fal storage). */
+  /** Input image: a URL (passed through) or raw bytes. Where bytes are uploaded is
+   *  the ADAPTER's business — fal uses fal storage, the Gemini/Veo default inlines
+   *  them — so do not read a storage provider out of this field. */
   image: string | Uint8Array;
   /** Motion/scene prompt, e.g. "the subject turns and smiles". */
   prompt?: string;
@@ -466,7 +468,11 @@ export interface ProviderAdapter {
   translate?(req: TranslateRequest): Promise<TranslateResult>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
-  /** Image-to-video generation (F024) — animate a still into a short clip. fal. */
+  /** Image-to-video generation (F024) — animate a still into a short clip. gemini
+   *  (Veo 3.1) by default; override to fal for Kling/Seedance. Name only the DEFAULT
+   *  route here — provider-doc-drift.test.ts fails if this and DEFAULT_ANIMATE_SPEC
+   *  disagree, because this sentence is the editor tooltip a consumer reads when
+   *  deciding which API key to buy. */
   animate?(req: AnimateRequest): Promise<AnimateResult>;
   /** Train a style/brand LoRA from images (F021). fal. */
   trainStyle?(req: TrainStyleRequest): Promise<TrainStyleResult>;

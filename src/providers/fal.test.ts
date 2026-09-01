@@ -119,9 +119,48 @@ test("animate: config.pricePerSecond overrides the blessed per-second rate", asy
   expect(res.usage.costUsd).toBeCloseTo(0.4, 6); // 0.1 × 4s, override wins
 });
 
-test("missing FAL_KEY throws", async () => {
-  const prev = process.env.FAL_KEY;
+test("no fal key at all throws, and the error names BOTH accepted vars", async () => {
+  // Both are cleared, not just FAL_KEY: the adapter reads `FAL_KEY ?? FAL_API_KEY`, so a
+  // machine with the second one set would have kept this test green while proving
+  // nothing about the first. It passed for years because nobody here sets FAL_API_KEY.
+  const prevKey = process.env.FAL_KEY;
+  const prevAlt = process.env.FAL_API_KEY;
   delete process.env.FAL_KEY;
-  await expect(falAdapter({}).image!(req)).rejects.toThrow(/FAL_KEY not set/);
-  if (prev !== undefined) process.env.FAL_KEY = prev;
+  delete process.env.FAL_API_KEY;
+  try {
+    // F045: the message used to name only FAL_KEY while accepting either, which sent a
+    // consumer to obtain a key under a name they already had under the other one.
+    await expect(falAdapter({}).image!(req)).rejects.toThrow(/FAL_KEY.*FAL_API_KEY/);
+  } finally {
+    if (prevKey !== undefined) process.env.FAL_KEY = prevKey;
+    if (prevAlt !== undefined) process.env.FAL_API_KEY = prevAlt;
+  }
+});
+
+test("the ALTERNATE var alone is enough, and it is the key actually SENT", async () => {
+  // Without this, "throws when both are missing" would also pass on an adapter that
+  // ignored FAL_API_KEY entirely — the opposite bug, and just as silent.
+  //
+  // Asserted on the Authorization header, not on "it did not throw". A no-throw check
+  // needs a real request to fail against, i.e. it would put a live call to fal.run in
+  // the suite — and it would still pass if the adapter read the var and then sent
+  // something else.
+  const seen: string[] = [];
+  const fetchImpl = (async (_u: string, init?: RequestInit) => {
+    seen.push((init!.headers as Record<string, string>)["Authorization"]!);
+    return new Response(JSON.stringify({ images: [{ url: "u" }] }), { status: 200 });
+  }) as unknown as typeof fetch;
+
+  const prevKey = process.env.FAL_KEY;
+  const prevAlt = process.env.FAL_API_KEY;
+  delete process.env.FAL_KEY;
+  process.env.FAL_API_KEY = "alt-key-value";
+  try {
+    await falAdapter({ fetch: fetchImpl }).image!(req);
+    expect(seen[0]).toBe("Key alt-key-value");
+  } finally {
+    if (prevKey !== undefined) process.env.FAL_KEY = prevKey;
+    if (prevAlt === undefined) delete process.env.FAL_API_KEY;
+    else process.env.FAL_API_KEY = prevAlt;
+  }
 });
