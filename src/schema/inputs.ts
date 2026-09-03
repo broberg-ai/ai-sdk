@@ -184,7 +184,8 @@ export const imageInputSchema = z.object({
 
 // Image-to-video (F024) — animate a still into a short clip via a pluggable provider.
 export const animateInputSchema = z.object({
-  /** Input image: a URL or raw bytes (uploaded to fal storage). */
+  /** Input image: a URL or raw bytes. Where bytes are uploaded is the ADAPTER's
+   *  business — fal uses fal storage, the Gemini/Veo default inlines them. */
   image: z.union([z.string(), z.instanceof(Uint8Array)]),
   /** Motion/scene prompt. */
   prompt: z.string().optional(),
@@ -334,7 +335,13 @@ export interface AiClient {
   video(input: VideoInput): Promise<ChatResult>;
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
-  /** Image-to-video (F024) — animate a still into a short clip → { url, usage }. fal. */
+  /** Image-to-video (F024) — animate a still into a short clip → { url, usage }.
+   *  gemini (Veo 3.1) by default; override to fal for Kling/Seedance.
+   *
+   *  THIS one is the tooltip a consumer sees, because it sits on the method they call.
+   *  F045 fixed the same stale "fal." on ProviderAdapter and missed this copy — super
+   *  measured the published 0.36.7 tarball and found it still here, which is why the
+   *  drift guard now walks the FACADE as well as the adapter interface. */
   animate(input: AnimateInput): Promise<AnimateResult>;
   /** Train a style/brand LoRA from images (F021) → { loraUrl, configUrl }. fal. */
   trainStyle(input: TrainStyleInput): Promise<TrainStyleResult>;

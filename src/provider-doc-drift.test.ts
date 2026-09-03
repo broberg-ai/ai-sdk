@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 
 const types = readFileSync(new URL("./types.ts", import.meta.url), "utf8");
 const client = readFileSync(new URL("./client.ts", import.meta.url), "utf8");
+const inputs = readFileSync(new URL("./schema/inputs.ts", import.meta.url), "utf8");
 
 const PROVIDERS = [
   "fal", "gemini", "vertex", "mistral", "anthropic", "openai",
@@ -42,16 +43,25 @@ function specProvider(name: string): string {
   return m[1]!;
 }
 
-/** The doc block immediately above a ProviderAdapter member, flattened to one line. */
-function memberDoc(member: string): string {
-  const block = types.match(/export interface ProviderAdapter \{([\s\S]*?)\n\}/);
-  if (!block) throw new Error("ProviderAdapter interface not found in types.ts");
+/** The doc block immediately above a member of the named interface, flattened.
+ *
+ *  TWO interfaces, because the first version of this guard only walked ProviderAdapter
+ *  and therefore could not see the copy that mattered most. super measured the published
+ *  0.36.7 tarball and found `AiClient.animate` still saying "fal." — the tooltip on the
+ *  method a consumer actually CALLS, while the one we had fixed sits on an interface
+ *  most consumers never open. Fixing the instance, missing the class, in the guard
+ *  written to stop exactly that. */
+function memberDoc(member: string, iface: "ProviderAdapter" | "AiClient" = "ProviderAdapter"): string {
+  const src = iface === "AiClient" ? inputs : types;
+  const block = src.match(new RegExp(`export interface ${iface} \\{([\\s\\S]*?)\\n\\}`));
+  if (!block) throw new Error(`${iface} interface not found`);
   // (?:(?!\*\/)[\s\S])*? — non-greedy AND forbidden from crossing a closing "*/", so the
   // block is THIS member's own doc. Without that guard the match starts at an earlier
   // member's comment and swallows everything between, which made a mutation run report
   // "animate doc says fal/deepl" — deepl belongs to `translate`, three members above.
   // It could equally have accused an innocent member of a claim it never made.
-  const m = block[1]!.match(new RegExp(`/\\*\\*((?:(?!\\*/)[\\s\\S])*?)\\*/\\s*${member}\\?`));
+  const opt = iface === "AiClient" ? "" : "\\?";
+  const m = block[1]!.match(new RegExp(`/\\*\\*((?:(?!\\*/)[\\s\\S])*?)\\*/\\s*${member}${opt}\\(`));
   return m ? m[1]!.replace(/\s+/g, " ") : "";
 }
 
@@ -91,5 +101,27 @@ test("a member doc that names a provider names the DEFAULT one", () => {
   }
   // Name the offender. A bare count tells the next reader nothing about WHICH sentence
   // is lying, and this whole class exists because nobody could see the disagreement.
+  expect(wrong).toEqual([]);
+});
+
+test("the FACADE's own docs name the default route too — the copy super found", () => {
+  // AiClient.animate is what `ai.animate(...)` shows in an editor. It said "fal." in the
+  // published 0.36.7 while ProviderAdapter.animate had been corrected — so the fix
+  // shipped and the misleading sentence shipped with it.
+  const wrong: string[] = [];
+  for (const [member, spec] of Object.entries(MEMBER_SPEC)) {
+    const doc = memberDoc(member, "AiClient");
+    if (!doc) continue;
+    const claim = doc
+      .replace(/Override to[\s\S]*?(?=\.\s|$)/gi, " ")
+      .replace(/override to[\s\S]*?(?=\.\s|$)/gi, " ")
+      .replace(/\{\s*provider:[^}]*\}/g, " ");
+    const named = PROVIDERS.filter((p) => new RegExp(`\\b${p}\\b`, "i").test(claim));
+    if (named.length === 0) continue;
+    const actual = specProvider(spec);
+    if (!named.includes(actual)) {
+      wrong.push(`AiClient.${member} doc says ${named.join("/")} but ${spec} routes to "${actual}"`);
+    }
+  }
   expect(wrong).toEqual([]);
 });
