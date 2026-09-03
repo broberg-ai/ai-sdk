@@ -7,5 +7,9 @@ export {
   findModelPrices,
   priceCall,
   pricingGeneratedAt,
+  pricingFreshness,
+  warnIfPricingStale,
+  resetPricingWarningForTests,
+  PRICING_STALE_AFTER_DAYS,
 } from "./catalogue/pricing-api.js";
-export type { ModelPrice, PriceFilter, PriceRegion } from "./catalogue/pricing-api.js";
+export type { ModelPrice, PriceFilter, PriceRegion, PricingFreshness } from "./catalogue/pricing-api.js";

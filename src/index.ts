@@ -93,6 +93,15 @@ export type {
   UpmetricsCostTimeseries,
 } from "./cost/upmetrics-read.js";
 export { getPrice } from "./cost/pricing.js";
+// F046 — price-table freshness. Exported from the main entry too, not only from
+// ./pricing: a consumer who never imports the subpath still bills against these
+// numbers, and a signal only the curious can reach is the silence we started from.
+export {
+  pricingFreshness,
+  pricingGeneratedAt,
+  PRICING_STALE_AFTER_DAYS,
+} from "./catalogue/pricing-api.js";
+export type { PricingFreshness } from "./catalogue/pricing-api.js";
 // F043.8 — the region API was reachable only from inside the package. A consumer
 // could read usage.region AFTER a call and had no way to ask "where would this go?"
 // BEFORE one, which is the half needed to build a fail-closed guard. Two consumers

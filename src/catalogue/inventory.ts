@@ -42,7 +42,20 @@ export interface InventoryModel {
 }
 
 export interface Inventory {
-  generatedAt: string; // ISO; the advisor flags staleness from this
+  /** ISO — when the DATA last CHANGED. Not when we last looked.
+   *
+   *  F046: this field answered "when did the numbers move" while every reader took it
+   *  as "when did we last check". A list verified yesterday with no changes looked
+   *  identical to one nobody had opened since June, because the monthly job threw the
+   *  refreshed timestamp away (`git checkout inventory.json`) whenever nothing
+   *  substantive differed. Staleness must NOT be measured from this. */
+  generatedAt: string;
+  /** ISO — when we last VERIFIED the data against the live catalogue, whether or not
+   *  anything changed. This is the freshness signal; `generatedAt` is not.
+   *
+   *  Optional so an inventory written before F046 still parses — and absent means
+   *  "we cannot say", never "fresh". */
+  checkedAt?: string;
   modelCount: number;
   models: InventoryModel[];
 }
@@ -105,7 +118,11 @@ export async function fetchOpenRouterInventory(
 }
 
 /** Build the full inventory: auto-enriched OpenRouter data with the curated overlay applied. */
-export function buildInventory(models: InventoryModel[], generatedAt: string): Inventory {
+export function buildInventory(
+  models: InventoryModel[],
+  generatedAt: string,
+  checkedAt: string = generatedAt,
+): Inventory {
   const curated = applyCurated(models);
-  return { generatedAt, modelCount: curated.length, models: curated };
+  return { generatedAt, checkedAt, modelCount: curated.length, models: curated };
 }

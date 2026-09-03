@@ -28,6 +28,9 @@ const out =
   `  input: number; output: number; unit: string; region: string;\n` +
   `}\n` +
   `export const PRICING_GENERATED_AT = ${JSON.stringify(String(inv.generatedAt ?? ""))};\n` +
+  // F046 — freshness is measured from checkedAt, never from generatedAt. Empty when
+  // the inventory predates the field: "we cannot say", not "fresh".
+  `export const PRICING_CHECKED_AT = ${JSON.stringify(String(inv.checkedAt ?? ""))};\n` +
   `export const PRICING_DATA: ModelPriceRaw[] = ${JSON.stringify(rows)};\n`;
 
 writeFileSync(join(root, "src/catalogue/pricing-data.ts"), out);

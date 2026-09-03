@@ -4,12 +4,43 @@
 //   --enrich [N]   F017.6: use a cheap model (mistral-small) THROUGH the SDK to
 //                  write real goodFor tags + a one-line summary for up to N models
 //                  that the curated overlay left untagged. Needs MISTRAL_API_KEY.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fetchOpenRouterInventory, buildInventory } from "../src/catalogue/inventory.js";
 import { createAI } from "../src/client.js";
 
 const models = await fetchOpenRouterInventory();
-const inventory = buildInventory(models, new Date().toISOString());
+// F046 — two dates, deliberately, and the SCRIPT decides which one moves.
+//
+//   checkedAt   stamped on EVERY run: "we looked, on this date". This is the freshness
+//               signal, and it is the one a staleness warning may read.
+//   generatedAt moves ONLY when the model data actually differs from what is on disk:
+//               "the numbers last moved on this date". A PR body talks about this one.
+//
+// Deciding it here rather than in the workflow is the point. The workflow used to infer
+// "nothing changed" from a git diff and then throw the WHOLE rebuild away, timestamp
+// included — so a verified-and-unchanged list became indistinguishable from an
+// abandoned one. Three green monthly runs delivered nothing and nobody could see it.
+const now = new Date().toISOString();
+const previous = (() => {
+  try {
+    return JSON.parse(readFileSync("inventory.json", "utf8")) as {
+      generatedAt?: string;
+      models?: unknown[];
+    };
+  } catch {
+    return undefined; // first build, or unreadable — this run IS the origin
+  }
+})();
+const candidate = buildInventory(models, now, now);
+// Compare the DATA only. Comparing whole files would always differ (the timestamps are
+// in them), which is exactly the trap that made the old check unable to see anything.
+const dataChanged =
+  !previous?.models || JSON.stringify(previous.models) !== JSON.stringify(candidate.models);
+const inventory = buildInventory(
+  models,
+  dataChanged ? now : (previous?.generatedAt ?? now),
+  now,
+);
 
 // F017.6 — cheap-model enrichment pass (cost-bounded; only untagged models).
 const enrichArg = process.argv.indexOf("--enrich");
@@ -40,5 +71,5 @@ writeFileSync("inventory.json", JSON.stringify(inventory, null, 2) + "\n");
 const gdpr = inventory.models.filter((m) => m.gdprSafe).length;
 const vision = inventory.models.filter((m) => m.goodFor.includes("vision")).length;
 console.log(
-  `inventory.json: ${inventory.modelCount} models (${gdpr} GDPR-safe, ${vision} vision) @ ${inventory.generatedAt}`,
+  `inventory.json: ${inventory.modelCount} models (${gdpr} GDPR-safe, ${vision} vision) · data ${dataChanged ? "CHANGED" : "unchanged"} @ ${inventory.generatedAt} · checked ${inventory.checkedAt}`,
 );

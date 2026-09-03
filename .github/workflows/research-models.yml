@@ -38,16 +38,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Ignore the generatedAt timestamp — only open a PR for SUBSTANTIVE changes
-          # (new models, prices, tags), not a fresh run-stamp.
-          if git diff -I '"generatedAt"' --quiet inventory.json; then
-            echo "inventory.json unchanged (only the timestamp) — no PR."
-            git checkout inventory.json
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # F046 — the script itself now decides which date moves: `checkedAt` on every
+          # run, `generatedAt` only when the model DATA differs. So "did anything
+          # change" is answerable without a diff heuristic.
+          if git diff -I '"generatedAt"' -I '"checkedAt"' --quiet inventory.json; then
+            # Nothing substantive — but the CHECK still happened, and that fact is the
+            # freshness signal consumers read. The old workflow threw it away with
+            # `git checkout`, so a list verified monthly and unchanged was indistinguishable
+            # from one nobody had opened since June. A timestamp is not a price, so this
+            # one commit to main does not breach "we propose, never auto-merge pricing".
+            echo "No substantive change — committing the checkedAt stamp only."
+            git add inventory.json
+            git commit -m "chore(inventory): verified, no changes [skip ci]" || {
+              echo "Nothing at all to commit."; exit 0; }
+            git push origin HEAD:main
             exit 0
           fi
           BRANCH="model-research/$(date +%Y-%m-%d)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add inventory.json
           git commit -m "chore(inventory): monthly model-research refresh"
@@ -59,7 +70,14 @@ jobs:
             --body-file /tmp/report.md \
             --base main --head "$BRANCH" \
           || {
-            echo "::notice::PR auto-create blocked by org policy. Branch pushed — open a PR:"
-            echo "https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+            # FAIL, do not notice. Measured 2026-09-03: this fallback ran on 1 Jul,
+            # 1 Aug and 1 Sep — three branches pushed, zero PRs opened, and every run
+            # reported SUCCESS. A ::notice:: inside a green run is invisible, so nobody
+            # was told for three months while the price table drifted (one week alone
+            # produced 34 price changes). A green run must mean "there is a PR".
+            echo "::error::PR auto-create is blocked (org policy: Actions may not create PRs)."
+            echo "::error::Branch ${BRANCH} IS pushed. Open it here:"
+            echo "::error::https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
             cat /tmp/report.md
+            exit 1
           }
