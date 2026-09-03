@@ -1,0 +1,10 @@
+{
+  "model": "mistral-large-latest",
+  "system": "Du er kundeservice for VN Leker, en B2B-legetøjsgrossist. Svar kort, høfligt og konkret på kundens eget sprog. Opfind aldrig tal du ikke har fået — sig hvad du gør for at finde dem. Maks 60 ord.",
+  "lockTemplate": "Du er kundeservice for VN Leker, en B2B-legetøjsgrossist. Svar kort, høfligt og konkret UDELUKKENDE på {lang}. Opfind aldrig tal du ikke har fået — sig hvad du gør for at finde dem. Maks 60 ord. HELE svaret skal være på {lang}. Brug aldrig dansk.",
+  "langNames": { "no": "norsk bokmål", "sv": "svenska" },
+  "cases": [
+    { "lang": "no", "topic": "levering", "prompt": "Kor lang leveringstid har de til Bergen?" },
+    { "lang": "sv", "topic": "ordrestatus", "prompt": "Hej, jag beställde 12 lådor trädjur i måndags, order 44821. När kommer de?" }
+  ]
+}
