@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-03T19:06:51.817Z",
-  "checkedAt": "2026-09-03T19:06:58.096Z",
+  "generatedAt": "2026-09-03T23:03:07.044Z",
+  "checkedAt": "2026-09-03T23:03:07.044Z",
   "modelCount": 425,
   "models": [
     {
@@ -629,9 +629,9 @@
       "name": "Z.ai: GLM Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.1480000000000001,
-        "output": 3.608,
-        "cacheReadPer1M": 0.18860000000000002
+        "input": 1.15,
+        "output": 3.5,
+        "cacheReadPer1M": 0.09999999999999999
       },
       "inputModalities": [
         "text"
@@ -3975,7 +3975,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 262144,
+      "contextLength": 32768,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -4560,9 +4560,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.034256,
-        "output": 2.068512,
-        "cacheReadPer1M": 0.086188
+        "input": 1.0241639999999999,
+        "output": 2.0483279999999997,
+        "cacheReadPer1M": 0.085347
       },
       "inputModalities": [
         "text"
@@ -4590,9 +4590,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.08092,
-        "output": 0.16184,
-        "cacheReadPer1M": 0.016184
+        "input": 0.07938,
+        "output": 0.15876,
+        "cacheReadPer1M": 0.015875999999999998
       },
       "inputModalities": [
         "text"
