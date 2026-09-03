@@ -61,6 +61,47 @@ jobs:
             exit 1
           fi
 
+      # F046.2 — a release must not carry a stale price table.
+      #
+      # A GATE, NOT A FETCH. The obvious version of this step is "run
+      # build-inventory.ts here so every release ships today's prices". It was
+      # considered and rejected for three reasons, written down so it is not
+      # re-proposed:
+      #   1. It would make the tarball non-reproducible. `npm publish --provenance`
+      #      attests that this artifact came from this commit; live-fetching prices at
+      #      tag time puts data in the package that is in no commit, so building the
+      #      same tag twice gives two different packages.
+      #   2. It puts a network call in the release path. build-inventory deliberately
+      #      swallows per-model enrichment failures ("never fail the build"), so a
+      #      degraded fetch would ship a THINNER inventory silently — the exact
+      #      shape F046 exists to remove.
+      #   3. It would move prices with nobody looking at the diff, which is what the
+      #      research workflow's own rule ("we PROPOSE, never auto-merge pricing")
+      #      forbids.
+      # Refusing to ship a stale table gets the same guarantee and keeps all three.
+      - name: Guard — price table is fresh
+        run: |
+          export THRESHOLD=$(node -p "
+            const s = require('fs').readFileSync('src/catalogue/pricing-api.ts','utf8');
+            const m = s.match(/PRICING_STALE_AFTER_DAYS = (\d+)/);
+            if (!m) { console.error('threshold constant not found'); process.exit(1); }
+            m[1]")
+          node -e "
+            const inv = require('./inventory.json');
+            const checked = inv.checkedAt;
+            if (!checked) {
+              console.error('::error::inventory.json has no checkedAt — cannot say how old these prices are, so we will not ship them. Run: bun run scripts/build-inventory.ts');
+              process.exit(1);
+            }
+            const days = Math.floor((Date.now() - Date.parse(checked)) / 86400000);
+            const max = Number(process.env.THRESHOLD);
+            if (days > max) {
+              console.error(\`::error::price table last verified \${checked} (\${days} days ago, limit \${max}). One week of drift has produced 34 price changes before. Refresh and commit first: bun run scripts/build-inventory.ts\`);
+              process.exit(1);
+            }
+            console.log(\`price table verified \${checked} (\${days}d old, limit \${max}d) — OK\`);
+          "
+
       - name: Guard — version not already on npm
         run: |
           PKG=$(node -p "require('./package.json').version")
