@@ -58,7 +58,17 @@ jobs:
             git push origin HEAD:main
             exit 0
           fi
-          BRANCH="model-research/$(date +%Y-%m-%d)"
+          # The run number, not just the date. F046.4: a date-only name collides the
+          # SECOND time the workflow runs on one day — and that is not a rare case, it
+          # is exactly what happens when the first run failed and someone retries it.
+          # Measured 2026-09-03: the retry died on `! [rejected] … (fetch first)` before
+          # it ever reached `gh pr create`, so a run that failed for reason A came back
+          # having failed for reason B and told us nothing about A.
+          #
+          # A unique name rather than a force-push: this branch is disposable, but
+          # force-pushing is a destructive verb and it is not needed to solve a naming
+          # collision.
+          BRANCH="model-research/$(date +%Y-%m-%d)-${GITHUB_RUN_NUMBER}"
           git checkout -b "$BRANCH"
           git add inventory.json
           git commit -m "chore(inventory): monthly model-research refresh"
