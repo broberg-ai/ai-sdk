@@ -79,3 +79,17 @@ number.
   `fal` override — and the absent case must be asserted on the prompt the ADAPTER received,
   not on the input, since the whole defect was that the two differed.
 - Each error-message change gets an assertion that the string contains BOTH env var names.
+
+## Reuse
+
+Discovery-tjek kørt 2026-09-03 pr. evne:
+
+| evne | søgning | resultat | beslutning |
+|---|---|---|---|
+| sprogdetektion | `language detection` | `@broberg/chat`, `@broberg/webpush`, `@broberg/secret-scan`, `@broberg/gravatar` | **BYG** — ingen af de fire klassificerer sprog; det er navne-lighed i søgningen, ikke evne-lighed. |
+| doc-drift / API-dokumentation | (ingen kandidat) | — | **BYG** — vagten læser DETTE repos egne typer mod DETTE repos egne default-specs. Der er intet delbart i den. |
+
+`detectNordic` er bevidst holdt lille og lokal frem for at blive en pakke: den er
+kalibreret på 30 målte svar fra ÉT modelvalg i ÉN branche, og en delt pakke ville
+udgive den kalibrering som en generel evne den ikke er. Vurder den igen hvis et tredje
+repo får samme behov — to er ikke nok til at kende formen.

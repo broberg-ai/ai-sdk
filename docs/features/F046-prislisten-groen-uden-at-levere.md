@@ -105,3 +105,20 @@ gå ubemærket hen tre måneder i træk igen.
   test skal gå rød og NAVNGIVE forskellen — det er hele pointen med de to felter.
 - Advarslen skal skrives **én gang pr. proces**, ikke pr. opslag. Et bibliotek der
   støjer i hver løkke bliver slukket, og så er vi tilbage ved tavshed.
+
+## Reuse
+
+Discovery-tjek kørt 2026-09-03 (`GET discovery.broberg.ai/api/search`) pr. evne, før
+noget blev bygget:
+
+| evne | søgning | resultat | beslutning |
+|---|---|---|---|
+| prisdata for LLM-modeller | `pricing` | `@broberg/sms`, `@broberg/ai-sdk` | **BYG** — ai-sdk ER den ejer. sms priser SMS, ikke modeller. |
+| modelkatalog | `model catalogue` | `@broberg/ai-sdk`, `@broberg/mcp`, `@broberg/media` | **BYG** — samme; ingen anden pakke fører modeller. |
+| friskhed / staleness | `freshness staleness` | `@broberg/chat` | **BYG** — chat's træf handler om samtale-historik, ikke om data-alder. |
+
+Ingen delt pakke dækker dette. Det er ventet: **ai-sdk er selv flådens prisautoritet**,
+så at genbruge en anden pakke her ville betyde at flytte ejerskabet væk fra det ene sted
+der har tallene. Det der KAN genbruges — og bliver det — er selve signalet:
+`pricingFreshness()` og `PRICING_STALE_AFTER_DAYS` eksporteres, så en forbruger ikke
+skal skrive sin egen aldersudregning.
