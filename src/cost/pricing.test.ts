@@ -38,8 +38,18 @@ test("computeCost — sonnet 1M in + 1M out = $18.00", () => {
   );
 });
 
-test("computeCost — haiku 1000 in + 500 out = $0.0028", () => {
-  expect(computeCost("anthropic", "claude-haiku-4-5", 1000, 500)).toBeCloseTo(0.0028, 9);
+test("computeCost — haiku 1000 in + 500 out = $0.0035", () => {
+  // Was $0.0028, pinned against a table row that was WRONG: $0.80/$4.00 where
+  // Anthropic publishes $1.00/$5.00 (F048). The test did its job — it pinned the
+  // behaviour — and pinned an error, which is what a test does when the value it
+  // guards was never checked against the source. 1000×$1 + 500×$5 per 1M = $0.0035.
+  expect(computeCost("anthropic", "claude-haiku-4-5", 1000, 500)).toBeCloseTo(0.0035, 9);
+});
+
+test("computeCost — a DATED snapshot prices as its base model", () => {
+  // The id upmetrics actually sent, 19,456 times. getPrice has handled this since F012;
+  // the exported catalogue had not, which is the other half of F048.
+  expect(computeCost("anthropic", "claude-haiku-4-5-20251001", 1000, 500)).toBeCloseTo(0.0035, 9);
 });
 
 test("computeCost — gpt-4o-mini 2000 in + 1000 out = $0.0009", () => {

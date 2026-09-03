@@ -3,6 +3,7 @@
 // Backed by the bundled PRICING_DATA (trimmed inventory.json projection) with the
 // curated PRICING table (authoritative routed-provider numbers) overlaid on top.
 import { PRICING_DATA, PRICING_GENERATED_AT, PRICING_CHECKED_AT } from "./pricing-data.js";
+import { stripDatedSuffix } from "../cost/pricing.js";
 import { PRICING } from "../cost/pricing.js";
 
 export type PriceRegion = "eu" | "us" | "cn" | "other";
@@ -124,10 +125,14 @@ function ensure(): void {
 export function getModelPrice(modelId: string): ModelPrice | undefined {
   ensure();
   const s = modelId.trim().toLowerCase();
+  // The dated-snapshot fallback is LAST, after every exact form, so a provider that
+  // genuinely prices a dated snapshot differently keeps its own row.
+  const dated = stripDatedSuffix(s);
   return (
     _full!.get(s) ??
     (s.includes(":") ? _full!.get(s.slice(s.indexOf(":") + 1)) : undefined) ??
-    _base!.get(basename(s))
+    _base!.get(basename(s)) ??
+    (dated !== s ? (_full!.get(dated) ?? _base!.get(basename(dated))) : undefined)
   );
 }
 

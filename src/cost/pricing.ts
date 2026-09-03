@@ -27,12 +27,17 @@ const MS = "2026-06-04-mistral.ai";
  *  can enumerate every priced entry and diff it against the live provider lists. */
 export const PRICING: Record<string, PricingEntry> = {
   // Anthropic (direct API). DEFAULT_TIER_MAP: fast/cheap=haiku, smart/vision=sonnet, powerful=opus.
+  // $1.00/$5.00 — Anthropic's published Haiku 4.5 rate, confirmed against the
+  // claude-api skill's model table 2026-09-03. F048: this row said $0.80/$4.00 while
+  // "openrouter:anthropic/claude-haiku-4.5" said $1.00/$5.00 — the SAME model at two
+  // prices, and the shorter, likelier id carried the wrong one. A consumer pricing
+  // 68M haiku tokens (upmetrics' real volume) was told 20% under.
   "anthropic:claude-haiku-4-5": {
-    inputPer1M: 0.8,
-    outputPer1M: 4.0,
-    cacheReadPer1M: 0.08,
-    cacheWritePer1M: 1.0,
-    version: V,
+    inputPer1M: 1.0,
+    outputPer1M: 5.0,
+    cacheReadPer1M: 0.1,
+    cacheWritePer1M: 1.25,
+    version: "2026-09-03",
   },
   "anthropic:claude-sonnet-4-6": {
     inputPer1M: 3.0,
@@ -41,12 +46,19 @@ export const PRICING: Record<string, PricingEntry> = {
     cacheWritePer1M: 3.75,
     version: V,
   },
+  // $5.00/$25.00 — Anthropic's published Opus 4.8 rate, confirmed against the
+  // claude-api skill's model table 2026-09-03.
+  //
+  // FOUND BY THE CONTRADICTION GUARD ON ITS FIRST RUN, not by a report. This row said
+  // $15.00/$75.00 while "openrouter:anthropic/claude-opus-4.8" said $5.00/$25.00 —
+  // THREE TIMES too high, the opposite direction from the haiku error and a larger
+  // multiple. Nobody had noticed, because both numbers looked like answers.
   "anthropic:claude-opus-4-8": {
-    inputPer1M: 15.0,
-    outputPer1M: 75.0,
-    cacheReadPer1M: 1.5,
-    cacheWritePer1M: 18.75,
-    version: V,
+    inputPer1M: 5.0,
+    outputPer1M: 25.0,
+    cacheReadPer1M: 0.5,
+    cacheWritePer1M: 6.25,
+    version: "2026-09-03",
   },
 
   // OpenAI. embedding default tier = text-embedding-3-small (no output tokens).
@@ -143,16 +155,29 @@ export const PRICING: Record<string, PricingEntry> = {
   // Embeddings (F016.5) — per input token.
   "mistral:mistral-embed": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
   "mistral:codestral-embed": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0, version: MS },
+  // F048 — reported by upmetrics as an unknown model (6 calls). Official mistral.ai/pricing.
+  "mistral:pixtral-large-latest": { inputPer1M: 2.0, cacheReadPer1M: 0.2, outputPer1M: 6.0, version: "2026-09-03" },
 };
+
+/** Strip a provider's dated snapshot suffix: "claude-haiku-4-5-20251001" → "claude-haiku-4-5".
+ *  Returns the input unchanged when there is no suffix.
+ *
+ *  ONE definition, used by BOTH lookups. F012 taught this rule to `getPrice` — the
+ *  internal cost path — and the exported catalogue never learned it, so for two years
+ *  `usage.costUsd` priced a dated id correctly while `getModelPrice` returned undefined
+ *  for the same string. Found by upmetrics, who use the catalogue and not our internals:
+ *  19,456 calls of `claude-haiku-4-5-20251001` looked like an unknown model. Fixing the
+ *  instance and not the class is the shape; a copy of this regex in the other lookup
+ *  would have been the same mistake a third time. */
+export function stripDatedSuffix(model: string): string {
+  return model.replace(/-\d{8}$/, "");
+}
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {
   const exact = PRICING[`${provider}:${model}`];
   if (exact) return exact;
-  // Providers ship dated model snapshots, e.g. "claude-haiku-4-5-20251001".
-  // Strip a trailing -YYYYMMDD and retry the base lookup so a dated variant
-  // prices the same as its base model instead of falling through to 0 — a real
-  // paid call must never be logged as $0 (F012). Covers openrouter slugs too.
-  const base = model.replace(/-\d{8}$/, "");
+  // A real paid call must never be logged as $0 (F012).
+  const base = stripDatedSuffix(model);
   if (base !== model) return PRICING[`${provider}:${base}`];
   return undefined;
 }
