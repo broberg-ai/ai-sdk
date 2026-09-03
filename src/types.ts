@@ -73,6 +73,24 @@ export interface Message {
   toolCalls?: ToolCallLike[];
   /** Set on `tool` role messages — which call this result answers. */
   toolCallId?: string;
+  /** F049 — Mistral's `prefix`: start the model's reply with this text instead of
+   *  asking it to. Only valid on the LAST message, and only when that message is an
+   *  `assistant` one; anything else throws rather than being sent, because Mistral
+   *  documents no behaviour for it elsewhere.
+   *
+   *  Mistral's own first-listed use case is Language Adherence, and it pairs with a
+   *  system instruction rather than replacing one — they warn that a prefix alone
+   *  gives "noisy and unpredictable answers". Measured on this repo's own data: an
+   *  explicit language rule in the system prompt already took 5/15 wrong answers to
+   *  0/15, and every leak began in the FIRST words ("Tak for din henvendelse"), which
+   *  is exactly what a prefix pins.
+   *
+   *  **The SDK strips the prefix back off the response**, in `chat` and `chatStream`
+   *  alike, so a caller never has to. Mistral's own example does
+   *  `content[len(prefix):]` by hand; forgetting it puts "Here is the answer in
+   *  Norwegian:" at the top of a real customer's email — a defect that reads as
+   *  formatting rather than as a bug. */
+  prefix?: boolean;
 }
 
 /** SDK-level tool definition. Adapters convert this to each provider's format

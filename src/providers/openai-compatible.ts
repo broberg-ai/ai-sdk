@@ -27,6 +27,11 @@ export interface OpenAICompatibleConfig {
   extraHeaders?: Record<string, string>;
   /** Injectable fetch for the streaming path (tests). */
   fetch?: typeof fetch;
+  /** F049 — the provider understands `prefix: true` on a trailing assistant message.
+   *  Mistral only. A prefix sent anywhere else is REFUSED rather than dropped: a
+   *  silently ignored flag means the call succeeds, the language is not pinned, and
+   *  the caller believes it is. */
+  supportsPrefix?: boolean;
   /** OpenRouter ground-truth cost (F010): send `usage:{include:true}` and use the
    *  response's `usage.cost` (USD) as costUsd, falling back to the pricing table.
    *  Only OpenRouter returns this field — openai/deepinfra leave it false. */
@@ -88,6 +93,7 @@ interface OAResponse {
 export function toOpenAIMessage(m: Message): Record<string, unknown> {
   if (typeof m.content === "string") {
     const base: Record<string, unknown> = { role: m.role, content: m.content };
+    if (m.prefix) base.prefix = true;
     if (m.toolCallId) base.tool_call_id = m.toolCallId;
     if (m.toolCalls && m.toolCalls.length > 0) {
       base.tool_calls = m.toolCalls.map((tc) => ({
@@ -130,10 +136,116 @@ export function toOpenAIMessage(m: Message): Record<string, unknown> {
  *  Keeping one builder is the actual fix. Copying the missing lines across would have
  *  closed this instance and left the next added field free to drift the same way.
  *  chatStream adds only `stream` + `stream_options` on top of what comes back here. */
-function buildChatBody(
+/** Streaming counterpart to {@link stripPrefix}: the prefix arrives as the FIRST
+ *  deltas, so it cannot be removed from a single chunk.
+ *
+ *  It BUFFERS while what has arrived is still a prefix-of-the-prefix, then emits only
+ *  what comes after. A `chat`-only strip would be half the fix, and a chat UI streams
+ *  — the same half this package missed on prompt caching until 0.35, where the cache
+ *  key reached `chat` and never `chatStream`. */
+export function makeStreamPrefixStripper(prefix: string | undefined): (delta: string) => string {
+  if (!prefix) return (d) => d;
+  let seen = "";
+  let done = false;
+  let trimNext = false;
+  return (delta: string): string => {
+    if (done) {
+      if (!trimNext) return delta;
+      const t = delta.trimStart();
+      if (t.length === 0) return ""; // whole delta was whitespace — keep waiting
+      trimNext = false;
+      return t;
+    }
+    seen += delta;
+    if (seen.length < prefix.length) {
+      // Still shorter than the prefix. If it has already DIVERGED, the model did not
+      // echo the prefix at all — stop buffering and release everything, rather than
+      // swallowing a real reply while waiting for a match that will never come.
+      if (!prefix.startsWith(seen)) {
+        done = true;
+        return seen;
+      }
+      return "";
+    }
+    done = true;
+    const rest = seen.startsWith(prefix) ? seen.slice(prefix.length) : seen;
+    if (rest.length > 0) return rest.trimStart();
+    // The prefix ended EXACTLY on a chunk boundary, so there is nothing to trim here —
+    // the space belongs to the next delta. Defer the trim to it, or the reply starts
+    // with a stray space. Found by the test, not by reading: the boundary case only
+    // appears when the chunking happens to land there.
+    trimNext = true;
+    return "";
+  };
+}
+
+/** Remove the prefix the model echoed back. Only strips an EXACT leading match — a
+ *  reply that does not start with it is returned untouched, because slicing by length
+ *  would then eat real content. */
+export function stripPrefix(text: string, prefix: string | undefined): string {
+  if (!prefix) return text;
+  return text.startsWith(prefix) ? text.slice(prefix.length).trimStart() : text;
+}
+
+/** The text a trailing `prefix` message will put at the front of the reply, or
+ *  undefined when the request carries no prefix. Used to strip it back off. */
+export function prefixText(messages: Message[]): string | undefined {
+  const last = messages[messages.length - 1];
+  if (!last?.prefix) return undefined;
+  return typeof last.content === "string" ? last.content : undefined;
+}
+
+/** F049 — refuse a prefix we cannot honour, rather than sending or dropping it.
+ *
+ *  Three ways to get it wrong, and all three fail SILENTLY if we do nothing: on a
+ *  non-Mistral provider the field is ignored and the language is simply not pinned; on
+ *  a non-last message Mistral documents no behaviour; on a non-assistant message it is
+ *  not the feature at all. In every case the call would SUCCEED and the caller would
+ *  believe the reply was constrained. An error is the only outcome that tells them. */
+export function assertPrefixUsage(
+  messages: Message[],
+  config: Pick<OpenAICompatibleConfig, "name" | "supportsPrefix">,
+): void {
+  const at = messages.findIndex((m) => m.prefix === true);
+  if (at === -1) return;
+  if (!config.supportsPrefix) {
+    throw new Error(
+      `${config.name} adapter: message.prefix is not supported by "${config.name}" — ` +
+        `only mistral implements it. Remove the flag, or route this call with ` +
+        `override:{provider:"mistral", model:"<a mistral model>"}.`,
+    );
+  }
+  if (at !== messages.length - 1) {
+    throw new Error(
+      `${config.name} adapter: message.prefix is only valid on the LAST message ` +
+        `(found at index ${at} of ${messages.length}). The provider documents no ` +
+        `behaviour for it elsewhere.`,
+    );
+  }
+  const last = messages[at]!;
+  if (last.role !== "assistant") {
+    throw new Error(
+      `${config.name} adapter: message.prefix is only valid on an "assistant" message ` +
+        `(found on "${last.role}"). The prefix IS the start of the assistant's reply.`,
+    );
+  }
+  if (typeof last.content !== "string") {
+    throw new Error(
+      `${config.name} adapter: a prefix message's content must be a plain string ` +
+        `(got content blocks). The prefix is text the reply continues from.`,
+    );
+  }
+}
+
+/** Exported for tests. `httpTransport` takes no injectable fetch, so the non-streaming
+ *  path cannot be exercised without a real network call — asserting on the body this
+ *  builds is how we check what goes on the wire without one. (config.fetch is the
+ *  STREAMING path only, as its own comment says.) */
+export function buildChatBody(
   req: ChatRequest,
-  config: Pick<OpenAICompatibleConfig, "supportsPromptCacheKey" | "costFromResponseField">,
+  config: Pick<OpenAICompatibleConfig, "name" | "supportsPrefix" | "supportsPromptCacheKey" | "costFromResponseField">,
 ): Record<string, unknown> {
+  assertPrefixUsage(req.messages, config);
   const body: Record<string, unknown> = {
     model: req.spec.model,
     messages: req.messages.map(toOpenAIMessage),
@@ -186,7 +298,10 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     // Reasoning/multimodal models can return `content` as an array of blocks (or
     // null) instead of a plain string — coerce so callers always get a string
     // (was: `?? ""`, which left an array through → consumer `text.replace` crash).
-    const text = contentToText(msg?.content);
+    // F049 — the prefix comes BACK in the content (Mistral's own example strips it by
+    // hand). Left in, it puts "Here is the answer in Norwegian:" at the top of a real
+    // customer's email: a defect that reads as formatting, not as a bug.
+    const text = stripPrefix(contentToText(msg?.content), prefixText(req.messages));
     const toolCalls: ToolCall[] | undefined = msg?.tool_calls?.map((tc) =>
       fromProviderToolCall(tc, "openai"),
     );
@@ -225,6 +340,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     if (!apiKey) {
       throw new Error(`${config.name} adapter: API key not set (env ${config.name.toUpperCase()}_API_KEY)`);
     }
+    const stripStreamPrefix = makeStreamPrefixStripper(prefixText(req.messages));
     const body: Record<string, unknown> = {
       ...buildChatBody(req, config),
       stream: true,
@@ -260,7 +376,9 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
       if (choice) {
         const delta = choice.delta ?? {};
         if (typeof delta.content === "string" && delta.content.length > 0) {
-          yield { type: "text", delta: delta.content };
+          // F049 — the prefix is echoed back as the first deltas; strip before yielding.
+          const out = stripStreamPrefix(delta.content);
+          if (out.length > 0) yield { type: "text", delta: out };
         }
         for (const tc of delta.tool_calls ?? []) {
           const idx = tc.index ?? 0;

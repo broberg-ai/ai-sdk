@@ -87,6 +87,10 @@ export const messageSchema = z.object({
   content: z.union([z.string(), z.array(contentPartSchema)]),
   toolCalls: z.array(toolCallSchema).optional(),
   toolCallId: z.string().optional(),
+  /** F049 — see Message.prefix. Position/role validity is enforced in the adapter,
+   *  not here: the rule is about a message's place in the ARRAY, which a per-message
+   *  schema cannot see. */
+  prefix: z.boolean().optional(),
 });
 
 /** Per-call options shared by every capability input. */
