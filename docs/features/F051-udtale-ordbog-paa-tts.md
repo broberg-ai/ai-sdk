@@ -212,6 +212,11 @@ der er engelske. Så formen er en, der lader dem UDTRYKKE det, ikke en hvor vi g
 - ElevenLabs + `segments` skal kaste, med ordet nævnt.
 - Den valgte variant afprøves på **begge** stemmer (jeppe + christel) og høres af et
   menneske før udgivelse.
+- **Lytningen skal også høre efter SØMMEN, ikke kun efter accenten.** Stamme/endelse
+  beder motoren skifte MIDT i et ord (`<lang>style</lang>t`). Er skiftet hørbart — en
+  pause, et stemmeskift, en søm — er kuren værre end sygdommen, og hel-ord-varianten
+  vinder på trods af sin dårligere udtale. Et rent «lyder det engelsk?»-øre springer
+  den fejl over, fordi den ikke handler om udtalen af nogen af delene.
 
 ## Reuse
 
