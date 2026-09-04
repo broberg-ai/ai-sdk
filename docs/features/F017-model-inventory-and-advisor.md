@@ -14,7 +14,7 @@ The OpenRouter models directory (Christian's 92-page export) shows the raw mater
 
 ## Solution
 
-Extend the F014 catalogue into a rich `InventoryModel`, populated by merging (a) OpenRouter API auto-enrichment with (b) a hand-curated overlay, persisted as a versioned `inventory.json` in the repo. Build a `recommendModel()` advisor that filters the inventory by hard constraints (GDPR, modality, capability, budget) and ranks by fit, returning cited recommendations. Expose it two ways: a `.claude/skills/model-advisor.md` skill (conversational + intercom) and the underlying function (deterministic, testable). The monthly run (F014.4) re-enriches the inventory and opens the PR.
+Extend the F014 catalogue into a rich `InventoryModel`, populated by merging (a) OpenRouter API auto-enrichment with (b) a hand-curated overlay, persisted as a versioned `inventory.json` in the repo. Build a `recommendModel()` advisor that filters the inventory by hard constraints (GDPR, modality, capability, budget) and ranks by fit, returning cited recommendations. Expose it two ways: a `.claude/skills/model-advisor/SKILL.md` skill (conversational + intercom) and the underlying function (deterministic, testable). The monthly run (F014.4) re-enriches the inventory and opens the PR.
 
 ## Scope
 
@@ -23,7 +23,7 @@ Extend the F014 catalogue into a rich `InventoryModel`, populated by merging (a)
 - Extend `fetchOpenRouterCatalogue` (`src/catalogue/fetchers.ts`) to capture the fields it currently drops: input/output modalities, description, category rankings, pricing **unit**, supported parameters, in-region-routing / zero-data-retention flags.
 - `src/catalogue/curated.ts` — hand-maintained overlay: `goodFor` capability tags, per-provider GDPR/region truth, recommended-use notes, for the models we actually use.
 - `src/catalogue/advisor.ts` — `recommendModel({task, constraints}) → {primary, fallback, alternatives, rationale}`; deterministic, cites inventory data + flags inventory staleness.
-- `.claude/skills/model-advisor.md` — the conversational skill + the documented intercom protocol (a CLAUDE.md note so other sessions know they can ask).
+- `.claude/skills/model-advisor/SKILL.md` — the conversational skill + the documented intercom protocol (a CLAUDE.md note so other sessions know they can ask).
 - Extend the monthly run (F014.4 GitHub Actions) to re-enrich + diff the inventory and include it in the PR; new models land with curated fields flagged TODO.
 
 ### Out of scope
@@ -75,7 +75,7 @@ recommendModel(task: string, c: AdvisorConstraints): {
 ```
 Hard-filters on gdpr/modality/capability/budget, then ranks by category-rank + price + capability fit. Rationale quotes real numbers so the answer is auditable — the "rely on it" requirement.
 
-### Skill + intercom — `.claude/skills/model-advisor.md`
+### Skill + intercom — `.claude/skills/model-advisor/SKILL.md`
 The conversational entry point: Christian says "jeg skal lave X" → invoke the skill → it reads `inventory.json`, runs the advisor logic, answers with primary/fallback/rationale (in product language), and flags if the inventory is stale. Same path answers an intercom `ask_peer({to:"ai-sdk", "which model for X?"})`. A CLAUDE.md note documents the protocol so other sessions know ai-sdk is the model-advisor authority.
 
 ### Monthly enrichment — extends F014.4
@@ -85,7 +85,7 @@ The monthly GitHub Actions run re-fetches every provider via OpenRouter, refresh
 - **F017.1** — `InventoryModel` schema + extend the OpenRouter fetcher to capture modality / description / category-rankings / pricing-unit / region flags; build `inventory.json` from the auto-enrichable fields.
 - **F017.2** — Curated overlay (`src/catalogue/curated.ts`): `goodFor` tags + per-provider GDPR/region truth + recommended-use, merged over the auto-enriched data for the models we use across products.
 - **F017.3** — `recommendModel()` advisor (`src/catalogue/advisor.ts`): constraint filter + fit ranking + cited rationale + staleness flag; unit-tested against a fixture inventory.
-- **F017.4** — `.claude/skills/model-advisor.md` skill + intercom protocol (CLAUDE.md doc) so Christian and other repos get reliable, inventory-backed recommendations.
+- **F017.4** — `.claude/skills/model-advisor/SKILL.md` skill + intercom protocol (CLAUDE.md doc) so Christian and other repos get reliable, inventory-backed recommendations.
 - **F017.5** — Extend the monthly run (F014.4) to re-enrich + diff the inventory and open the PR (new models flagged for curation, new providers surfaced).
 
 ## Acceptance criteria

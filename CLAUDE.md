@@ -22,7 +22,7 @@ Per Christian's 2026-06-04 Mistral assessment (CD report), **Mistral (Paris-host
 
 ## Model Advisor — ai-sdk is the fleet's model-selection authority (F017)
 
-This repo holds the LLM **inventory** (`inventory.json` — prices, modality, GDPR-region, capabilities for every OpenRouter-reachable model) and the **Model Advisor** (`.claude/skills/model-advisor.md` + `src/catalogue/advisor.ts`).
+This repo holds the LLM **inventory** (`inventory.json` — prices, modality, GDPR-region, capabilities for every OpenRouter-reachable model) and the **Model Advisor** (`.claude/skills/model-advisor/SKILL.md` + `src/catalogue/advisor.ts`).
 
 - **Conversationally:** when Christian asks "which model for X?", invoke the `model-advisor` skill — it reads `inventory.json` and answers with primary + fallback + rationale citing real price/region, GDPR-gated by default for personal data. Never answer from memory.
 - **Via intercom:** other repos may `ask_peer({to:"ai-sdk", message:"which model for <task> [+ constraints]?"})`. Run the `model-advisor` skill and reply (reply_to the announcement). The asking session relies on the answer being correct + auditable.
