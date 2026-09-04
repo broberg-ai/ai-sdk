@@ -5,6 +5,7 @@
 // billed per character. Key + region from AZURE_SPEECH_KEY / AZURE_SPEECH_REGION.
 import { freshUsage } from "../cost/usage.js";
 import { classifyRegionName, type Region } from "../cost/region.js";
+import { xmlEscape, applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
 
 /** USD per 1000 characters. ≈ Azure neural standard ($16 / 1M chars) — verify on
@@ -85,15 +86,10 @@ export function resolveAzureVoice(nameOrVoice: string): string {
   return AZURE_DANISH_VOICES[nameOrVoice] ?? nameOrVoice;
 }
 
-/** XML-escape so a `&`/`<` in the text can't break the SSML envelope. */
-function xmlEscape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+// F051 — one escaper, shared with the pronunciation engine. Two escapers would
+// eventually disagree, and a disagreement between them is a hole, not a cosmetic
+// difference: the dictionary writes ATTRIBUTE values into the same document.
+
 
 /** Derive the BCP-47 locale from a voice name: "da-DK-ChristelNeural" → "da-DK".
  *  Exported so the F037 voice registry derives locales from this one implementation
@@ -181,7 +177,21 @@ export function azureAdapter(
     // Speaking rate via SSML <prosody>: a multiplier of the default (1 = normal,
     // 0.9 = 10% slower, 1.1 = 10% faster). An explicit req.rate wins; otherwise the
     // voice's own defaultRate (e.g. Christel = 0.85) applies; else no wrapper.
-    const escaped = xmlEscape(req.text);
+    // F051 — the dictionary applies AFTER escaping, on purpose. Before it, our tags
+    // would be escaped away; on the raw text field, `text` would become a way INTO the
+    // SSML. `pronunciations` is the controlled door, and the door is escaped too:
+    // alias/ipa are attribute values, so an unescaped `alias: '" onload="'` would make
+    // the dictionary the injection route the field exists to close.
+    assertPronunciations(req.pronunciations, "azure");
+    const escaped = applyPronunciations(
+      xmlEscape(req.text),
+      req.pronunciations,
+      (p, matched) =>
+        p.ipa !== undefined
+          ? `<phoneme alphabet='ipa' ph='${xmlEscape(p.ipa)}'>${matched}</phoneme>`
+          : `<sub alias='${xmlEscape(p.alias!)}'>${matched}</sub>`,
+      xmlEscape,
+    );
     const effRate = req.rate ?? AZURE_DANISH_VOICE_LIST.find((v) => v.voiceId === voice)?.defaultRate;
     const inner =
       effRate != null && effRate !== 1 ? `<prosody rate='${effRate}'>${escaped}</prosody>` : escaped;

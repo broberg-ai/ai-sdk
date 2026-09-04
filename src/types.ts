@@ -439,6 +439,9 @@ export interface PodcastResult {
 }
 
 // Single-voice TTS (F020.4) — text → audio in one voice. ElevenLabs or Azure (F026).
+import type { Pronunciation } from "./providers/pronunciation.js";
+export type { Pronunciation } from "./providers/pronunciation.js";
+
 export interface TtsRequest {
   text: string;
   voiceId: string;
@@ -448,6 +451,14 @@ export interface TtsRequest {
   format?: string;
   /** Speaking-rate multiplier (Azure): 1 = normal, 0.9 = 10% slower, 1.1 = faster. ElevenLabs ignores it. */
   rate?: number;
+  /** F051 — pronunciation dictionary. A Danish voice says English jargon wrongly:
+   *  measured on da-DK, "AI" comes out as the word "aj", "native" as "nativ".
+   *
+   *  Azure renders these as SSML (`<sub alias>` / `<phoneme alphabet="ipa" ph>`);
+   *  ElevenLabs has no SSML and can only apply `alias`. **This is the CONTROLLED DOOR
+   *  into SSML** — the substitution happens adapter-side AFTER the text is escaped, so
+   *  `text` can never inject markup, and `alias`/`ipa` are escaped too. */
+  pronunciations?: Pronunciation[];
   spec: TierSpec;
 }
 

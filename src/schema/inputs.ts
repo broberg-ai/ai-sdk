@@ -260,9 +260,19 @@ export const podcastInputSchema = z.object({
 
 // Single-voice TTS (F020.4) — text → audio. `voice` is a curated name or a voiceId.
 // `lang`/`format` (F026) are used by the Azure adapter; ElevenLabs ignores them.
+const pronunciationSchema = z.object({
+  word: z.string(),
+  alias: z.string().optional(),
+  ipa: z.string().optional(),
+  lang: z.string().optional(),
+});
+
 export const ttsInputSchema = z.object({
   text: z.string(),
   voice: z.string(),
+  /** F051 — see TtsRequest.pronunciations. The alias/ipa exclusivity is enforced in
+   *  the adapter, not here: the message must name the provider that cannot do it. */
+  pronunciations: z.array(pronunciationSchema).optional(),
   /** F037: voice to use if `voice` is one we know the provider has retired. Without
    *  it a retired voice throws VoiceUnavailableError rather than reaching the API.
    *

@@ -3,6 +3,8 @@
 // "instant podcast" primitive. Also single-voice TTS + voice listing. Audio out
 // is MP3 bytes; billed per character. Key from ELEVENLABS_API_KEY.
 import { freshUsage } from "../cost/usage.js";
+import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
+import type { Pronunciation } from "./pronunciation.js";
 import type { ProviderAdapter, DialogueRequest, TtsRequest, PodcastResult } from "../types.js";
 
 /** USD per 1000 characters (ElevenLabs bills per char; API overage ≈ $0.10–0.18/1k). */
@@ -27,6 +29,24 @@ export interface ElevenLabsVoice {
   voiceId: string;
   name: string;
   language?: string;
+}
+
+/** F051 — ElevenLabs has no SSML, so only `alias` can be honoured here.
+ *
+ *  An `ipa`-only entry THROWS rather than being skipped. A silent drop is the shape
+ *  this package removed in F049 (a prefix ignored by the wrong provider): the call
+ *  succeeds, the word is still mispronounced, and the caller believes it was fixed. */
+function ttsText(req: { text: string; pronunciations?: Pronunciation[] }): string {
+  assertPronunciations(req.pronunciations, "elevenlabs");
+  for (const p of req.pronunciations ?? []) {
+    if (p.ipa !== undefined) {
+      throw new Error(
+        `elevenlabs adapter: pronunciation "${p.word}" uses ipa, which needs SSML — ` +
+          `ElevenLabs has none. Use { alias } here, or route this call to azure.`,
+      );
+    }
+  }
+  return applyPronunciations(req.text, req.pronunciations, (p) => p.alias!);
 }
 
 export function elevenlabsAdapter(
@@ -82,7 +102,7 @@ export function elevenlabsAdapter(
     const res = await fetchImpl(`${baseUrl}/text-to-speech/${req.voiceId}`, {
       method: "POST",
       headers: { "xi-api-key": key(), "content-type": "application/json", accept: "audio/mpeg" },
-      body: JSON.stringify({ text: req.text, model_id: model }),
+      body: JSON.stringify({ text: ttsText(req), model_id: model }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");

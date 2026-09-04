@@ -717,7 +717,10 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.tts) throw new Error(`createAI: provider "${spec.provider}" does not support tts`);
-          return adapter.tts({ text: input.text, voiceId, lang: input.lang, format: input.format, rate: input.rate, spec });
+          return adapter.tts({
+            text: input.text, voiceId, lang: input.lang, format: input.format, rate: input.rate,
+            pronunciations: input.pronunciations, spec,
+          });
         },
       });
     },
