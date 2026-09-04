@@ -6,9 +6,7 @@ import { freshUsage } from "../cost/usage.js";
 import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { Pronunciation } from "./pronunciation.js";
 import type { ProviderAdapter, DialogueRequest, TtsRequest, PodcastResult } from "../types.js";
-
-/** USD per 1000 characters (ElevenLabs bills per char; API overage ≈ $0.10–0.18/1k). */
-const ELEVENLABS_PRICE_PER_1K_CHARS = 0.15;
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 /** Curated Danish voices (F020.3) — friendly name → ElevenLabs voiceId. Apps can
  *  pass these names to `ai.podcast`/`ai.tts` instead of raw IDs. */
@@ -72,7 +70,8 @@ export function elevenlabsAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = (chars / 1000) * (config.pricePer1kChars ?? ELEVENLABS_PRICE_PER_1K_CHARS);
+    usage.costUsd = (chars / 1000) * (config.pricePer1kChars ?? getMediaPrice("elevenlabs", "tts")?.usd ?? 0);
+    usage.costBasis = config.pricePer1kChars !== undefined ? "computed" : "estimated";
     return usage;
   }
 

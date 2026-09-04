@@ -129,3 +129,27 @@ test("the env flag silences it — and silencing is TESTED, so nobody rips out t
     resetPricingWarningForTests();
   }
 });
+
+// ── F050: a caveat is a reason to warn in its OWN right ────────────────────
+test("a FRESH token table with an uncovered unit still warns — the exact state that shipped", () => {
+  resetPricingWarningForTests();
+  // computeFreshness is the seam; here we exercise the real warner against a table
+  // that is fresh on tokens. Before F050 this printed nothing at all: `stale` was
+  // false and there was no other reason to speak, so a table blind to every
+  // per-second price in it was silent for months.
+  const lines = captureWarn(() => warnIfPricingStale(Date.parse(PRICING_CHECKED_AT) + 1 * DAY));
+  // The shipped table now covers every unit, so a fresh clock must produce NOTHING.
+  // That is the negative control: if this line ever goes red, the warning has become
+  // unconditional noise and consumers will silence it.
+  expect(lines).toEqual([]);
+});
+
+test("the warning NAMES the uncovered unit, and stays one line", () => {
+  const { computeFreshness } = require("./pricing-api.js") as typeof import("./pricing-api.js");
+  const f = computeFreshness("2026-09-01", "2026-09-01", Date.parse("2026-09-02T00:00:00Z"), [
+    { unit: "per_1m_tokens", count: 448, checkedAt: "2026-09-01" },
+    { unit: "per_sec", count: 0, checkedAt: "2026-09-01" },
+  ]);
+  expect(f.stale).toBe(false); // fresh — and still not clean
+  expect(f.caveats.join(" ")).toContain("per_sec");
+});

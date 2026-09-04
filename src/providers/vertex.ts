@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { toInlineImage } from "./media.js";
 import { partsFrom, type GeminiPart, splitCached } from "./gemini.js";
 import { freshUsage, computeCost } from "../cost/usage.js";
+import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
 import { classifyRegionName } from "../cost/region.js";
 import { errorBody } from "../transport/http.js";
 import type {
@@ -29,15 +30,6 @@ const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const DEFAULT_REGION = "europe-west1";
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 
-/** Per-SECOND USD for Veo on Vertex — same model family/pricing as the consumer
- *  Gemini API (F024's VEO_PRICE_PER_SEC). Override per call via config.pricePerSecond. */
-const VERTEX_VEO_PRICE_PER_SEC: Record<string, number> = {
-  "veo-3.1-generate-preview": 0.4,
-  "veo-3.1-fast-generate-preview": 0.1,
-  "veo-3.1-lite-generate-preview": 0.05,
-  "veo-3.0-generate-001": 0.4,
-  "veo-3.0-fast-generate-001": 0.1,
-};
 
 interface ServiceAccountCredentials {
   client_email: string;
@@ -224,8 +216,10 @@ export function vertexAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    const perSec = config.pricePerSecond ?? VERTEX_VEO_PRICE_PER_SEC[req.spec.model] ?? 0;
-    usage.costUsd = perSec * (req.durationSec ?? 8);
+    const perSec = config.pricePerSecond ?? getMediaPrice("vertex", req.spec.model)?.usd ?? 0;
+    // No durationSec means we bill an ASSUMED clip length — say so in the data.
+    usage.costUsd = perSec * (req.durationSec ?? DEFAULT_CLIP_SEC);
+    usage.costBasis = req.durationSec === undefined ? "estimated" : "computed";
     return { url: `vertex://${op.name}`, bytes: Buffer.from(videoB64, "base64"), mimeType: videoMime, usage };
   }
 

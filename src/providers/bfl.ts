@@ -21,6 +21,7 @@
 // a face never transits a non-EU host. BFL returns the real `cost` in credits
 // (1 credit = $0.01, official) → usage.costUsd is exact, not estimated.
 import { freshUsage } from "../cost/usage.js";
+import { getMediaPrice } from "../cost/media-pricing.js";
 import type { Region } from "../cost/region.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
 
@@ -52,10 +53,6 @@ export interface BflAdapterConfig {
   /** Override the per-image USD price (else the built-in finetuned-inference estimate). */
   pricePerImage?: number;
 }
-
-// flux-pro-1.1-ultra-finetuned per-image USD. BFL bills per generated image; verify
-// against bfl.ai/pricing before relying on this (override via config.pricePerImage).
-const BFL_IMAGE_PRICE = 0.06;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -162,11 +159,17 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    // BFL returns the real billed cost (credits) — use it; fall back to the estimate.
-    usage.costUsd =
-      typeof submit.cost === "number"
-        ? submit.cost * BFL_CREDIT_USD
-        : (config.pricePerImage ?? BFL_IMAGE_PRICE);
+    // BFL REPORTS the real billed cost in credits — that is the good case, and it is
+    // the one case in the SDK where the provider answers the cost question itself.
+    // Only the fallback is a guess, and it says so rather than looking identical.
+    if (typeof submit.cost === "number") {
+      usage.costUsd = submit.cost * BFL_CREDIT_USD;
+      usage.costBasis = "reported";
+    } else {
+      usage.costUsd =
+        config.pricePerImage ?? getMediaPrice("bfl", "flux-pro-1.1-ultra-finetuned")?.usd ?? 0;
+      usage.costBasis = config.pricePerImage !== undefined ? "computed" : "estimated";
+    }
     return { url: sample, usage };
   }
 

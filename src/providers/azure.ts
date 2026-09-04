@@ -7,15 +7,7 @@ import { freshUsage } from "../cost/usage.js";
 import { classifyRegionName, type Region } from "../cost/region.js";
 import { xmlEscape, applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
-
-/** USD per 1000 characters. ≈ Azure neural standard ($16 / 1M chars) — verify on
- *  azure.microsoft.com/pricing; override via config.pricePer1kChars. */
-const AZURE_TTS_PRICE_PER_1K_CHARS = 0.016;
-
-/** USD per audio-minute for speech-to-text. ≈ Azure standard STT ($1 / audio-hour
- *  = $0.0167/min) — verify the fast-transcription rate on azure.microsoft.com/pricing;
- *  override via config.sttPricePerMin. */
-const AZURE_STT_PRICE_PER_MIN = 0.0167;
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 /** Fast-transcription REST api-version. 2025-10-15 is required for the `phraseList`
  *  biasing field (2024-11-15 rejects it as "Invalid JSON"); both serve plain
@@ -165,7 +157,7 @@ export function azureAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = (chars / 1000) * (config.pricePer1kChars ?? AZURE_TTS_PRICE_PER_1K_CHARS);
+    usage.costUsd = (chars / 1000) * (config.pricePer1kChars ?? getMediaPrice("azure", "tts")?.usd ?? 0);
     return usage;
   }
 
@@ -268,7 +260,7 @@ export function azureAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = minutes * (config.sttPricePerMin ?? AZURE_STT_PRICE_PER_MIN);
+    usage.costUsd = minutes * (config.sttPricePerMin ?? getMediaPrice("azure", "stt")?.usd ?? 0);
     const result: TranscribeResult = { text, usage };
     // Timestamps (F036.1) — Azure fast-transcription already returns phrases+words
     // with ms offsets; surface them on the same TranscribeResult shape as Whisper.

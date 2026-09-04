@@ -22,16 +22,7 @@ import type {
   BatchResultItem,
   TierSpec,
 } from "../types.js";
-
-/** Per-page USD for Mistral OCR ($2 / 1000 pages). Overridable via config. */
-const MISTRAL_OCR_PRICE_PER_PAGE = 0.002;
-
-/** Per-minute USD for Voxtral transcription models (F016.3). */
-const VOXTRAL_PRICE_PER_MIN: Record<string, number> = {
-  "voxtral-mini-latest": 0.002,
-  "voxtral-mini-2507": 0.002,
-  "voxtral-mini-2602": 0.002,
-};
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 export function mistralAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerPage?: number } = {},
@@ -89,7 +80,7 @@ export function mistralAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = pagesProcessed * (config.pricePerPage ?? MISTRAL_OCR_PRICE_PER_PAGE);
+    usage.costUsd = pagesProcessed * (config.pricePerPage ?? getMediaPrice("mistral", "ocr")?.usd ?? 0);
     return { pages, usage };
   }
 
@@ -199,7 +190,7 @@ export function mistralAdapter(
       outputTokens: 0,
     });
     if (req.durationSec !== undefined) {
-      usage.costUsd = (req.durationSec / 60) * (VOXTRAL_PRICE_PER_MIN[req.spec.model] ?? 0);
+      usage.costUsd = (req.durationSec / 60) * (getMediaPrice("mistral", req.spec.model)?.usd ?? 0);
     }
     return { text: data.text ?? "", usage };
   }

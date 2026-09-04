@@ -34,6 +34,24 @@ jobs:
       - name: Rebuild inventory
         run: bun run scripts/build-inventory.ts
 
+      # F050 — the half this job CANNOT do, said out loud every month.
+      #
+      # Video, image, speech, OCR and translation are billed per second / image /
+      # 1000 chars / minute / page, and no vendor serves those in a catalogue API —
+      # OpenRouter, which backs everything above, carries no such model. So this job
+      # refreshes tokens and cannot touch them, and until F050 nothing said so:
+      # pricingFreshness() answered "fresh" about a table that structurally could not
+      # hold a per-second price, and the hand-written numbers had sat unrevised since
+      # the day they were typed.
+      #
+      # Deliberately a REPORT, not a gate. A gate no automation can clear would block
+      # a release on a human errand, and the fix under deadline pressure is to bump the
+      # date without re-reading the vendor page — which leaves the gate green and the
+      # date lying. Worse than no gate. The runtime warning + `caveats` carry the same
+      # signal to whoever is actually billing.
+      - name: Report media-price age (this job cannot refresh these)
+        run: bun run scripts/media-price-age.ts | tee -a "$GITHUB_STEP_SUMMARY" >> /tmp/report.md
+
       - name: Open PR if the inventory changed
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

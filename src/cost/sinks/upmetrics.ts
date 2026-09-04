@@ -72,6 +72,11 @@ export function upmetricsSink(config: UpmetricsSinkConfig): CostSink {
             // capability/transport — no ingest-schema change, and without it the one
             // field built for auditability existed only in memory.
             region: usage.region,
+            // F050: HOW cost_usd was arrived at. upmetrics already distinguishes
+            // reported / computed / unpriced — we were sending an assumed number in
+            // the same field as a measured one, so their labels could not be right
+            // about our rows however carefully they were applied.
+            cost_basis: usage.costBasis ?? "computed",
             sdk: SDK_TAG,
           },
         };

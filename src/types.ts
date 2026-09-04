@@ -152,6 +152,24 @@ export interface Usage {
   cacheReadTokens: number;
   cacheCreationTokens: number;
   costUsd: number;
+  /** How `costUsd` was arrived at (F050). Absent means the same as `"computed"`;
+   *  it is optional only so that adding it could not break a consumer building a
+   *  Usage by hand.
+   *
+   *  - `"reported"` — the PROVIDER told us what the call cost (BFL returns credits).
+   *  - `"computed"` — a price table rate × a quantity we actually measured (tokens).
+   *  - `"estimated"` — a quantity or a rate was ASSUMED. A video call with no
+   *    `durationSec` is billed at {@link DEFAULT_CLIP_SEC} seconds regardless of the
+   *    clip that came back, and fal's per-image rates are fal's own estimates.
+   *  - `"unpriced"` — we have NO price for this model, so `costUsd` is 0 because we
+   *    could not answer, not because the call was free. Those two were the same
+   *    number, and the free one is much rarer than the unknown one.
+   *
+   *  This is a DATA field on purpose. upmetrics distinguishes reported / computed /
+   *  unpriced / untokened, and it reads fields — a JSDoc note saying "this one is a
+   *  guess" never reaches it, so an assumed number arrived there indistinguishable
+   *  from a measured one. super did exactly that and passed it on as measured. */
+  costBasis?: "reported" | "computed" | "estimated" | "unpriced";
   toolCalls?: { name: string; count: number; errorCount?: number }[];
   latencyMs: number;
   capability: Capability;

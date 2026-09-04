@@ -6,6 +6,7 @@ import { httpTransport, errorBody } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
 import { toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
+import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
 import { toInlineImage } from "./media.js";
 import type {
   ProviderAdapter,
@@ -20,19 +21,6 @@ import type {
   ContentPart,
   ToolCall,
 } from "../types.js";
-
-/** Per-image USD price for Gemini image-gen models (generateContent image output
- *  is billed per image). Official ai.google.dev/gemini-api/docs/pricing, standard
- *  paid tier, at the 1K/1024px output size (Google's per-image price rises with
- *  resolution — 2K/4K cost more; we record the common 1K default). Overridable
- *  per call via geminiAdapter config.pricePerImage. */
-const GEMINI_IMAGE_PRICE_PER_IMAGE: Record<string, number> = {
-  "gemini-2.5-flash-image": 0.039, // "nano-banana" — 1024px = 1290 tok
-  "gemini-3.1-flash-image": 0.067, // 1K=$0.067, 2K=$0.101, 4K=$0.151
-  "gemini-3.1-flash-image-preview": 0.067,
-  "gemini-3-pro-image": 0.134, // premium — 1K/2K=$0.134, 4K=$0.24
-  "gemini-3-pro-image-preview": 0.134, // was $0.039 — wrong (that's the flash price); pro is $0.134
-};
 
 export interface GeminiPart {
   text?: string;
@@ -92,16 +80,6 @@ export function partsFrom(content: string | ContentPart[]): GeminiPart[] {
   });
 }
 
-/** Per-SECOND USD for Veo video models (F024). Official ai.google.dev/gemini-api/
- *  docs/pricing (2026-06, "video with audio", 720p/1080p default; 4K costs more).
- *  Override per call via config.pricePerSecond. Unknown model → 0 (never fabricated). */
-const VEO_PRICE_PER_SEC: Record<string, number> = {
-  "veo-3.1-generate-preview": 0.4, // standard; 4K = 0.60
-  "veo-3.1-fast-generate-preview": 0.1, // 720p; 1080p = 0.12, 4K = 0.30
-  "veo-3.1-lite-generate-preview": 0.05, // 720p; 1080p = 0.08
-  "veo-3.0-generate-001": 0.4,
-  "veo-3.0-fast-generate-001": 0.1,
-};
 
 export function geminiAdapter(
   config: {
@@ -301,7 +279,7 @@ export function geminiAdapter(
       ...splitCached(data.usageMetadata),
       outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
     });
-    usage.costUsd = config.pricePerImage ?? GEMINI_IMAGE_PRICE_PER_IMAGE[req.spec.model] ?? 0;
+    usage.costUsd = config.pricePerImage ?? getMediaPrice("gemini", req.spec.model)?.usd ?? 0;
     return { url, usage };
   }
 
@@ -368,8 +346,10 @@ export function geminiAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    const perSec = config.pricePerSecond ?? VEO_PRICE_PER_SEC[req.spec.model] ?? 0;
-    usage.costUsd = perSec * (req.durationSec ?? 8);
+    const perSec = config.pricePerSecond ?? getMediaPrice("gemini", req.spec.model)?.usd ?? 0;
+    // No durationSec means we bill an ASSUMED clip length — say so in the data.
+    usage.costUsd = perSec * (req.durationSec ?? DEFAULT_CLIP_SEC);
+    usage.costBasis = req.durationSec === undefined ? "estimated" : "computed";
     return { url: videoUri, bytes, mimeType: "video/mp4", usage };
   }
 

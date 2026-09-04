@@ -78,6 +78,15 @@ export function freshUsage(args: {
     cacheReadTokens,
     cacheCreationTokens,
     costUsd,
+    // F050 — say HOW we got the number. A $0 because the model is not in the price
+    // table and a $0 because the call was genuinely free were the same value, and the
+    // free case is much rarer than the unknown one. Adapters that bill a non-token
+    // unit overwrite this with "estimated"/"reported" right after.
+    costBasis: args.subprocess
+      ? "computed" // Max-plan subprocess: 0 is the real, known cost, not a gap.
+      : getPrice(args.provider, args.model)
+        ? "computed"
+        : "unpriced",
     latencyMs: 0,
     capability: args.capability,
     ts: "",

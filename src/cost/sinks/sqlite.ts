@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   cache_read_tokens INTEGER NOT NULL,
   cache_creation_tokens INTEGER NOT NULL,
   cost_usd REAL NOT NULL,
+  cost_basis TEXT NOT NULL DEFAULT 'unknown',
   latency_ms INTEGER NOT NULL,
   subprocess INTEGER NOT NULL DEFAULT 0
 )`;
@@ -54,13 +55,19 @@ export function sqliteSink(config: SqliteSinkConfig): CostSink {
     if (!cols.some((c) => c.name === "region")) {
       db.run(`ALTER TABLE ai_usage ADD COLUMN region TEXT NOT NULL DEFAULT 'unknown'`);
     }
+    // F050, same reasoning as region. 'unknown' for pre-existing rows is the truthful
+    // answer — we did not record how those costs were arrived at, and back-filling
+    // them as 'computed' would invent a fact about calls already made.
+    if (!cols.some((c) => c.name === "cost_basis")) {
+      db.run(`ALTER TABLE ai_usage ADD COLUMN cost_basis TEXT NOT NULL DEFAULT 'unknown'`);
+    }
     const insert = db.prepare(
       `INSERT INTO ai_usage
          (ts, provider, model, tier, transport, capability, region, purpose,
           input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
-          cost_usd, latency_ms, subprocess)
+          cost_usd, cost_basis, latency_ms, subprocess)
        VALUES ($ts, $provider, $model, $tier, $transport, $capability, $region, $purpose,
-          $input, $output, $cacheRead, $cacheCreation, $cost, $latency, $subprocess)`,
+          $input, $output, $cacheRead, $cacheCreation, $cost, $costBasis, $latency, $subprocess)`,
     );
     return insert;
   };
@@ -82,6 +89,7 @@ export function sqliteSink(config: SqliteSinkConfig): CostSink {
         $cacheRead: usage.cacheReadTokens,
         $cacheCreation: usage.cacheCreationTokens,
         $cost: usage.costUsd,
+        $costBasis: usage.costBasis ?? "computed",
         $latency: usage.latencyMs,
         $subprocess: usage.subprocess ? 1 : 0,
       });

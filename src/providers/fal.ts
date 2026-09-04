@@ -5,6 +5,7 @@
 // Auth header `Authorization: Key <FAL_KEY>`. No @fal-ai/client — plain fetch.
 import { deflateRawSync, crc32 } from "node:zlib";
 import { freshUsage } from "../cost/usage.js";
+import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
 import type {
   ProviderAdapter,
   ImageRequest,
@@ -53,33 +54,6 @@ export interface FalAdapterConfig {
   /** Override the per-SECOND video USD price (else a built-in estimate per model, 0 if unknown). */
   pricePerSecond?: number;
 }
-
-// Per-image USD ESTIMATES (fal prices by megapixel/model and changes often —
-// verify before relying on these; override via config.pricePerImage). fal does
-// not return a price, so this is the SDK's best-effort cost for `usage.costUsd`.
-const FAL_IMAGE_PRICE_ESTIMATE: Record<string, number> = {
-  "fal-ai/flux/schnell": 0.003,
-  "fal-ai/flux/dev": 0.025,
-  "fal-ai/flux-lora": 0.025,
-  "fal-ai/flux-pro": 0.05,
-  "fal-ai/flux-pro/v1.1": 0.04,
-};
-// Flat training estimate (fal-ai/flux-lora-fast-training, ~$2; override via config).
-const FAL_TRAIN_PRICE_ESTIMATE = 2.0;
-
-// Per-SECOND USD estimates for video models (F024). fal does not return a price,
-// and rates vary by model/resolution — entries are fal's OFFICIAL published
-// per-second rate (fal.ai/models/<id> pricing), not guessed; override via
-// config.pricePerSecond. Unknown model → 0 (cost surfaced via a live smoke,
-// not a fabricated number).
-const FAL_VIDEO_PRICE_PER_SEC: Record<string, number> = {
-  // Kling 2.5 Turbo Pro i2v — the blessed FAL_KEY-only image→video route (F014
-  // contentpush spike). $0.35 for the first 5 s + $0.07/additional s = a flat
-  // $0.07/s (1080p); per-second-billed, commercial-use, not deprecated.
-  "fal-ai/kling-video/v2.5-turbo/pro/image-to-video": 0.07,
-};
-// Default clip length to bill when the caller doesn't pass durationSec (Veo ≈ 8s).
-const FAL_VIDEO_DEFAULT_SEC = 8;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -135,7 +109,11 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = (config.pricePerImage ?? FAL_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0) * calls;
+    // fal's per-image rates are fal's OWN estimates (it bills by megapixel and
+    // returns no price), so a cost off the table is estimated even with a real count.
+    const perImage = config.pricePerImage ?? getMediaPrice("fal", req.spec.model)?.usd;
+    usage.costUsd = (perImage ?? 0) * calls;
+    usage.costBasis = config.pricePerImage !== undefined ? "computed" : "estimated";
     return { url, usage };
   }
 
@@ -175,9 +153,10 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    // fal returns no price → per-second estimate × duration (override config.pricePerSecond).
-    const perSec = config.pricePerSecond ?? FAL_VIDEO_PRICE_PER_SEC[req.spec.model] ?? 0;
-    usage.costUsd = perSec * (req.durationSec ?? FAL_VIDEO_DEFAULT_SEC);
+    // fal returns no price → per-second rate × duration (override config.pricePerSecond).
+    const perSec = config.pricePerSecond ?? getMediaPrice("fal", req.spec.model)?.usd ?? 0;
+    usage.costUsd = perSec * (req.durationSec ?? DEFAULT_CLIP_SEC);
+    usage.costBasis = req.durationSec === undefined ? "estimated" : "computed";
     return { url, usage };
   }
 
@@ -222,7 +201,8 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = config.pricePerTraining ?? FAL_TRAIN_PRICE_ESTIMATE;
+    usage.costUsd = config.pricePerTraining ?? getMediaPrice("fal", "train")?.usd ?? 0;
+    usage.costBasis = config.pricePerTraining !== undefined ? "computed" : "estimated";
     return { loraUrl, configUrl: configUrl ?? "", usage };
   }
 

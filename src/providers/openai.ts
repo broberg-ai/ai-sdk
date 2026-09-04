@@ -11,11 +11,7 @@ import type {
   TranscribeRequest,
   TranscribeResult,
 } from "../types.js";
-
-/** Whisper-family per-minute USD prices (audio is not token-priced). */
-const WHISPER_PRICE_PER_MIN: Record<string, number> = {
-  "whisper-1": 0.006,
-};
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 export function openaiAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
@@ -93,7 +89,7 @@ export function openaiAdapter(
     });
     // Per-minute cost when the caller supplies the audio duration (API returns none).
     if (req.durationSec !== undefined) {
-      const perMinute = WHISPER_PRICE_PER_MIN[req.spec.model] ?? 0;
+      const perMinute = getMediaPrice("openai", req.spec.model)?.usd ?? 0;
       usage.costUsd = (req.durationSec / 60) * perMinute;
     }
     const result: TranscribeResult = { text: data.text ?? "", usage };

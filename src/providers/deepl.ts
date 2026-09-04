@@ -9,15 +9,7 @@
 import { freshUsage } from "../cost/usage.js";
 import { regionOfHost } from "../cost/region.js";
 import type { ProviderAdapter, TranslateRequest, TranslateResult } from "../types.js";
-
-/** USD per 1000 characters. UNVERIFIED ESTIMATE — DeepL's own pricing pages
- *  resisted automated fetch (JS-rendered / bot-protected) as of 2026-06-20;
- *  third-party sources converge loosely around €20/1M chars for the Pro API,
- *  but conflicting subscription-tier reports exist. Verify against
- *  deepl.com/pro-api directly before relying on this for a budget decision.
- *  Override via config.pricePer1kChars. Free-tier (":fx" key, within quota) is
- *  genuinely $0 — this rate only matters for Pro usage past the free allowance. */
-const DEEPL_PRICE_PER_1K_CHARS_ESTIMATE = 0.0217;
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 export function deeplAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePer1kChars?: number } = {},
@@ -63,7 +55,8 @@ export function deeplAdapter(
       inputTokens: 0,
       outputTokens: 0,
     });
-    usage.costUsd = (req.text.length / 1000) * (config.pricePer1kChars ?? DEEPL_PRICE_PER_1K_CHARS_ESTIMATE);
+    usage.costUsd = (req.text.length / 1000) * (config.pricePer1kChars ?? getMediaPrice("deepl", "translate")?.usd ?? 0);
+    usage.costBasis = config.pricePer1kChars !== undefined ? "computed" : "estimated";
     return { text, usage };
   }
 

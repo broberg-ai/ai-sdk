@@ -100,8 +100,17 @@ export {
   pricingFreshness,
   pricingGeneratedAt,
   PRICING_STALE_AFTER_DAYS,
+  // F050 — the non-token half. `pricingFreshness().caveats` is the field that makes
+  // `stale: false` an honest answer: it names every unit the table cannot price.
+  listMediaPrices,
 } from "./catalogue/pricing-api.js";
-export type { PricingFreshness } from "./catalogue/pricing-api.js";
+export type { PricingFreshness, UnitFreshness } from "./catalogue/pricing-api.js";
+export {
+  MEDIA_PRICING_CHECKED_AT,
+  DEFAULT_CLIP_SEC,
+  getMediaPrice,
+} from "./cost/media-pricing.js";
+export type { MediaPrice, MediaUnit } from "./cost/media-pricing.js";
 // F043.8 — the region API was reachable only from inside the package. A consumer
 // could read usage.region AFTER a call and had no way to ask "where would this go?"
 // BEFORE one, which is the half needed to build a fail-closed guard. Two consumers

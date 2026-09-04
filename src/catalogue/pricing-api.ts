@@ -5,6 +5,7 @@
 import { PRICING_DATA, PRICING_GENERATED_AT, PRICING_CHECKED_AT } from "./pricing-data.js";
 import { stripDatedSuffix } from "../cost/pricing.js";
 import { PRICING } from "../cost/pricing.js";
+import { MEDIA_PRICING, MEDIA_PRICING_CHECKED_AT, mediaUnitCounts } from "../cost/media-pricing.js";
 
 export type PriceRegion = "eu" | "us" | "cn" | "other";
 
@@ -19,9 +20,22 @@ export interface ModelPrice {
   inputPer1M: number;
   /** USD per 1M output tokens. */
   outputPer1M: number;
-  /** Pricing unit (almost always "per_1m_tokens"). */
+  /** Pricing unit: "per_1m_tokens", or "per_sec" / "per_image" for a media model.
+   *  Check it before reading the token rates — they are 0 on a media row, which is a
+   *  placeholder and NOT a claim that the model is free. */
   unit: string;
-  /** GDPR region of the host. */
+  /** USD per second of generated video. Set only when `unit` is "per_sec". */
+  perSec?: number;
+  /** USD per generated image. Set only when `unit` is "per_image". */
+  perImage?: number;
+  /** ISO date this row was last verified. Media rows carry a HUMAN-set date; token
+   *  rows inherit the inventory snapshot's. */
+  checkedAt?: string;
+  /** GDPR region derived from the PROVIDER NAME — a rough grouping, not a residency
+   *  claim. It is `"other"` for vertex/bfl/fal/azure precisely because those take a
+   *  configurable endpoint, so their region is a property of the CALL and not of the
+   *  model. For an actual residency answer use `regionOfHost()` before the call, or
+   *  `usage.region` after it. */
   region: PriceRegion;
   /** "curated" = authoritative hand-maintained number; "inventory" = from inventory.json. */
   source: "curated" | "inventory";
@@ -63,6 +77,51 @@ function regionForProvider(provider: string): PriceRegion {
     default:
       return "other";
   }
+}
+
+/** Media rows as ModelPrice, keyed by lowercased model id.
+ *
+ *  Deliberately NOT merged into `_list`: `listModelPrices()` / `findModelPrices()`
+ *  would then hand a Veo row to a `maxInputPer1M` filter, where its placeholder
+ *  `inputPer1M: 0` reads as "free" — a new wrong-layer answer in the middle of
+ *  fixing one. Lookup by id is safe (no filter to fool); listing is not. */
+let _media: Map<string, ModelPrice> | null = null;
+
+function ensureMedia(): Map<string, ModelPrice> {
+  if (_media) return _media;
+  const m = new Map<string, ModelPrice>();
+  for (const [key, p] of Object.entries(MEDIA_PRICING)) {
+    const ci = key.indexOf(":");
+    const provider = ci >= 0 ? key.slice(0, ci) : "";
+    const model = ci >= 0 ? key.slice(ci + 1) : key;
+    const row: ModelPrice = {
+      provider,
+      model,
+      inputPer1M: 0,
+      outputPer1M: 0,
+      unit: p.unit,
+      ...(p.unit === "per_sec" ? { perSec: p.usd } : { perImage: p.usd }),
+      checkedAt: p.checkedAt,
+      region: regionForProvider(provider),
+      source: "curated",
+    };
+    // The fully-qualified key always wins for itself; the BARE alias is first-write.
+    // Veo lives under both gemini and vertex with identical numbers, so a bare lookup
+    // can only name one provider — last-write-wins made that answer arbitrary (it was
+    // "vertex" purely because of spread order). First-write pins it to the consumer
+    // Gemini API, and anyone who means the other one asks for "vertex:<model>".
+    if (!m.has(model.toLowerCase())) m.set(model.toLowerCase(), row);
+    m.set(key.toLowerCase(), row);
+  }
+  _media = m;
+  return m;
+}
+
+/** Every non-token price the SDK bills from (F050). Separate from
+ *  {@link listModelPrices} because the two answer different questions and mixing
+ *  them silently changed what an existing caller's list meant. */
+export function listMediaPrices(): ModelPrice[] {
+  return [...new Set(ensureMedia().values())];
 }
 
 let _list: ModelPrice[] | null = null;
@@ -128,11 +187,17 @@ export function getModelPrice(modelId: string): ModelPrice | undefined {
   // The dated-snapshot fallback is LAST, after every exact form, so a provider that
   // genuinely prices a dated snapshot differently keeps its own row.
   const dated = stripDatedSuffix(s);
+  const media = ensureMedia();
   return (
     _full!.get(s) ??
     (s.includes(":") ? _full!.get(s.slice(s.indexOf(":") + 1)) : undefined) ??
     _base!.get(basename(s)) ??
-    (dated !== s ? (_full!.get(dated) ?? _base!.get(basename(dated))) : undefined)
+    (dated !== s ? (_full!.get(dated) ?? _base!.get(basename(dated))) : undefined) ??
+    // Media LAST, so a token model never loses its own row to a media id collision.
+    // Before F050 this returned undefined for every video model, which a caller could
+    // not tell apart from "we have no price for that anywhere".
+    media.get(s) ??
+    (s.includes(":") ? media.get(s.slice(s.indexOf(":") + 1)) : undefined)
   );
 }
 
@@ -176,6 +241,18 @@ export function pricingGeneratedAt(): string {
  *  threshold drift apart until the doc and the code disagree about what "stale" means. */
 export const PRICING_STALE_AFTER_DAYS = 35;
 
+/** Freshness of ONE pricing unit. */
+export interface UnitFreshness {
+  unit: string;
+  /** How many rows the table holds in this unit. Zero means NOT COVERED — which is
+   *  a different answer from "covered and fresh", and used to be indistinguishable. */
+  count: number;
+  /** When a check last happened for this unit. Empty = never. */
+  checkedAt: string;
+  ageDays: number | null;
+  stale: boolean;
+}
+
 export interface PricingFreshness {
   /** When the numbers last CHANGED. */
   generatedAt: string;
@@ -185,9 +262,32 @@ export interface PricingFreshness {
   /** Days since `checkedAt`; `null` when there is no check date to measure from. */
   ageDays: number | null;
   /** True when the check is older than {@link PRICING_STALE_AFTER_DAYS} — or when
-   *  there is no check date at all. An unanswerable question is not a pass. */
+   *  there is no check date at all. An unanswerable question is not a pass.
+   *
+   *  **Scope: the TOKEN table only.** Unchanged from F046 on purpose — consumers and
+   *  the release guard already read it. For "is anything I might bill for covered?",
+   *  read {@link PricingFreshness.caveats}. */
   stale: boolean;
   thresholdDays: number;
+  /** Per-unit breakdown (F050). Every unit the SDK can bill in, whether or not the
+   *  table has rows for it — an absent unit must show up as `count: 0`, not as an
+   *  absent key that a caller iterating the object would never notice. */
+  units: UnitFreshness[];
+  /** Human-readable reservations, one per unit that is uncovered or stale.
+   *
+   *  This is the field that makes `stale: false` honest. super measured the state it
+   *  exists to end: `{ageDays: 0, stale: false}` on a table where per-second prices
+   *  could not exist, so the API built to catch price drift reported "fresh" about
+   *  numbers it structurally could not see. Empty array = no reservations. */
+  caveats: string[];
+}
+
+/** What {@link computeFreshness} needs to judge a unit. Supplied by
+ *  {@link pricingFreshness} from the real tables; a test passes its own. */
+export interface UnitInput {
+  unit: string;
+  count: number;
+  checkedAt: string;
 }
 
 /** Is this price table still worth trusting? (F046)
@@ -207,22 +307,67 @@ export function computeFreshness(
   generatedAt: string,
   checkedAt: string,
   nowMs: number,
+  units: UnitInput[] = [],
 ): PricingFreshness {
-  const t = checkedAt ? Date.parse(checkedAt) : NaN;
-  const ageDays = Number.isFinite(t) ? Math.floor((nowMs - t) / 86_400_000) : null;
+  const age = (iso: string): number | null => {
+    const t = iso ? Date.parse(iso) : NaN;
+    // Clamped at 0. A date-only stamp parses as UTC midnight, so a check made TODAY in
+    // Copenhagen (UTC+1/+2) reads as tomorrow for the first hours of the day and the
+    // raw subtraction floors to -1. "-1 days old" is not wrong in a way that endangers
+    // anything, but it is a number no reader can act on. 0 is the true answer: it was
+    // checked today.
+    return Number.isFinite(t) ? Math.max(0, Math.floor((nowMs - t) / 86_400_000)) : null;
+  };
+  // No check date → stale. The absent case must not read as the healthy one; that is
+  // the whole failure this feature exists to remove.
+  const isStale = (d: number | null) => d === null || d > PRICING_STALE_AFTER_DAYS;
+
+  const ageDays = age(checkedAt);
+  const unitRows: UnitFreshness[] = units.map((u) => {
+    const a = age(u.checkedAt);
+    return { unit: u.unit, count: u.count, checkedAt: u.checkedAt, ageDays: a, stale: isStale(a) };
+  });
+
+  // A unit with NO rows outranks a stale one in the message: "we have never priced
+  // this" and "our price is old" call for different actions from the reader.
+  const caveats = unitRows.flatMap((u) =>
+    u.count === 0
+      ? [`${u.unit}: 0 rows — this table cannot price anything billed in ${u.unit}, so "stale: false" says nothing about it`]
+      : u.stale
+        ? [
+            `${u.unit}: ${u.count} row(s) last verified ${u.checkedAt || "never"}` +
+              (u.ageDays === null ? "" : ` (${u.ageDays} days ago)`) +
+              `, past the ${PRICING_STALE_AFTER_DAYS}d threshold`,
+          ]
+        : [],
+  );
+
   return {
     generatedAt,
     checkedAt,
     ageDays,
-    // No check date → stale. The absent case must not read as the healthy one; that is
-    // the whole failure this feature exists to remove.
-    stale: ageDays === null || ageDays > PRICING_STALE_AFTER_DAYS,
+    stale: isStale(ageDays),
     thresholdDays: PRICING_STALE_AFTER_DAYS,
+    units: unitRows,
+    caveats,
   };
 }
 
 export function pricingFreshness(nowMs: number = Date.now()): PricingFreshness {
-  return computeFreshness(PRICING_GENERATED_AT, PRICING_CHECKED_AT, nowMs);
+  return computeFreshness(PRICING_GENERATED_AT, PRICING_CHECKED_AT, nowMs, [
+    { unit: "per_1m_tokens", count: PRICING_DATA.length, checkedAt: PRICING_CHECKED_AT },
+    // Every media unit, derived from the table rather than listed here — a unit added
+    // to MEDIA_PRICING and forgotten here would be a unit the freshness API silently
+    // does not report, which is this whole feature's own bug wearing a new hat.
+    // Hand-maintained, and the monthly job cannot reach them, hence their own date:
+    // inheriting the token snapshot's would make an un-revised video price look freshly
+    // verified every time the token job ran.
+    ...Object.entries(mediaUnitCounts()).map(([unit, count]) => ({
+      unit,
+      count,
+      checkedAt: MEDIA_PRICING_CHECKED_AT,
+    })),
+  ]);
 }
 
 let warned = false;
@@ -236,14 +381,32 @@ export function warnIfPricingStale(nowMs: number = Date.now()): void {
   if (warned) return;
   if (globalThis.process?.env?.BROBERG_AI_SDK_SILENCE_PRICING_WARNING) return;
   const f = pricingFreshness(nowMs);
-  if (!f.stale) return;
+  // F050 — the caveats are a REASON TO WARN in their own right, not decoration on a
+  // warning that already fired. A table can be perfectly fresh on tokens and blind to
+  // every per-second price in it, which is the exact state that shipped for months.
+  if (!f.stale && f.caveats.length === 0) return;
   warned = true;
-  const age = f.ageDays === null ? "of unknown age" : `${f.ageDays} days old`;
-  console.warn(
-    `[@broberg/ai-sdk] price table is ${age} (last verified ${f.checkedAt || "never"}, ` +
-      `threshold ${f.thresholdDays}d). Prices drift: one week has produced 34 changes before. ` +
-      `Refresh with \`bun run scripts/build-inventory.ts\` in ai-sdk, or take a newer release.`,
-  );
+  // ONE console.warn, however many things are wrong. A library that prints eight lines
+  // on first use gets silenced, and a silenced warning is the state we started from —
+  // the same reasoning as warning once rather than per lookup, one level up.
+  const parts: string[] = [];
+  if (f.stale) {
+    const age = f.ageDays === null ? "of unknown age" : `${f.ageDays} days old`;
+    parts.push(
+      `price table is ${age} (last verified ${f.checkedAt || "never"}, threshold ` +
+        `${f.thresholdDays}d). Prices drift: one week has produced 34 changes before. ` +
+        `Refresh with \`bun run scripts/build-inventory.ts\` in ai-sdk, or take a newer release.`,
+    );
+  }
+  if (f.caveats.length > 0) {
+    parts.push(
+      `${f.caveats.length} pricing caveat(s): ${f.caveats.join("; ")}. Non-token prices are ` +
+        `HAND-maintained (no vendor catalogue API serves them), so refreshing them means a ` +
+        `human re-reading the vendor's pricing page and bumping MEDIA_PRICING_CHECKED_AT in ` +
+        `src/cost/media-pricing.ts.`,
+    );
+  }
+  console.warn(`[@broberg/ai-sdk] ${parts.join(" | ")}`);
 }
 
 /** Test-only: forget that we already warned. */

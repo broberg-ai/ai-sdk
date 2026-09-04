@@ -34,6 +34,29 @@ test("the workflow exists and still opens a PR on a substantive change", () => {
   expect(wf).toContain("scripts/build-inventory.ts");
 });
 
+test("F050 — the monthly job REPORTS the prices it cannot refresh", () => {
+  // The job refreshes tokens from OpenRouter and cannot touch the per-second /
+  // per-image / per-minute / per-page numbers: no vendor serves them in a catalogue
+  // API. Until F050 nothing said so, so a run that refreshed half the table reported
+  // plain success and pricingFreshness() called the whole thing fresh.
+  expect(code).toContain("scripts/media-price-age.ts");
+  // Into BOTH the PR body and the job summary — a report only in the log is a report
+  // nobody reads, which is how three months of failed PR creation went unnoticed.
+  expect(code).toContain("GITHUB_STEP_SUMMARY");
+  expect(code).toContain("/tmp/report.md");
+});
+
+test("F050 — the media-price report may NOT fail the run", () => {
+  // Deliberately not a gate. A gate no automation can clear blocks a release on a
+  // human errand, and the fix under deadline is to bump the date without re-reading
+  // the vendor page — leaving the gate green and the date lying. Worse than no gate.
+  const step = code.slice(code.indexOf("media-price-age.ts"));
+  const nextStep = step.indexOf("\n      - name:");
+  const body = nextStep > 0 ? step.slice(0, nextStep) : step;
+  expect(body).not.toContain("exit 1");
+  expect(body).not.toContain("::error::");
+});
+
 test("a blocked PR creation FAILS the run — it may not be a notice", () => {
   const fallback = code.slice(code.indexOf("gh pr create"));
   expect(fallback).toContain("exit 1");

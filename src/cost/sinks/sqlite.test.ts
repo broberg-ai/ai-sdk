@@ -94,3 +94,63 @@ test("an existing db from an earlier version gains the region column instead of 
   expect(rows[1]!.region).toBe("eu");      // strict equality on what we wrote
   db.close();
 });
+
+// ── F050: cost_basis survives to the row, not just to the call site ─────────
+// The house rule this obeys: a field that must persist is not proven by the writer
+// returning cleanly. Read it back with a RAW query — the same layer that wrote it
+// is exactly the layer that lies.
+
+test("cost_basis is written, and the four values come back DISTINCT", async () => {
+  cleanup();
+  const sink = sqliteSink({ dbPath: DB });
+  await sink.record(usage({ costBasis: "estimated", costUsd: 3.2 }));
+  await sink.record(usage({ costBasis: "reported", costUsd: 0.06 }));
+  await sink.record(usage({ costBasis: "unpriced", costUsd: 0 }));
+  await sink.record(usage({ costUsd: 0.002 })); // unset → computed
+
+  const { Database } = await import("bun:sqlite");
+  const db = new Database(DB, { readonly: true });
+  const rows = db.query(`SELECT cost_basis, cost_usd FROM ai_usage ORDER BY rowid`).all() as {
+    cost_basis: string;
+    cost_usd: number;
+  }[];
+  db.close();
+
+  // Strict equality on the read-back value, in order. A "contains" style check would
+  // pass on a column that stored the same string four times.
+  expect(rows.map((r) => r.cost_basis)).toEqual(["estimated", "reported", "unpriced", "computed"]);
+  // The one that matters most: a $0 we could not price is now distinguishable from a
+  // $0 that was genuinely free. Before F050 both were just 0.
+  expect(rows[2]!.cost_usd).toBe(0);
+  expect(rows[2]!.cost_basis).toBe("unpriced");
+});
+
+test("an existing db from BEFORE cost_basis gains the column instead of failing", async () => {
+  cleanup();
+  const { Database } = await import("bun:sqlite");
+  // The pre-F050 schema, verbatim — no region, no cost_basis.
+  const old = new Database(DB);
+  old.run(`CREATE TABLE ai_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, provider TEXT NOT NULL,
+    model TEXT NOT NULL, tier TEXT, transport TEXT NOT NULL, capability TEXT NOT NULL,
+    purpose TEXT, input_tokens INTEGER NOT NULL, output_tokens INTEGER NOT NULL,
+    cache_read_tokens INTEGER NOT NULL, cache_creation_tokens INTEGER NOT NULL,
+    cost_usd REAL NOT NULL, latency_ms INTEGER NOT NULL,
+    subprocess INTEGER NOT NULL DEFAULT 0)`);
+  old.run(`INSERT INTO ai_usage (ts, provider, model, transport, capability, input_tokens,
+    output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, latency_ms)
+    VALUES ('2026-01-01T00:00:00Z','anthropic','old-model','http','chat',1,1,0,0,0.5,10)`);
+  old.close();
+
+  await sqliteSink({ dbPath: DB }).record(usage({ costBasis: "estimated" }));
+
+  const db = new Database(DB, { readonly: true });
+  const rows = db.query(`SELECT cost_basis FROM ai_usage ORDER BY rowid`).all() as {
+    cost_basis: string;
+  }[];
+  db.close();
+  // The pre-existing row reads 'unknown' — the truthful answer for a call whose basis
+  // we never recorded. Back-filling it as 'computed' would invent a fact about a call
+  // already made.
+  expect(rows.map((r) => r.cost_basis)).toEqual(["unknown", "estimated"]);
+});

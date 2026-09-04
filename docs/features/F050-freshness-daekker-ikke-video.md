@@ -1,6 +1,6 @@
 # F050 — `pricingFreshness()` er frisk om noget den ikke kan se
 
-**Status:** planlagt · **Prioritet:** høj · **Meldt af:** `super`, 4. september 2026
+**Status:** bygget (0.40.0) · **Prioritet:** høj · **Meldt af:** `super`, 4. september 2026
 
 ## Fundet, og hvorfor det er alvorligere end det lød
 
@@ -88,3 +88,71 @@ den opstrøms.
 - Negativ kontrol: en tabel der DÆKKER alle enheder skal svare rent — ellers er
   forbeholdet støj.
 - Et kald UDEN `durationSec` skal kunne skelnes fra et med, i det upmetrics modtager.
+
+---
+
+## Hvad der faktisk blev bygget — og hvorfor det blev større end kortet
+
+**Kortet talte om FIRE håndskrevne priskonstanter. Der var FJORTEN.**
+
+AC1 forlangte en test der forbyder *formen* frem for et grep kørt én gang. Den test
+fandt de ti resten:
+
+| fil | konstant | enhed |
+|---|---|---|
+| `elevenlabs.ts` | `ELEVENLABS_PRICE_PER_1K_CHARS` | per_1k_chars |
+| `azure.ts` | `AZURE_TTS_PRICE_PER_1K_CHARS` | per_1k_chars |
+| `deepl.ts` | `DEEPL_PRICE_PER_1K_CHARS_ESTIMATE` | per_1k_chars |
+| `azure.ts` | `AZURE_STT_PRICE_PER_MIN` | per_min |
+| `openai.ts` | `WHISPER_PRICE_PER_MIN` | per_min |
+| `mistral.ts` | `VOXTRAL_PRICE_PER_MIN` | per_min |
+| `mistral.ts` | `MISTRAL_OCR_PRICE_PER_PAGE` | per_page |
+| `gemini.ts` | `GEMINI_IMAGE_PRICE_PER_IMAGE` | per_image |
+| `openrouter.ts` | `OPENROUTER_IMAGE_PRICE_ESTIMATE` | per_image |
+| `fal.ts` | `FAL_TRAIN_PRICE_ESTIMATE` | per_training |
+
+Et grep efter de fire navne super nævnte havde ikke fundet én af dem. Havde vi flyttet
+kun de fire, ville `caveats` have meldt «dækket» mens fire andre enheder lå som fire
+adapteres private konstanter — nøjagtig samme blindhed, én enhed længere henne. Derfor
+seks enheder i tabellen, ikke to.
+
+**Guarden fangede også min egen ufuldstændige oprydning:** to erklæringer jeg havde
+fjernet brugen af, men glemt at slette. Den er altså ikke kun et historisk hegn.
+
+### Den fjerde etiket, som ikke stod på kortet
+
+`computeCost()` returnerer 0 for en model uden pris. **Et $0 fordi vi ikke kunne prissætte
+og et $0 fordi kaldet var gratis var det samme tal** — og det gratis tilfælde er langt
+sjældnere end det ukendte. `costBasis: "unpriced"` skiller dem, og navnet er upmetrics'
+eget, så deres etiketter kan blive rigtige om vores rækker.
+
+### Hvorfor det månedlige job RAPPORTERER frem for at spærre
+
+En spærre ingen automatik kan rydde blokerer en udgivelse på et menneskeligt ærinde, og
+rettelsen under tidspres er at rykke datoen uden at læse prissiden. Så står spærren grøn
+og datoen lyver — værre end ingen spærre. To prøver holder den beslutning fast (steppet
+skal findes; det må ikke `exit 1`).
+
+### Beviser
+
+Syv mutationer, hver med rødt der NAVNGIVER defekten:
+
+1. per_sec-rækkerne fjernet → `per_sec: 0 rows — this table cannot price anything billed in per_sec`
+2. en håndskrevet pristabel plantet i `openai.ts` → `openai.ts: WHISPER_PRICE_PER_MIN`
+3. `costBasis`-stemplet fjernet ét af tre steder → «all THREE of them» rød
+4. sink'en skriver fast `"computed"` → læsning tilbage giver `computed ×4` i stedet for fire forskellige
+5. sqlite-migreringen fjernet → `table ai_usage has no column named cost_basis`
+6. workflow-steppet fjernet → rød
+7. workflow-steppet gjort til en spærre → rød
+
+Plus negative kontroller i begge retninger: en tabel der dækker alt svarer uden
+forbehold, og scanneren beviser at den KAN se en plantet erklæring (ellers ville en
+overivrig kommentar-stripper bestå ved at slette hele filen).
+
+**Persistensen er læst tilbage med en rå forespørgsel**, ikke gennem laget der skrev
+den, og med streng lighed på fire forskellige værdier i rækkefølge — et «indeholder»-tjek
+ville bestå på en kolonne der gemte den samme streng fire gange.
+
+### Ikke-målet holdt
+
+Veo $0,40/s og Kling $0,07/s uændrede, pinnet af en prøve. Ingen pris flyttede sig.

@@ -4,6 +4,7 @@
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 // F033.1 — OpenRouter's unified Image API (POST /images, distinct from
 // /chat/completions) returns base64 image data under data[].b64_json, plus a
@@ -16,14 +17,6 @@ interface OpenRouterImageResponse {
   usage?: { cost?: number };
   error?: { message?: string } | string;
 }
-
-// Per-image USD ESTIMATES — fallback for when OpenRouter's response omits
-// usage.cost. Verified 2026-07-03 against openrouter.ai/recraft/recraft-v4.1*
-// (override via config.pricePerImage).
-const OPENROUTER_IMAGE_PRICE_ESTIMATE: Record<string, number> = {
-  "recraft/recraft-v4.1": 0.035,
-  "recraft/recraft-v4.1-vector": 0.08,
-};
 
 export interface OpenRouterAdapterConfig {
   apiKey?: string;
@@ -99,7 +92,7 @@ export function openrouterAdapter(config: OpenRouterAdapterConfig = {}): Provide
       outputTokens: 0,
     });
     usage.costUsd =
-      data.usage?.cost ?? config.pricePerImage ?? OPENROUTER_IMAGE_PRICE_ESTIMATE[req.spec.model] ?? 0;
+      data.usage?.cost ?? config.pricePerImage ?? getMediaPrice("openrouter", req.spec.model)?.usd ?? 0;
     return { url: `data:${first.media_type ?? "image/png"};base64,${first.b64_json}`, usage };
   }
 
