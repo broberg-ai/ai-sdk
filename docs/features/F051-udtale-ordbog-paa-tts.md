@@ -101,6 +101,32 @@ om hvordan da-DK-stemmernes `<lang>`-skift lyder — og hverken de eller jeg kan
 At svare alligevel ville have været et grønt svar fra det forkerte lag: et
 kvalitetsspørgsmål besvaret af nogen der kun kan læse specifikationen.
 
+## MÅLT LYTTEDATA — 4. september 2026
+
+Christian har hørt `workflow` som `ˈwɜːkfloʊ` gennem da-DK-stemmerne jeppe og
+christel. Hans dom, ordret: ***«ikke korrekt engelsk med et sjovt mix.»***
+
+**En dansk neural stemme renderer engelske fonemer gennem dansk fonologi.** Symbolerne
+bliver respekteret; accenten gør ikke. Resultatet er en hybrid.
+
+To konsekvenser, og den første er allerede rettet:
+
+1. **F051.1's egen dokumentation var misvisende og er rettet nu** (ikke når F051.2
+   shipper). Typen sagde *«`ipa` says it precisely»* — sandt for et DANSK ord stemmen
+   udtaler forkert, misvisende for et ENGELSK ord, hvor `ipa` netop er det felt der
+   producerer hybriden. En konsument der læser «precise» ville have rakt efter `ipa`
+   på præcis de ord hvor den fejler. Noten er dateret frem for formuleret som en
+   tilstand: det er to bestemte stemmer på én dato, ikke en permanent egenskab ved IPA.
+
+2. **Det svækker IPA-vejen for engelske ord og styrker sprogskiftet** — et ægte
+   motorskift er den eneste mekanisme her der ikke fodrer en dansk motor med fremmede
+   symboler.
+
+**Men det AFGØR ikke varianten.** Datapunktet fjerner ét valg (IPA til engelske ord);
+det siger intet om hvorvidt `<lang>` på en da-DK-stemme faktisk skifter motor rent,
+eller også degraderer. Det er præcis hvad cms' 6-ords-eksperiment skal besvare, og
+den dom er stadig undervejs.
+
 ## Foranledningen
 
 F051.1 gav `ai.tts` en udtale-ordbog (alias + IPA). cms tog den i brug, og Christian

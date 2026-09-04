@@ -5,13 +5,31 @@
 // One matcher, two renderers — a second copy would drift, and the security reasoning
 // below is not something to repeat in two files.
 
-/** One dictionary entry. `alias` says it differently; `ipa` says it precisely. */
+/** One dictionary entry. `alias` says it differently; `ipa` says it in phonemes.
+ *
+ *  **`ipa` is NOT the "more precise" option for a FOREIGN word — measured 2026-09-04.**
+ *  Christian listened to `workflow` as `ˈwɜːkfloʊ` through the da-DK voices jeppe and
+ *  christel and reported: *"ikke korrekt engelsk med et sjovt mix"*. A Danish neural
+ *  voice renders English phonemes through Danish phonology, so foreign IPA comes out a
+ *  hybrid rather than English. The symbols are honoured; the accent is not.
+ *
+ *  So pick by what the word IS, not by which field sounds more exact:
+ *  - a DANISH word the voice mispronounces → `ipa` does what you want.
+ *  - an ENGLISH word inside Danish text → neither field is right yet. `alias` (spell it
+ *    the way a Dane would say it) is the honest workaround today; a real engine switch
+ *    is F051.2, and it is blocked on a listening test, not on code.
+ *
+ *  Dated on purpose. This is a measurement of two specific voices on one date, not a
+ *  permanent property of IPA — Azure ships new voices, and the next reader deserves to
+ *  see that it may have moved. */
 export interface Pronunciation {
   /** The word as it appears in the text. Matched whole-word, case-insensitively. */
   word: string;
   /** Say this instead. Azure `<sub alias>`; ElevenLabs plain substitution. */
   alias?: string;
-  /** IPA phonemes. Azure `<phoneme alphabet="ipa" ph>`. ElevenLabs cannot do this. */
+  /** IPA phonemes. Azure `<phoneme alphabet="ipa" ph>`. ElevenLabs cannot do this
+   *  (it THROWS rather than silently skipping). See the type doc above before reaching
+   *  for this on a foreign word. */
   ipa?: string;
   /** Reserved for a future per-entry language switch; carried but not yet emitted. */
   lang?: string;
@@ -46,8 +64,8 @@ export function assertPronunciations(list: Pronunciation[] | undefined, provider
     if (p.alias !== undefined && p.ipa !== undefined) {
       throw new Error(
         `${provider} adapter: pronunciation "${p.word}" sets BOTH alias and ipa. ` +
-          `They are different instructions — alias says it differently, ipa says it ` +
-          `precisely. Pick one.`,
+          `They are different instructions — alias says it differently, ipa says it in ` +
+          `phonemes. Pick one.`,
       );
     }
     if (p.alias === undefined && p.ipa === undefined) {
