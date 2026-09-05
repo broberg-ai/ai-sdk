@@ -61,14 +61,21 @@ export interface MediaModelPrice extends BasePrice {
   /** The price, in USD, for one of whatever `unit` names. ALWAYS set on a media row —
    *  read this rather than the unit-specific aliases below. */
   usd: number;
-  /** USD per second. Set ONLY when `unit === "per_sec"`.
+  /** @deprecated Read {@link MediaModelPrice.usd} with {@link MediaModelPrice.unit}.
+   *  Kept working because it shipped in 0.40.0 and consumers read it.
    *
-   *  0.40.0 set this-or-`perImage` from a TWO-armed ternary over SIX units, so every
-   *  non-per-second price was labelled `perImage`: `azure:tts` reported
-   *  `perImage: 0.016` for a price that is per 1000 CHARACTERS. A confident wrong number
-   *  under a name that lies about its own unit — worse than the 0 that was reported. */
+   *  USD per second, set ONLY when `unit === "per_sec"` — and DERIVED from `usd`, never
+   *  stored twice. super's point, and the precedent is on the fleet's books: two fields
+   *  that must be kept equal are not wrong the day they are written, they are wrong the
+   *  day one of them is corrected. (torrent-search-api F013.4: a duplicated counter
+   *  showed two different numbers a week after the fix landed on one of its two sites.)
+   *
+   *  It also carries this repo's own scar: 0.40.0 set this-or-`perImage` from a TWO-armed
+   *  ternary over SIX units, so every non-per-second price was labelled `perImage` —
+   *  `azure:tts` reported `perImage: 0.016` for a price that is per 1000 CHARACTERS. */
   perSec?: number;
-  /** USD per generated image. Set ONLY when `unit === "per_image"`. */
+  /** @deprecated Read {@link MediaModelPrice.usd} with {@link MediaModelPrice.unit}.
+   *  USD per generated image, set ONLY when `unit === "per_image"`, derived from `usd`. */
   perImage?: number;
 }
 
@@ -129,21 +136,24 @@ function ensureMedia(): Map<string, MediaModelPrice> {
     const ci = key.indexOf(":");
     const provider = ci >= 0 ? key.slice(0, ci) : "";
     const model = ci >= 0 ? key.slice(ci + 1) : key;
-    // `usd` always; the unit-specific aliases ONLY for their own unit. The two-armed
-    // ternary this replaces sent every non-per-second price out as `perImage` — six
-    // units through a two-way branch, written when there were only two units and never
-    // revisited when F050 grew the table to six.
+    // `usd` is the ONE stored price. The unit-specific aliases are DERIVED from the row
+    // that already holds it — `row.usd`, not a second read of `p.usd` — so there is no
+    // second place a future edit could set differently. (F050.3, super's point.)
+    //
+    // The two-armed ternary this replaced sent every non-per-second price out as
+    // `perImage`: six units through a two-way branch, written when there were only two
+    // units and never revisited when F050 grew the table to six.
     const row: MediaModelPrice = {
       provider,
       model,
       unit: p.unit,
       usd: p.usd,
-      ...(p.unit === "per_sec" ? { perSec: p.usd } : {}),
-      ...(p.unit === "per_image" ? { perImage: p.usd } : {}),
       checkedAt: p.checkedAt,
       region: regionForProvider(provider),
       source: "curated",
     };
+    if (row.unit === "per_sec") row.perSec = row.usd;
+    if (row.unit === "per_image") row.perImage = row.usd;
     // The fully-qualified key always wins for itself; the BARE alias is first-write.
     // Veo lives under both gemini and vertex with identical numbers, so a bare lookup
     // can only name one provider — last-write-wins made that answer arbitrary (it was

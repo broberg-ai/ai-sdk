@@ -273,3 +273,64 @@ const p = getModelPrice(id);
 if (p?.unit === "per_1m_tokens") { /* inputPer1M / outputPer1M findes her */ }
 else if (p) { /* p.usd + p.unit */ }
 ```
+
+
+---
+
+# F050.3 — to navne på ét tal (`super`, 5. september 2026)
+
+## Meldingen, og den er rigtig
+
+> *«Veo-rækken bærer både `usd: 0.4` og `perSec: 0.4` — to navne på ét tal. To felter
+> der skal holdes ens er ikke gale den dag de skrives; de er gale den dag den ene
+> bliver rettet.»*
+
+De henviser til flådens egen præcedens, og den passer præcis: **torrent-search-api
+F013.4**, hvor en dubleret tæller viste to forskellige tal fra samme fil en uge efter
+at rettelsen ramte det ene af to steder.
+
+## Målt før rettet — og målingen gjorde pointen skarpere
+
+```
+grep '\.perSec|\.perImage' src/ --include=*.ts   (uden prøver)   →  0 træffere
+```
+
+**Aliasserne har NUL interne forbrugere.** De findes kun i typen og i det ene udtryk der
+sætter dem. De er altså ren overflade — hvilket både gør super mere ret (der er ingen
+grund til at have dem) og gør en fjernelse dyrere end den ser ud: de shippede i 0.40.0
+for to timer siden, og super læser `perSec` i deres egen verifikation.
+
+## Valget: udled, deprecér, spær — ikke et tredje brud samme aften
+
+`getModelPrice` blev brydende i 0.41.0. At fjerne aliasserne nu ville være det tredje
+brud på én aften, og for en ren bekvemmelighed. Så alle tre af supers muligheder tages
+i stedet for at vælge én:
+
+1. **Udled.** `usd` er den ene lagrede pris; aliasset sættes fra **`row.usd`** — rækken
+   der allerede holder tallet — ikke fra en anden aflæsning af kilden. Der er nu ikke et
+   andet sted en fremtidig redigering kan sætte noget forskelligt.
+2. **Deprecér.** `@deprecated` i JSDoc peger på `usd` + `unit`, så feltet holder op med
+   at brede sig frem for at blive revet væk under nogen.
+3. **Spær.** En prøve kræver at hvert alias er lig `usd` på hver eneste række.
+
+## Beviser
+
+- **Mutation:** aliasset sat fra en anden kilde end `row.usd` → rød, navngiver rækken.
+- **Kontrol den anden vej:** begge aliaser slettet → rød. Uden den ville en tabel helt
+  uden aliaser bestå lighedsprøven ved ikke at have noget at sammenligne — «0 uenige»
+  og «kiggede aldrig» igen.
+
+601 pass, typecheck rent.
+
+## Og supers egen rettelse, som hører til her
+
+De trak deres aflæsning af de syv $0,35-kald tilbage efter at have regnet efter i vores
+kode: standardværdien ville have givet $0,56, så beløbene er 5 sekunder der FAKTISK blev
+sendt — `computed`, ikke `estimated`. De har givet upmetrics de rigtige signaturer
+($0,56 Kling, $3,20 Veo, $0,00 uprissat).
+
+Deres formulering af egen fejl er værd at gemme: *«min fejl var formen, ikke tallet — jeg
+sluttede fra «alle syv er ens» til «så blev der intet sendt», uden at regne efter hvad
+standardværdien ville have givet.»* Syv identiske beløb er ikke i sig selv et fingeraftryk
+af en manglende værdi; det er kun et fingeraftryk hvis man ved hvad den manglende værdi
+ville have kostet.

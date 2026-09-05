@@ -380,3 +380,34 @@ describe("F050.2 — dual-priced models carry BOTH, they do not choose", () => {
     expect(p.alsoBilled).toBeUndefined();
   });
 });
+
+describe("F050.3 — one stored price, aliases derived (super, 2026-09-05)", () => {
+  // "Two fields that must be kept equal are not wrong the day they are written; they
+  // are wrong the day one of them is corrected." The fleet has the precedent on its
+  // books: torrent-search-api F013.4, a duplicated counter that showed two different
+  // numbers a week after the fix landed on one of its two sites.
+  test("every alias equals usd, on every row that has one", async () => {
+    const { listMediaPrices } = await import("../catalogue/pricing-api.js");
+    const wrong: string[] = [];
+    for (const r of listMediaPrices()) {
+      if (r.perSec !== undefined && r.perSec !== r.usd) wrong.push(`${r.provider}:${r.model} perSec ${r.perSec} ≠ usd ${r.usd}`);
+      if (r.perImage !== undefined && r.perImage !== r.usd) wrong.push(`${r.provider}:${r.model} perImage ${r.perImage} ≠ usd ${r.usd}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  test("CONTROL — aliases actually EXIST on the units that should carry them", () => {
+    // Without this, deleting both aliases outright would pass the equality test above
+    // by having nothing to compare. Same shape as every other control here.
+    const { per_sec, per_image } = mediaUnitCounts();
+    expect(per_sec).toBeGreaterThan(0);
+    expect(per_image).toBeGreaterThan(0);
+  });
+
+  test("CONTROL — the aliases are reachable, not just counted", async () => {
+    const { listMediaPrices } = await import("../catalogue/pricing-api.js");
+    const rows = listMediaPrices();
+    expect(rows.filter((r) => r.perSec !== undefined).length).toBe(mediaUnitCounts().per_sec);
+    expect(rows.filter((r) => r.perImage !== undefined).length).toBe(mediaUnitCounts().per_image);
+  });
+});
