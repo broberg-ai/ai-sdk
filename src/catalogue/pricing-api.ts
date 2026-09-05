@@ -5,32 +5,18 @@
 import { PRICING_DATA, PRICING_GENERATED_AT, PRICING_CHECKED_AT } from "./pricing-data.js";
 import { stripDatedSuffix } from "../cost/pricing.js";
 import { PRICING } from "../cost/pricing.js";
-import { MEDIA_PRICING, MEDIA_PRICING_CHECKED_AT, mediaUnitCounts } from "../cost/media-pricing.js";
+import { MEDIA_PRICING, MEDIA_PRICING_CHECKED_AT, mediaUnitCounts, type MediaUnit } from "../cost/media-pricing.js";
 
 export type PriceRegion = "eu" | "us" | "cn" | "other";
 
-export interface ModelPrice {
+/** Fields every price row carries, whatever it is billed in. */
+export interface BasePrice {
   /** Vendor/provider prefix (e.g. "deepseek", "anthropic"). */
   provider: string;
   /** Model id (OpenRouter-style "vendor/model", or the bare model for curated entries). */
   model: string;
   /** Human label, when known. */
   name?: string;
-  /** USD per 1M input tokens. */
-  inputPer1M: number;
-  /** USD per 1M output tokens. */
-  outputPer1M: number;
-  /** Pricing unit: "per_1m_tokens", or "per_sec" / "per_image" for a media model.
-   *  Check it before reading the token rates — they are 0 on a media row, which is a
-   *  placeholder and NOT a claim that the model is free. */
-  unit: string;
-  /** USD per second of generated video. Set only when `unit` is "per_sec". */
-  perSec?: number;
-  /** USD per generated image. Set only when `unit` is "per_image". */
-  perImage?: number;
-  /** ISO date this row was last verified. Media rows carry a HUMAN-set date; token
-   *  rows inherit the inventory snapshot's. */
-  checkedAt?: string;
   /** GDPR region derived from the PROVIDER NAME — a rough grouping, not a residency
    *  claim. It is `"other"` for vertex/bfl/fal/azure precisely because those take a
    *  configurable endpoint, so their region is a property of the CALL and not of the
@@ -39,7 +25,56 @@ export interface ModelPrice {
   region: PriceRegion;
   /** "curated" = authoritative hand-maintained number; "inventory" = from inventory.json. */
   source: "curated" | "inventory";
+  /** ISO date this row was last verified. Media rows carry a HUMAN-set date; token
+   *  rows inherit the inventory snapshot's. */
+  checkedAt?: string;
 }
+
+/** A model billed per token. */
+export interface TokenModelPrice extends BasePrice {
+  unit: "per_1m_tokens";
+  /** USD per 1M input tokens. */
+  inputPer1M: number;
+  /** USD per 1M output tokens. */
+  outputPer1M: number;
+  /** Set when this model ALSO carries a non-token price — and that is the one the SDK
+   *  bills with (F050.2).
+   *
+   *  Gemini's image models are the real case: they have honest per-token rates for the
+   *  prompt AND a per-image price for the output, and `ai.image` charges the per-image
+   *  one. Returning only the token row is not WRONG the way whisper's fabricated $0 was
+   *  — the rates are real — it just answers a question nobody asked, and hides the
+   *  number that decides the bill. Both are true, so both are here. */
+  alsoBilled?: { unit: MediaUnit; usd: number; checkedAt: string };
+}
+
+/** A model billed in anything else — per second, image, 1000 chars, minute, page,
+ *  or training run (F050.2).
+ *
+ *  **It deliberately has NO `inputPer1M`.** Until 0.40.0 a media row carried
+ *  `inputPer1M: 0`, and super's report named the fault exactly: "a field that does not
+ *  apply and a price that is free are the same number again" — the very distinction
+ *  `costBasis: "unpriced"` exists for, one storey down. A 0 there is a placeholder that
+ *  reads as a price. Splitting the type turns reading it into a COMPILE error instead. */
+export interface MediaModelPrice extends BasePrice {
+  unit: MediaUnit;
+  /** The price, in USD, for one of whatever `unit` names. ALWAYS set on a media row —
+   *  read this rather than the unit-specific aliases below. */
+  usd: number;
+  /** USD per second. Set ONLY when `unit === "per_sec"`.
+   *
+   *  0.40.0 set this-or-`perImage` from a TWO-armed ternary over SIX units, so every
+   *  non-per-second price was labelled `perImage`: `azure:tts` reported
+   *  `perImage: 0.016` for a price that is per 1000 CHARACTERS. A confident wrong number
+   *  under a name that lies about its own unit — worse than the 0 that was reported. */
+  perSec?: number;
+  /** USD per generated image. Set ONLY when `unit === "per_image"`. */
+  perImage?: number;
+}
+
+/** A price row. Narrow on `unit` before reading rates:
+ *  `if (p.unit === "per_1m_tokens") … else …`. */
+export type ModelPrice = TokenModelPrice | MediaModelPrice;
 
 export interface PriceFilter {
   provider?: string;
@@ -85,22 +120,26 @@ function regionForProvider(provider: string): PriceRegion {
  *  would then hand a Veo row to a `maxInputPer1M` filter, where its placeholder
  *  `inputPer1M: 0` reads as "free" — a new wrong-layer answer in the middle of
  *  fixing one. Lookup by id is safe (no filter to fool); listing is not. */
-let _media: Map<string, ModelPrice> | null = null;
+let _media: Map<string, MediaModelPrice> | null = null;
 
-function ensureMedia(): Map<string, ModelPrice> {
+function ensureMedia(): Map<string, MediaModelPrice> {
   if (_media) return _media;
-  const m = new Map<string, ModelPrice>();
+  const m = new Map<string, MediaModelPrice>();
   for (const [key, p] of Object.entries(MEDIA_PRICING)) {
     const ci = key.indexOf(":");
     const provider = ci >= 0 ? key.slice(0, ci) : "";
     const model = ci >= 0 ? key.slice(ci + 1) : key;
-    const row: ModelPrice = {
+    // `usd` always; the unit-specific aliases ONLY for their own unit. The two-armed
+    // ternary this replaces sent every non-per-second price out as `perImage` — six
+    // units through a two-way branch, written when there were only two units and never
+    // revisited when F050 grew the table to six.
+    const row: MediaModelPrice = {
       provider,
       model,
-      inputPer1M: 0,
-      outputPer1M: 0,
       unit: p.unit,
-      ...(p.unit === "per_sec" ? { perSec: p.usd } : { perImage: p.usd }),
+      usd: p.usd,
+      ...(p.unit === "per_sec" ? { perSec: p.usd } : {}),
+      ...(p.unit === "per_image" ? { perImage: p.usd } : {}),
       checkedAt: p.checkedAt,
       region: regionForProvider(provider),
       source: "curated",
@@ -120,29 +159,29 @@ function ensureMedia(): Map<string, ModelPrice> {
 /** Every non-token price the SDK bills from (F050). Separate from
  *  {@link listModelPrices} because the two answer different questions and mixing
  *  them silently changed what an existing caller's list meant. */
-export function listMediaPrices(): ModelPrice[] {
+export function listMediaPrices(): MediaModelPrice[] {
   return [...new Set(ensureMedia().values())];
 }
 
-let _list: ModelPrice[] | null = null;
-let _full: Map<string, ModelPrice> | null = null;
-let _base: Map<string, ModelPrice> | null = null;
+let _list: TokenModelPrice[] | null = null;
+let _full: Map<string, TokenModelPrice> | null = null;
+let _base: Map<string, TokenModelPrice> | null = null;
 
 function ensure(): void {
   // BEFORE the early return, so every lookup path reaches it — not only the first one
   // that happened to build the table. The once-per-process guard lives in the warner.
   warnIfPricingStale();
   if (_list) return;
-  const list: ModelPrice[] = [];
-  const byBase = new Map<string, ModelPrice>();
+  const list: TokenModelPrice[] = [];
+  const byBase = new Map<string, TokenModelPrice>();
   for (const r of PRICING_DATA) {
-    const e: ModelPrice = {
+    const e: TokenModelPrice = {
       provider: r.provider,
       model: r.model,
       name: r.name,
       inputPer1M: r.input,
       outputPer1M: r.output,
-      unit: r.unit,
+      unit: "per_1m_tokens",
       region: (["eu", "us", "cn", "other"].includes(r.region) ? r.region : "other") as PriceRegion,
       source: "inventory",
     };
@@ -161,7 +200,7 @@ function ensure(): void {
       existing.unit = "per_1m_tokens";
       existing.source = "curated";
     } else {
-      const e: ModelPrice = {
+      const e: TokenModelPrice = {
         provider,
         model: modelPart,
         inputPer1M: p.inputPer1M,
@@ -177,6 +216,15 @@ function ensure(): void {
   _list = list;
   _base = byBase;
   _full = new Map(list.map((e) => [e.model.toLowerCase(), e]));
+  // A model can be BOTH token- and media-priced (Gemini's image models: real per-token
+  // rates for the prompt, a per-image price for the output that ai.image actually
+  // charges). Attach rather than choose — picking either one alone answers half the
+  // question, and it is the half nobody asked that used to win.
+  for (const [key, mp] of Object.entries(MEDIA_PRICING)) {
+    const model = key.slice(key.indexOf(":") + 1).toLowerCase();
+    const tok = _full.get(model) ?? byBase.get(basename(model));
+    if (tok) tok.alsoBilled = { unit: mp.unit, usd: mp.usd, checkedAt: mp.checkedAt };
+  }
 }
 
 /** Exact price for a model. `modelId` accepts "vendor/model", "provider:model", or a
@@ -202,13 +250,13 @@ export function getModelPrice(modelId: string): ModelPrice | undefined {
 }
 
 /** Every known model price (inventory, with the curated overlay applied). */
-export function listModelPrices(): ModelPrice[] {
+export function listModelPrices(): TokenModelPrice[] {
   ensure();
   return _list!.slice();
 }
 
 /** Filter the price list (provider / region / max input rate / free-only). */
-export function findModelPrices(filter: PriceFilter = {}): ModelPrice[] {
+export function findModelPrices(filter: PriceFilter = {}): TokenModelPrice[] {
   return listModelPrices().filter((m) => {
     if (filter.provider && m.provider !== filter.provider) return false;
     if (filter.region && m.region !== filter.region) return false;

@@ -67,12 +67,16 @@ test("the dated snapshot resolves — the id upmetrics actually sent us", () => 
   // suffixes since F012. Same repo, two lookups, one fix.
   const dated = getModelPrice("claude-haiku-4-5-20251001");
   const base = getModelPrice("claude-haiku-4-5");
-  expect(dated).toBeDefined();
-  expect(dated!.inputPer1M).toBe(base!.inputPer1M);
-  expect(dated!.outputPer1M).toBe(base!.outputPer1M);
+  // F050.2 — narrowing is now required, and that is the feature: reading inputPer1M
+  // off an un-narrowed row is a compile error rather than a 0 that reads as free.
+  expect(dated?.unit).toBe("per_1m_tokens");
+  expect(base?.unit).toBe("per_1m_tokens");
+  if (dated?.unit !== "per_1m_tokens" || base?.unit !== "per_1m_tokens") throw new Error("not token-priced");
+  expect(dated.inputPer1M).toBe(base.inputPer1M);
+  expect(dated.outputPer1M).toBe(base.outputPer1M);
   // And the value itself is Anthropic's published rate, not the one we used to carry.
-  expect(base!.inputPer1M).toBe(1.0);
-  expect(base!.outputPer1M).toBe(5.0);
+  expect(base.inputPer1M).toBe(1.0);
+  expect(base.outputPer1M).toBe(5.0);
 });
 
 test("an id with no dated suffix is unaffected", () => {

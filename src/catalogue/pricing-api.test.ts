@@ -11,8 +11,9 @@ test("getModelPrice: curated entry wins + is authoritative", () => {
   const p = getModelPrice("anthropic:claude-sonnet-4-6");
   expect(p).toBeDefined();
   expect(p!.source).toBe("curated");
-  expect(p!.inputPer1M).toBe(3.0); // the curated authoritative number
-  expect(p!.outputPer1M).toBe(15.0);
+  if (p?.unit !== "per_1m_tokens") throw new Error("expected a token-priced row");
+  expect(p.inputPer1M).toBe(3.0); // the curated authoritative number
+  expect(p.outputPer1M).toBe(15.0);
 });
 
 test("getModelPrice: an inventory-only model resolves with source 'inventory'", () => {
@@ -33,7 +34,8 @@ test("id normalisation: '/' and ':' and basename all resolve to the same entry",
   expect(c?.model).toBe(a!.model);
   // DeepSeek V4 Flash is curated-authoritative
   expect(a!.source).toBe("curated");
-  expect(a!.inputPer1M).toBeCloseTo(0.0983, 4);
+  if (a?.unit !== "per_1m_tokens") throw new Error("expected a token-priced row");
+  expect(a.inputPer1M).toBeCloseTo(0.0983, 4);
 });
 
 test("listModelPrices covers the full inventory (>=300) and every row is well-formed", () => {

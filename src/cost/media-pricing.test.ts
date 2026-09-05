@@ -175,8 +175,13 @@ describe("F050 — lookup vs listing", () => {
   test("getModelPrice finds a video model (it was undefined before)", () => {
     const p = getModelPrice("veo-3.1-generate-preview");
     expect(p?.unit).toBe("per_sec");
-    expect(p?.perSec).toBe(0.4);
-    expect(p?.checkedAt).toBe(MEDIA_PRICING_CHECKED_AT);
+    if (!p || p.unit === "per_1m_tokens") throw new Error("expected a media row");
+    expect(p.usd).toBe(0.4);
+    expect(p.perSec).toBe(0.4);
+    expect(p.checkedAt).toBe(MEDIA_PRICING_CHECKED_AT);
+    // F050.2 — the token rates are GONE from a media row, not zeroed. super's finding:
+    // "a field that does not apply and a price that is free are the same number".
+    expect("inputPer1M" in p).toBe(false);
   });
 
   test("media rows stay OUT of listModelPrices — a 0 rate must never reach a price filter", () => {
@@ -279,9 +284,12 @@ describe("F050 — the two answers a media row must NOT give", () => {
     expect(getModelPrice("gemini:veo-3.1-generate-preview")?.provider).toBe("gemini");
     // …and whichever you get, the number is the same. That is what makes the bare
     // lookup safe to offer at all.
-    expect(getModelPrice("veo-3.1-generate-preview")?.perSec).toBe(
-      getModelPrice("vertex:veo-3.1-generate-preview")?.perSec,
-    );
+    const bare = getModelPrice("veo-3.1-generate-preview");
+    const vx = getModelPrice("vertex:veo-3.1-generate-preview");
+    if (!bare || bare.unit === "per_1m_tokens" || !vx || vx.unit === "per_1m_tokens") {
+      throw new Error("expected media rows");
+    }
+    expect(bare.usd).toBe(vx.usd);
   });
 
   test("a media row's region is NOT a residency claim", async () => {
@@ -291,5 +299,84 @@ describe("F050 — the two answers a media row must NOT give", () => {
     // has used the wrong instrument, and the JSDoc says so at the field.
     expect(getModelPrice("vertex:veo-3.1-generate-preview")?.region).toBe("other");
     expect(getModelPrice("bfl:flux-pro-1.1-ultra-finetuned")?.region).toBe("other");
+  });
+});
+
+describe("F050.2 — every media row is reachable by its own id, with its own unit", () => {
+  // THE GUARD, not just the fix. Two defects shipped in 0.40.0 and both would have
+  // been red here on the day: `perImage` carrying a per-minute price, and whisper-1
+  // answered by a $0 token row so its per-minute price was unreachable.
+  //
+  // Same lesson as F050.1's form-forbidding scan, one storey down: ask about the
+  // CLASS ("can every row be reached correctly?"), not about the instances you know.
+  test("all 34 rows: same unit, same price, no alias from a foreign unit", async () => {
+    const { getModelPrice } = await import("../catalogue/pricing-api.js");
+    const wrong: string[] = [];
+    for (const [key, expected] of Object.entries(MEDIA_PRICING)) {
+      const got = getModelPrice(key);
+      if (!got) { wrong.push(`${key}: not reachable at all`); continue; }
+      // A model may be BOTH token- and media-priced (Gemini's image models). Then the
+      // token row must CARRY the media price rather than hide it — the distinction
+      // between that and whisper's fabricated $0 is the whole point of this guard.
+      if (got.unit === "per_1m_tokens") {
+        if (got.alsoBilled?.unit !== expected.unit || got.alsoBilled?.usd !== expected.usd) {
+          wrong.push(`${key}: shadowed by a token row that does not carry the ${expected.unit} price`);
+        }
+        continue;
+      }
+      if (got.unit !== expected.unit) { wrong.push(`${key}: unit ${got.unit} ≠ ${expected.unit}`); continue; }
+      if (got.usd !== expected.usd) wrong.push(`${key}: usd ${got.usd} ≠ ${expected.usd}`);
+      // The alias fields may only ever appear on their OWN unit. This is the exact
+      // assertion the two-armed ternary failed: it labelled per_min, per_page,
+      // per_1k_chars and per_training rows as `perImage`.
+      if ("perSec" in got && got.unit !== "per_sec") wrong.push(`${key}: perSec on a ${got.unit} row`);
+      if ("perImage" in got && got.unit !== "per_image") wrong.push(`${key}: perImage on a ${got.unit} row`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  test("CONTROL — the loop actually walks all six units, not just the two easy ones", () => {
+    // Without this, a table that had lost every per_min row would pass the test above
+    // by having nothing to check. "0 violations" and "never looked" again.
+    const units = new Set(Object.values(MEDIA_PRICING).map((p) => p.unit));
+    expect([...units].sort()).toEqual([
+      "per_1k_chars", "per_image", "per_min", "per_page", "per_sec", "per_training",
+    ]);
+    expect(Object.keys(MEDIA_PRICING).length).toBeGreaterThan(30);
+  });
+
+  test("whisper-1 answers per-minute, not 'free' — it was shadowed by a $0 token row", async () => {
+    const { getModelPrice } = await import("../catalogue/pricing-api.js");
+    const p = getModelPrice("whisper-1");
+    expect(p?.unit).toBe("per_min");
+    if (!p || p.unit === "per_1m_tokens") throw new Error("still shadowed");
+    expect(p.usd).toBe(0.006);
+  });
+
+  test("NEGATIVE CONTROL — removing it from the token table changed no BILLING", async () => {
+    // computeCost answered 0 for whisper before (a 0/0 row) and answers 0 now (no row).
+    // Same number, and transcribe overwrites it with the per-minute figure regardless —
+    // so this fix moved only the public ANSWER, never a charge.
+    const { computeCost } = await import("./usage.js");
+    expect(computeCost("openai", "whisper-1", 1_000_000, 1_000_000)).toBe(0);
+  });
+});
+
+describe("F050.2 — dual-priced models carry BOTH, they do not choose", () => {
+  test("gemini image models keep real token rates AND expose the per-image price", async () => {
+    const { getModelPrice } = await import("../catalogue/pricing-api.js");
+    const p = getModelPrice("gemini-3-pro-image");
+    if (p?.unit !== "per_1m_tokens") throw new Error("expected the token row");
+    // Real, from OpenRouter's catalogue — these are NOT the fabricated 0 whisper had.
+    expect(p.inputPer1M).toBeGreaterThan(0);
+    // And the number that actually decides the bill for ai.image.
+    expect(p.alsoBilled).toEqual({ unit: "per_image", usd: 0.134, checkedAt: MEDIA_PRICING_CHECKED_AT });
+  });
+
+  test("a token-only model has NO alsoBilled — the field is not decoration", async () => {
+    const { getModelPrice } = await import("../catalogue/pricing-api.js");
+    const p = getModelPrice("mistral-large-latest");
+    if (p?.unit !== "per_1m_tokens") throw new Error("expected the token row");
+    expect(p.alsoBilled).toBeUndefined();
   });
 });

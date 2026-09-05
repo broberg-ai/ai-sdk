@@ -73,9 +73,13 @@ export const PRICING: Record<string, PricingEntry> = {
   "openai:text-embedding-3-large": { inputPer1M: 0.13, outputPer1M: 0, version: V },
   "openai:gpt-4o": { inputPer1M: 2.5, cacheReadPer1M: 1.25, outputPer1M: 10.0, version: "2026-08-27-developers.openai.com" },
   "openai:gpt-4o-mini": { inputPer1M: 0.15, cacheReadPer1M: 0.075, outputPer1M: 0.6, version: "2026-08-27-developers.openai.com" },
-  // Whisper is priced per minute, not per token — not representable here; transcribe
-  // (F5.6) computes its own cost. Listed as 0 so token-based compute never charges it.
-  "openai:whisper-1": { inputPer1M: 0, outputPer1M: 0, version: V },
+  // Whisper is priced per MINUTE — see MEDIA_PRICING in ./media-pricing.ts. It used to
+  // sit here as 0/0 "so token-based compute never charges it", and inwardly that worked.
+  // Outwardly it did not: getModelPrice("whisper-1") answered `{unit:"per_1m_tokens",
+  // inputPer1M: 0}` — i.e. "this model is free" — because media rows are consulted LAST
+  // and a token row was already there. The per-minute price was unreachable by its own
+  // id. computeCost still returns 0 for it (no entry) and transcribe still computes its
+  // own cost, so nothing about billing changed; only the public answer stopped lying.
 
   // OpenRouter (meta-router — model slugs include the upstream vendor). Slugs use
   // dots (claude-sonnet-4.6) to match OpenRouter's live ids; the dashed forms

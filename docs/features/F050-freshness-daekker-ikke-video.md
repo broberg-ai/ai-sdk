@@ -156,3 +156,120 @@ ville bestå på en kolonne der gemte den samme streng fire gange.
 ### Ikke-målet holdt
 
 Veo $0,40/s og Kling $0,07/s uændrede, pinnet af en prøve. Ingen pris flyttede sig.
+
+---
+
+# F050.2 — den samme fejlform, én etage nede, i det objekt F050.1 lige byggede
+
+**Meldt af:** `super`, 5. september 2026, efter at have verificeret 0.40.0 · **Status:** rettet
+
+## Tre defekter, alle samme klasse. super fandt den mildeste.
+
+### 1. `perImage` bar prisen for fire enheder der ikke er billeder — VÆRST
+
+```
+getModelPrice("azure:tts")            { unit:"per_1k_chars",  perImage: 0.016 }
+getModelPrice("mistral:ocr")          { unit:"per_page",      perImage: 0.002 }
+getModelPrice("voxtral-mini-latest")  { unit:"per_min",       perImage: 0.002 }
+getModelPrice("fal:train")            { unit:"per_training",  perImage: 2 }
+```
+
+`ensureMedia()` skrev `p.unit === "per_sec" ? { perSec } : { perImage }` — en toleddet
+gren over **seks** enheder. Alt der ikke var per-sekund blev døbt per-billede.
+
+**Det er værre end supers 0.** Et nul er tvetydigt; det her er et **selvsikkert forkert
+tal under et navn der lyver om sin egen enhed.** En forbruger der læser `perImage` på
+`azure:tts` får 0,016 — som er en pris pr. 1000 TEGN. Ganget med et antal billeder er
+det et beløb der ser rimeligt ud og ikke betyder noget.
+
+Fejlen kom ind samtidig med at tabellen voksede fra to enheder til seks. Selve væksten
+var rigtig (F050 fandt ti flere priser end meldt); det der ikke fulgte med var det ene
+udtryk der stadig troede der kun fandtes to.
+
+### 2. `whisper-1` svarede «gratis» — den rigtige pris var uopnåelig
+
+```
+getModelPrice("whisper-1")  →  { unit:"per_1m_tokens", inputPer1M: 0, source:"curated" }
+```
+
+`src/cost/pricing.ts` bar `"openai:whisper-1": { inputPer1M: 0, outputPer1M: 0 }` med
+kommentaren *«priced per minute, not per token — not representable here … listed as 0
+so token-based compute never charges it.»* Hensigten var rigtig indadtil. Men
+`getModelPrice` er en OFFENTLIG forespørgsel, og på den svarede rækken **«denne model
+er gratis»** — mens per-minut-prisen på 0,006 lå i medie-tabellen og aldrig blev nået,
+fordi medie slås op SIDST.
+
+Kommentaren navngav problemet («not representable here») og shippede alligevel
+misrepræsentationen.
+
+### 3. `inputPer1M: 0` på en medie-række — supers fund
+
+Deres formulering, og den rammer: *«et felt der ikke gælder og en pris der er gratis er
+igen samme tal.»* Præcis den skelnen `unpriced` blev bygget for, én etage længere nede.
+
+**Og ironien er eksakt.** Jeg skrev til upmetrics at en JSDoc-note aldrig når dem, så
+skelnen måtte være et DATA-felt. Derefter satte jeg `inputPer1M: 0` på en medie-række
+og dokumenterede forbeholdet i … en JSDoc.
+
+## Rettelserne
+
+1. **Én værdi, ét felt.** `ModelPrice.usd` bærer prisen for ENHVER ikke-token-enhed,
+   parret med `unit`. `perSec`/`perImage` sættes stadig — men kun for netop deres egen
+   enhed, aldrig som opsamling.
+2. **Diskrimineret union.** `getModelPrice()` returnerer `TokenModelPrice | MediaModelPrice`.
+   Token-rater findes kun på token-grenen, så `.inputPer1M` uden at forgrene på `unit`
+   er nu en **oversættelsesfejl** frem for et nul. Det er supers eget forslag.
+3. **`openai:whisper-1` er ude af token-tabellen.** Den er ikke token-prissat; det stod
+   allerede i kommentaren. `computeCost` giver stadig 0 (ukendt model), og `transcribe`
+   regner sin egen pris som før — men opslaget svarer nu med per-minut-rækken i stedet
+   for at kalde modellen gratis.
+
+### 4. Og spærren fandt fem mere, som IKKE var samme sag
+
+Da reachability-prøven blev skrevet, gik den rød på alle fem Gemini-billedmodeller.
+Men de er **ikke** whisper:
+
+```
+gemini-3-pro-image  →  { unit:"per_1m_tokens", inputPer1M: 2, outputPer1M: 12, source:"inventory" }
+```
+
+De rater er **ægte** — fra OpenRouters katalog, for prompten. Modellen har helt legitimt
+BÅDE en per-token-pris (input) OG en per-billede-pris (output), og `ai.image` fakturerer
+den sidste. At returnere token-rækken er altså ikke forkert som whispers opdigtede $0
+var; den **svarer bare på et spørgsmål ingen stillede** og skjuler det tal der afgør
+regningen.
+
+Så: **vedhæft frem for at vælge.** `TokenModelPrice.alsoBilled` bærer nu
+`{unit, usd, checkedAt}` når modellen også har en medie-pris. Begge er sande, så begge
+står der. At vælge én af dem ville svare på halvdelen af spørgsmålet — og indtil nu var
+det den halvdel ingen spurgte om, der vandt.
+
+**Det er derfor spærren måtte skelne mellem to slags «skygget».** En prøve der bare
+sagde «medie vinder altid» ville have skjult ægte token-rater; en der sagde «token
+vinder altid» var status quo. Forskellen mellem whisper og gemini er ikke mekanisk —
+den er om det skyggende tal var opdigtet eller ægte — og prøven skal kende forskellen.
+
+## Spærren, ikke bare rettelsen
+
+**Hver eneste medie-række skal kunne nås på sit eget id, og svare med SIN egen enhed.**
+En prøve går hele `MEDIA_PRICING` igennem og kræver netop det. Havde den eksisteret
+i går, ville både defekt 1 og 2 være gået røde med det samme — og den fanger den næste
+model der bliver skygget af en $0-token-række, hvilket er en fælde ingen leder efter.
+
+Samme lektie som formen-testen i F050.1, én etage nede: **spørg om KLASSEN («kan hver
+række nås korrekt?»), ikke om de instanser du kender.**
+
+## BRYDENDE ÆNDRING, sagt ligeud
+
+Unionen er et **oversættelses-brud i et minor-bump**. Læser man `.inputPer1M` på svaret
+fra `getModelPrice()` uden at forgrene, går det ikke længere igennem `tsc`.
+
+Det er med vilje — det er hele pointen i supers melding — men vi har sagt «det kan ikke
+bryde nogen» om et minor-bump før og taget fejl (0.35, `arguments` blev valgfri). Så det
+står her frem for at blive opdaget. Rettelsen er én linje ved kaldestedet:
+
+```ts
+const p = getModelPrice(id);
+if (p?.unit === "per_1m_tokens") { /* inputPer1M / outputPer1M findes her */ }
+else if (p) { /* p.usd + p.unit */ }
+```
