@@ -1,6 +1,58 @@
 # F054 — `euOnly`: en spærre der fejler LUKKET, frem for tre hjemmestrikkede kopier
 
-**Foreslået af:** `trail` via `components`, 9. september 2026 · **Status:** kortlagt, ikke bygget
+**Foreslået af:** `trail` via `components`, 9. september 2026
+**Status: AFVIST af ejeren, 9. september 2026. Bygges ikke.**
+
+## EJERENS BESLUTNING — læs denne før noget andet i dokumentet
+
+Christian, ordret:
+
+> *«Men hvad nu hvis jeg beder om det? Hvis der er noget jeg vil bruge en US eller CN
+> model til. Nej vi skal ikke have en spærre — der må være op til den enkelte klient at
+> klare den del med mig.»*
+
+**Residens-politik hører i det enkelte forbruger-repo, i dialog med ham — ikke i SDK'en.**
+
+To grunde, begge hans:
+
+1. **En spærre i pakken fjerner et valg han vil have.** Der findes opgaver hvor en
+   amerikansk eller kinesisk model er den rigtige, og en fælles spærre ville gøre dem
+   til en kamp mod værktøjet i stedet for en beslutning han tager.
+2. **Politikken er ikke pakkens at kende.** Hvad der er persondata, og hvad der må
+   forlade EU, afhænger af hvad det enkelte repo laver og af hvilken aftale der er med
+   dets kunde. SDK'en kan ikke vide det, og en spærre der gætter på det ville enten
+   blokere legitimt arbejde eller give en falsk tryghed.
+
+**Arbejdsdelingen er dermed:** SDK'en leverer **instrumentet**, forbrugeren fastsætter
+**politikken**.
+
+| SDK'en | Forbrugeren |
+|---|---|
+| `regionOfHost(url)` — spørg FØR kaldet | bestemmer hvad der er persondata |
+| `usage.region` — aflæs EFTER kaldet | skriver sin egen vagt |
+| `"unknown"` er aldrig en EU-påstand | tager dialogen med Christian |
+
+Begge dele findes i dag (siden 0.36.0/0.36.6) og står i README'ens første skærmfuld
+siden 0.42.1 — netop fordi de var usynlige og en forbruger byggede den forkerte vagt.
+
+**MÅ IKKE GENFORESLÅS.** Kommer det op igen fra et forbruger-repo, er svaret ovenstående
+arbejdsdeling — ikke en ny runde design. Det der KAN være relevant at hjælpe et repo med
+er at bygge deres EGEN vagt rigtigt (se hullet nedenfor); det er noget andet end en
+spærre i pakken.
+
+### Det der stadig gælder for de lokale vagter
+
+To af de tre eksisterende kopier tjekker **leverandørens NAVN**, og det hul er ægte: en
+gateway foran Mistral hedder stadig «mistral», består navnetjekket, og sender data et
+sted vi ikke kender. `usage.region` / `regionOfHost` har ikke det hul. helpdesk har
+allerede rettet deres; `trail` og `buddy` er meldt til.
+
+Resten af dokumentet er den analyse der lå bag forslaget. Den bevares fordi hullet i de
+lokale vagter er reelt — ikke fordi spærren skal bygges.
+
+---
+
+**Oprindeligt forslag (afvist):**
 
 ## ÅBNE SPØRGSMÅL — læs disse først
 
