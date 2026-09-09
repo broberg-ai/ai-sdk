@@ -445,6 +445,11 @@ export interface DialogueTurn {
 }
 export interface DialogueRequest {
   inputs: DialogueTurn[];
+  /** F051.4 — the pronunciation dictionary, applied to EACH line. cms measured the
+   *  gap: a two-host podcast could not get a dictionary at all, so "broberg.ai" was
+   *  said wrong in every episode — they could fix the sponsor read and the host's
+   *  hand-off (both `ai.tts`) and not the conversation, which is 95% of the audio. */
+  pronunciations?: Pronunciation[];
   /** Output container, e.g. "mp3" (default). */
   format?: string;
   spec: TierSpec;

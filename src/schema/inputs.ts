@@ -251,15 +251,6 @@ export const moderationInputSchema = z.object({
 
 // Podcast (F020) — a finished manuscript (speaker turns) + a speaker→voiceId map →
 // one finished multi-voice audio episode (ElevenLabs Text-to-Dialogue).
-export const podcastInputSchema = z.object({
-  script: z.array(z.object({ speaker: z.string(), text: z.string() })).min(1),
-  voices: z.record(z.string(), z.string()),
-  format: z.string().optional(),
-  ...callOptions,
-});
-
-// Single-voice TTS (F020.4) — text → audio. `voice` is a curated name or a voiceId.
-// `lang`/`format` (F026) are used by the Azure adapter; ElevenLabs ignores them.
 const pronunciationSchema = z.object({
   word: z.string(),
   alias: z.string().optional(),
@@ -268,6 +259,20 @@ const pronunciationSchema = z.object({
   /** F051.3 — also match inside a hyphenated compound ("AI" in "AI-agenter"). */
   matchInCompounds: z.boolean().optional(),
 });
+
+export const podcastInputSchema = z.object({
+  script: z.array(z.object({ speaker: z.string(), text: z.string() })).min(1),
+  voices: z.record(z.string(), z.string()),
+  format: z.string().optional(),
+  /** F051.4 — same field, same semantics as tts. Applied PER LINE: ElevenLabs'
+   *  /text-to-dialogue takes inputs[].text separately, so there is no composed string
+   *  a replacement could run across a speaker boundary in. */
+  pronunciations: z.array(pronunciationSchema).optional(),
+  ...callOptions,
+});
+
+// Single-voice TTS (F020.4) — text → audio. `voice` is a curated name or a voiceId.
+// `lang`/`format` (F026) are used by the Azure adapter; ElevenLabs ignores them.
 
 export const ttsInputSchema = z.object({
   text: z.string(),

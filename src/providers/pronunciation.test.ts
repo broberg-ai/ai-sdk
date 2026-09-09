@@ -194,3 +194,56 @@ describe("F051.3 — matchInCompounds", () => {
     expect(sub(dict, "se broberg.ai og AI")).toBe("se <broberg punktum a i> og <A I>");
   });
 });
+
+// ── F051.4: the dictionary reaches ai.podcast(), per LINE ─────────────────
+// cms measured the gap: a two-host podcast could not get a dictionary at all, so
+// "broberg.ai" was said wrong in every episode. They could fix the sponsor read and
+// the host's hand-off (both ai.tts) and not the conversation — 95% of the audio.
+//
+// Their open question, answered by measurement: /text-to-dialogue takes inputs[].text
+// SEPARATELY, so the substitution reuses tts's exactly. Composing the script into one
+// string first would let a replacement run across a speaker boundary.
+describe("F051.4 — pronunciations on dialogue", () => {
+  const spec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" as const };
+  const turns = [
+    { text: "Velkommen til broberg.ai", voiceId: "v1" },
+    { text: "Ja, broberg.ai er stedet", voiceId: "v2" },
+  ];
+
+  async function sent(pron?: Pronunciation[]) {
+    let body: any;
+    const a = elevenlabsAdapter({
+      apiKey: "k",
+      fetch: (async (_u: string, init: RequestInit) => {
+        body = JSON.parse(String(init.body));
+        return new Response(new ArrayBuffer(4), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    await a.dialogue!({ inputs: turns, spec, ...(pron ? { pronunciations: pron } : {}) });
+    return body;
+  }
+
+  test("every line is substituted — not just the first", async () => {
+    // Their podcast has TWO hosts, so a half-applied fix is the likely wrong version.
+    const body = await sent([{ word: "broberg.ai", alias: "broberg punktum a i" }]);
+    expect(body.inputs.map((i: any) => i.text)).toEqual([
+      "Velkommen til broberg punktum a i",
+      "Ja, broberg punktum a i er stedet",
+    ]);
+    expect(body.inputs.map((i: any) => i.voice_id)).toEqual(["v1", "v2"]);
+  });
+
+  test("NEGATIVE CONTROL — without the field the posted body is unchanged", async () => {
+    const body = await sent();
+    expect(body.inputs.map((i: any) => i.text)).toEqual([
+      "Velkommen til broberg.ai",
+      "Ja, broberg.ai er stedet",
+    ]);
+  });
+
+  test("an ipa entry THROWS here too — ElevenLabs has no SSML", async () => {
+    // Same F049 lesson as tts: a silent skip leaves the consumer sure of a
+    // pronunciation they did not get.
+    await expect(sent([{ word: "native", ipa: "ˈneɪtɪv" }])).rejects.toThrow(/needs SSML/);
+  });
+});

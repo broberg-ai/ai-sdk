@@ -82,7 +82,13 @@ export function elevenlabsAdapter(
       headers: { "xi-api-key": key(), "content-type": "application/json", accept: "audio/mpeg" },
       body: JSON.stringify({
         model_id: req.spec.model,
-        inputs: req.inputs.map((t) => ({ text: t.text, voice_id: t.voiceId })),
+        // F051.4 — PER LINE. The endpoint takes each turn's text separately, so the
+        // dictionary applies exactly as it does in tts; composing the script into one
+        // string first would let a replacement run across a speaker boundary.
+        inputs: req.inputs.map((t) => ({
+          text: ttsText({ text: t.text, pronunciations: req.pronunciations }),
+          voice_id: t.voiceId,
+        })),
         ...(req.format ? { output_format: req.format } : {}),
       }),
     });

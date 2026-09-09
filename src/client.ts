@@ -695,7 +695,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.dialogue) throw new Error(`createAI: provider "${spec.provider}" does not support podcast/dialogue`);
-          return adapter.dialogue({ inputs, format: input.format, spec });
+          return adapter.dialogue({ inputs, format: input.format, pronunciations: input.pronunciations, spec });
         },
       });
     },
