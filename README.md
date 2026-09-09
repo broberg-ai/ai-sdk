@@ -6,11 +6,50 @@ cost control on every call**.
 A provider-agnostic facade: your code calls `ai.chat()`, `ai.vision()`,
 `ai.image()` — never a provider SDK directly. Swap providers by changing a tier,
 not your call-sites. Every call returns a `Usage` (tokens, cost, latency,
-transport) and can fan that out to any cost sink.
+transport, **data-residency region**) and can fan that out to any cost sink.
 
 ```bash
 bun add @broberg/ai-sdk   # or: npm i @broberg/ai-sdk
 ```
+
+## Where did the data go? — `usage.region`
+
+Every response carries the **data residency of the endpoint that actually answered**:
+
+```ts
+const { text, usage } = await ai.chat({ prompt, tier: "smart" });
+if (usage.region !== "eu") throw new Error(`personal data would have left the EU (${usage.region})`);
+```
+
+**Only `"eu"` is a positive claim.** `"unknown"` means we cannot say, so
+`region !== "us"` is **not** an EU check — it passes every single OpenRouter call.
+
+`region` is derived from the **host** the request used, not from the provider's name —
+`vertex`, `azure` and `bfl` are EU by default but each takes an override, so a
+name-based table would report `eu` for a call someone had pointed at `us-central1`.
+
+**Three things that decide whether your guard works:**
+
+| | |
+|---|---|
+| **After the call** | `usage.region` — `"eu"` \| `"us"` \| `"cn"` \| `"unknown"` |
+| **Before the call** | `regionOfHost(urlOrHostname)` — the only way to refuse *before* bytes leave |
+| **Never** | `regionOfProvider(name)` — see below |
+
+```ts
+import { regionOfHost } from "@broberg/ai-sdk";
+if (regionOfHost("https://api.mistral.ai/v1") !== "eu") throw new Error("not EU");
+```
+
+**Do not build a residency guard on `regionOfProvider`.** A name cannot answer for
+hosting when the provider takes a `baseUrl`, so `regionOfProvider("mistral")` is
+`"unknown"` — and a guard written as `regionOfProvider(p) === "eu"` therefore rejects
+**Mistral, the only EU route there is.** Fail-closed and useless: it filters out the
+thing it exists to allow.
+
+An allowlist of `(provider, model)` pairs has the same hole from the other side: a
+gateway in front of Mistral is still `"mistral"`/`"mistral-large-latest"`, matches both
+fields, and passes. `regionOfHost` answers `"unknown"` for it, which is the honest answer.
 
 ## Quick start
 
