@@ -91,10 +91,52 @@ test("classify constrains the label to the provided set", async () => {
   expect(res.confidence).toBe(0.9);
 });
 
-test("classify falls back to first label when model returns an unknown label", async () => {
+// ── F052: a silent fallback had a PASSING TEST defending it ────────────────
+// The test this replaces asserted `res.label === "a"` — the first label — as the
+// intended behaviour on an unknown answer. So the suite being green proved the
+// fallback was DELIBERATE, not that it was right. Worth stating plainly: a green
+// suite is evidence about intent, never about correctness.
+
+test("classify returns null for an unknown label — NOT the first one", async () => {
   const { client } = fakeClient({ chat: ['{"label":"???","confidence":0.5}'] });
   const res = await makeContracts(client).classify({ text: "x", labels: ["a", "b"] });
+  expect(res.label).toBeNull();
+  // The model's own answer is preserved, so the failure is inspectable rather than
+  // merely reported. helpdesk routes an autonomy level off this field.
+  expect(res.rawLabel).toBe("???");
+});
+
+test("classify THROWS when the reply contains no JSON — measured, not assumed", async () => {
+  // The report said the fallback fired on "unreadable OR unknown". Measured: a reply
+  // with no JSON in it already threw in parseJsonLoose and still does. So the hole was
+  // narrower than described — and it was the more dangerous half, because a parseable
+  // answer naming an unknown label LOOKS like a real classification. Pinned so the
+  // difference between the two cases stays deliberate.
+  const { client } = fakeClient({ chat: ["I'm sorry, I can't do that"] });
+  await expect(makeContracts(client).classify({ text: "x", labels: ["a", "b"] })).rejects.toThrow(/no JSON found/);
+});
+
+test("classify: confidence 0 from the MODEL survives as 0, not null", async () => {
+  // The negative control for the nullable change, and the load-bearing half: a test
+  // that only checked the null case would pass on an implementation that always
+  // answered null. Two states, two values — that is the whole point of the field.
+  const { client } = fakeClient({ chat: ['{"label":"a","confidence":0}'] });
+  const res = await makeContracts(client).classify({ text: "x", labels: ["a", "b"] });
   expect(res.label).toBe("a");
+  expect(res.confidence).toBe(0);
+  expect(res.confidence).not.toBeNull();
+});
+
+test("classify: a MISSING confidence is null, not 0", async () => {
+  const { client } = fakeClient({ chat: ['{"label":"a"}'] });
+  const res = await makeContracts(client).classify({ text: "x", labels: ["a", "b"] });
+  expect(res.confidence).toBeNull();
+});
+
+test("classify: a clean answer carries NO rawLabel — the field is not decoration", async () => {
+  const { client } = fakeClient({ chat: ['{"label":"spam","confidence":0.9}'] });
+  const res = await makeContracts(client).classify({ text: "x", labels: ["spam", "ham"] });
+  expect(res.rawLabel).toBeUndefined();
 });
 
 test("rerank sorts items by score desc", async () => {
@@ -103,6 +145,56 @@ test("rerank sorts items by score desc", async () => {
   });
   const res = await makeContracts(client).rerank({ query: "q", items: ["low", "high"] });
   expect(res.ranked.map((r) => r.item)).toEqual(["high", "low"]);
+  // NEGATIVE CONTROL: a clean answer leaves nothing unscored. Without this, `unscored`
+  // could be unconditional noise, and noise gets ignored.
+  expect(res.unscored).toEqual([]);
+});
+
+test("rerank THROWS on a reply with no JSON — it does not return an empty ranking", async () => {
+  // "The model ranked nothing" and "I could not read the reply" were the same []. Note
+  // WHICH throw fires: this one comes from parseJsonLoose, which was already there. The
+  // hole was the case below — valid JSON that simply is not an array.
+  const { client } = fakeClient({ chat: ["not json at all"] });
+  await expect(makeContracts(client).rerank({ query: "q", items: ["a"] })).rejects.toThrow(/no JSON found/);
+});
+
+test("rerank THROWS when the reply is a JSON OBJECT rather than an array", async () => {
+  const { client } = fakeClient({ chat: ['{"item":"a","score":1}'] });
+  await expect(makeContracts(client).rerank({ query: "q", items: ["a"] })).rejects.toThrow(/did not return a JSON array/);
+});
+
+test("rerank NAMES what the model failed to score", async () => {
+  const { client } = fakeClient({ chat: ['[{"item":"a","score":0.9}]'] });
+  const res = await makeContracts(client).rerank({ query: "q", items: ["a", "b", "c"] });
+  expect(res.ranked).toEqual([{ item: "a", score: 0.9 }]);
+  expect(res.unscored).toEqual(["b", "c"]);
+});
+
+test("rerank drops an item the model INVENTED, and an entry with no score", async () => {
+  const { client } = fakeClient({
+    chat: '[{"item":"a","score":0.9},{"item":"never-sent","score":1},{"item":"b"},{"score":0.5}]'.split("\u0000"),
+  });
+  const res = await makeContracts(client).rerank({ query: "q", items: ["a", "b"] });
+  // "never-sent" is not a ranking of anything we asked about; the entry with no `item`
+  // used to become "" with score 0 — a plausible-looking row ranked last.
+  expect(res.ranked).toEqual([{ item: "a", score: 0.9 }]);
+  expect(res.unscored).toEqual(["b"]);
+});
+
+test("rerank: score 0 from the model is a REAL score, kept and ranked", async () => {
+  const { client } = fakeClient({ chat: ['[{"item":"a","score":0},{"item":"b","score":0.5}]'] });
+  const res = await makeContracts(client).rerank({ query: "q", items: ["a", "b"] });
+  expect(res.ranked).toEqual([{ item: "b", score: 0.5 }, { item: "a", score: 0 }]);
+  expect(res.unscored).toEqual([]);
+});
+
+test("extract STILL throws — the contract that was already right is untouched", async () => {
+  // One of three contracts had the answer all along. Pinned so a later "harmonisation"
+  // cannot quietly make it match the two that were wrong.
+  const { client } = fakeClient({ chat: ["garbage", "still garbage"] });
+  await expect(
+    makeContracts(client).extract({ text: "x", schema: z.object({ ok: z.boolean() }) }),
+  ).rejects.toThrow();
 });
 
 test("ai.contracts is wired on the real client", async () => {

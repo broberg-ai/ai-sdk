@@ -93,9 +93,23 @@ export function makeContracts(client: ChatVision): Contracts {
         purpose: input.purpose ?? "contract:classify",
       });
       const parsed = parseJsonLoose(res.text) as { label?: string; confidence?: number };
-      const label = input.labels.includes(parsed.label ?? "") ? parsed.label! : (input.labels[0] ?? "");
-      const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0;
-      return { label, confidence, usage: res.usage };
+      // F052 — no fallback to labels[0]. "The model chose the first one" and "the model
+      // named something we do not offer" were the same value, and a consumer was routing
+      // an autonomy level off it. The raw answer is kept so the failure is inspectable,
+      // not merely reported.
+      //
+      // A reply with no JSON in it throws one line up, in parseJsonLoose, and is left
+      // that way deliberately: a refusal or an outage is not a classification, and a
+      // throw is the loudest honest answer. Only the parseable-but-wrong case needed
+      // fixing — which is also the dangerous one, since it LOOKS like a real answer.
+      const matched = typeof parsed.label === "string" && input.labels.includes(parsed.label);
+      return {
+        label: matched ? parsed.label! : null,
+        ...(matched ? {} : { rawLabel: typeof parsed.label === "string" ? parsed.label : res.text.slice(0, 200) }),
+        // 0 is a real confidence; "no confidence reported" is not 0.
+        confidence: typeof parsed.confidence === "number" ? parsed.confidence : null,
+        usage: res.usage,
+      };
     },
 
     async rerank(input: RerankInput): Promise<RerankResult> {
@@ -108,10 +122,27 @@ export function makeContracts(client: ChatVision): Contracts {
         purpose: input.purpose ?? "contract:rerank",
       });
       const raw = parseJsonLoose(res.text) as { item?: string; score?: number }[];
-      const ranked = (Array.isArray(raw) ? raw : [])
-        .map((r) => ({ item: String(r.item ?? ""), score: typeof r.score === "number" ? r.score : 0 }))
-        .sort((a, b) => b.score - a.score);
-      return { ranked, usage: res.usage };
+      // F052 — an unreadable answer THROWS rather than returning []. `extract` in this
+      // same file has always done that; rerank silently handed back an empty ranking, so
+      // "nothing was relevant" and "I could not read the reply" were one value.
+      if (!Array.isArray(raw)) {
+        throw new Error(
+          `ai.contracts.rerank: the model did not return a JSON array. ` +
+            `Got: ${res.text.slice(0, 200)}${res.text.length > 200 ? "…" : ""}`,
+        );
+      }
+      const scored = new Map<string, number>();
+      for (const r of raw) {
+        // Only items the CALLER supplied — the same discipline classify applies to
+        // labels. An item the model invented is not a ranking of anything.
+        if (typeof r?.item !== "string" || !input.items.includes(r.item)) continue;
+        if (typeof r?.score !== "number") continue;
+        if (!scored.has(r.item)) scored.set(r.item, r.score);
+      }
+      const ranked = [...scored].map(([item, score]) => ({ item, score })).sort((a, b) => b.score - a.score);
+      // What the model did NOT score, named rather than silently absent.
+      const unscored = input.items.filter((i) => !scored.has(i));
+      return { ranked, unscored, usage: res.usage };
     },
   };
 }
