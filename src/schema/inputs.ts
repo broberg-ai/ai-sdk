@@ -265,6 +265,8 @@ const pronunciationSchema = z.object({
   alias: z.string().optional(),
   ipa: z.string().optional(),
   lang: z.string().optional(),
+  /** F051.3 — also match inside a hyphenated compound ("AI" in "AI-agenter"). */
+  matchInCompounds: z.boolean().optional(),
 });
 
 export const ttsInputSchema = z.object({

@@ -27,6 +27,24 @@ export interface Pronunciation {
   word: string;
   /** Say this instead. Azure `<sub alias>`; ElevenLabs plain substitution. */
   alias?: string;
+  /** Also match INSIDE a hyphenated compound — `AI` in `AI-agenter` (F051.3).
+   *
+   *  Danish puts abbreviations there constantly. cms measured their own articles:
+   *  "AI-agenter" 13 times, "AI-native" 12, 60+ occurrences in all, every one read aloud
+   *  as one mangled word. Christian heard it as "HTLM" and asked why AI was not spelled
+   *  out too — it WAS, just never in a compound.
+   *
+   *  **Per entry, and defaulting to `false`, because the right answer depends on the
+   *  word.** `AI` yes; `mail` no — a rule for `mail` must not fire inside `e-mail`.
+   *  Measured rather than reasoned: `@broberg/speech-dictionary` ships the general
+   *  loosening and pays exactly that price today. A single global answer is wrong for
+   *  one of the two classes whichever way it is set, so the person who wrote the entry
+   *  decides.
+   *
+   *  Default `false` is also the safe direction to be wrong in: flipping it would change
+   *  the audio for every existing consumer IN SOUND, where there is no compile error, no
+   *  red test and no log line to notice it by. */
+  matchInCompounds?: boolean;
   /** IPA phonemes. Azure `<phoneme alphabet="ipa" ph>`. ElevenLabs cannot do this
    *  (it THROWS rather than silently skipping). See the type doc above before reaching
    *  for this on a foreign word. */
@@ -112,11 +130,26 @@ export function applyPronunciations(
   // Whole-word via lookaround, NOT \b: \b is defined on word characters, so it behaves
   // wrongly around the dot in "broberg.ai". This also lets "AI" match after the dot —
   // which is exactly why longest-first matters rather than being an alternative to it.
+  //
+  // F051.3 — the hyphen is NO LONGER in the lookaround, and its being there was a
+  // COINCIDENCE rather than a decision: the comment above justifies avoiding \b entirely
+  // on the dot, and never mentioned `-` at all. It came along in the character class
+  // without a line defending it, and it silently excluded every Danish compound.
+  //
+  // The hyphen decision now lives PER ENTRY, in the callback below, where the entry is
+  // known. Still ONE pass over the text — splitting it into a pass per entry would
+  // reintroduce the overlap bug that longest-first exists to prevent.
   const alternation = sorted.map((p) => escapeRegex(escape(p.word))).join("|");
-  const re = new RegExp(`(?<![\\w-])(${alternation})(?![\\w-])`, "gi");
+  const re = new RegExp(`(?<!\\w)(${alternation})(?!\\w)`, "gi");
 
-  return haystack.replace(re, (matched) => {
+  return haystack.replace(re, (matched: string, _g1: string, offset: number) => {
     const entry = byLower.get(matched.toLowerCase());
-    return entry ? render(entry, matched) : matched;
+    if (!entry) return matched;
+    if (!entry.matchInCompounds) {
+      // Adjacent to a hyphen and not opted in → leave it exactly as it was before
+      // F051.3. This is what keeps a rule for "mail" out of "e-mail".
+      if (haystack[offset - 1] === "-" || haystack[offset + matched.length] === "-") return matched;
+    }
+    return render(entry, matched);
   });
 }

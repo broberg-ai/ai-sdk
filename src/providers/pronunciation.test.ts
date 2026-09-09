@@ -1,10 +1,11 @@
 // F051 — the pronunciation dictionary. Every case here is one of cms's MEASURED
 // mispronunciations on da-DK (jeppe/christel), not an invented example:
 // "AI" → the word "aj", "broberg.ai" mangled, "webhook" unsayable, "native" → "nativ".
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { azureAdapter } from "./azure.js";
 import { elevenlabsAdapter } from "./elevenlabs.js";
 import { applyPronunciations, assertPronunciations, xmlEscape } from "./pronunciation.js";
+import type { Pronunciation } from "./pronunciation.js";
 
 const audio = new Uint8Array([1, 2, 3]);
 function azureSpy() {
@@ -128,4 +129,68 @@ test("ElevenLabs THROWS on an ipa rule — it must not go quiet", async () => {
       pronunciations: [{ word: "native", ipa: "ˈneɪtɪv" }],
     } as never),
   ).rejects.toThrow(/uses ipa, which needs SSML/);
+});
+
+// ── F051.3: Danish compounds. cms's own measured cases as test data ────────
+// A rule for "AI" did not fire in "AI-agenter" — 60+ occurrences in their articles,
+// every one read aloud as one mangled word. The hyphen in the old lookaround was a
+// COINCIDENCE: the comment above it justifies avoiding \b on the DOT in "broberg.ai"
+// and never mentioned `-` at all.
+describe("F051.3 — matchInCompounds", () => {
+  const sub = (list: Pronunciation[], text: string) =>
+    applyPronunciations(text, list, (p) => `<${p.alias}>`);
+
+  test("WITH the flag: AI fires inside AI-agenter, AI-native, HTML-filen", () => {
+    const dict: Pronunciation[] = [
+      { word: "AI", alias: "A I", matchInCompounds: true },
+      { word: "HTML", alias: "H T M L", matchInCompounds: true },
+    ];
+    expect(sub(dict, "15+ AI-agenter")).toBe("15+ <A I>-agenter");
+    expect(sub(dict, "en AI-native platform")).toBe("en <A I>-native platform");
+    expect(sub(dict, "ret HTML-filen")).toBe("ret <H T M L>-filen");
+    // and still the plain case
+    expect(sub(dict, "Vi bruger AI")).toBe("Vi bruger <A I>");
+  });
+
+  test("WITHOUT the flag: unchanged from 0.42.1 — the compound is left alone", () => {
+    const dict: Pronunciation[] = [{ word: "AI", alias: "A I" }];
+    expect(sub(dict, "15+ AI-agenter")).toBe("15+ AI-agenter");
+    expect(sub(dict, "Vi bruger AI")).toBe("Vi bruger <A I>");
+  });
+
+  test("THE PRICE, as a test rather than a note: 'mail' must not fire in 'e-mail'", () => {
+    // @broberg/speech-dictionary ships the general loosening and pays exactly this.
+    // It is why the flag is per entry and defaults to false.
+    const dict: Pronunciation[] = [{ word: "mail", alias: "mejl" }];
+    expect(sub(dict, "min e-mail virker")).toBe("min e-mail virker");
+    expect(sub(dict, "send en mail")).toBe("send en <mejl>");
+  });
+
+  test("…and the flag IS what controls it — 'mail' with the flag DOES fire in 'e-mail'", () => {
+    const dict: Pronunciation[] = [{ word: "mail", alias: "mejl", matchInCompounds: true }];
+    expect(sub(dict, "min e-mail virker")).toBe("min e-<mejl> virker");
+  });
+
+  test("MIXED dictionary: one entry with the flag and one without, same call, same text", () => {
+    // Without this a GLOBAL loosening disguised as per-entry would pass every test above.
+    const dict: Pronunciation[] = [
+      { word: "AI", alias: "A I", matchInCompounds: true },
+      { word: "mail", alias: "mejl" },
+    ];
+    expect(sub(dict, "AI-agenter sender e-mail")).toBe("<A I>-agenter sender e-mail");
+  });
+
+  test("a hyphen BEFORE the word is refused too, not only after", () => {
+    const dict: Pronunciation[] = [{ word: "AI", alias: "A I" }];
+    expect(sub(dict, "bruger-AI her")).toBe("bruger-AI her");
+  });
+
+  test("longest-first still wins, and the dot in broberg.ai still works", () => {
+    // The reason the lookaround is not \b in the first place. Unchanged by F051.3.
+    const dict: Pronunciation[] = [
+      { word: "broberg.ai", alias: "broberg punktum a i" },
+      { word: "AI", alias: "A I" },
+    ];
+    expect(sub(dict, "se broberg.ai og AI")).toBe("se <broberg punktum a i> og <A I>");
+  });
 });
