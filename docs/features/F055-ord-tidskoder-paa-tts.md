@@ -45,12 +45,27 @@ Azure udtaler **SSML**, ikke råtekst. Vores `pronunciations` (F051) indsætter
 `<sub alias='A I'>AI</sub>` — så Azure taler «A», «I» som **to** ord, hvor manuskriptet
 har **ét**. Ordlisten er altså i SPROG-rummet, ikke i manuskript-rummet.
 
-**cms bruger begge features på den samme tekst.** En naiv gennemgang mister synkronisering
-ved den første substitution, og **hvert eneste ord derefter markeres forkert** — glidende,
-tavst, og værst til sidst i artiklen hvor ingen læser korrektur.
+**cms bruger begge features på den samme tekst.** En naiv gennemgang mister
+synkronisering ved den første substitution.
+
+**HVOR GALT DET SÅ GÅR, ER MÅLT — ikke påstået.** Denne plan sagde først at «hvert
+eneste ord derefter markeres forkert». Det er for stærkt, og prøven
+*«WITHOUT the dictionary the run is not repaired — this is what it costs»* viser hvorfor:
+gennemgangen **kommer sig**. De alias-ord der ikke findes i manuskriptet ender i
+`unaligned`, og det næste ord der faktisk står i teksten fanger cursoren igen. Skaden er
+altså **lokal omkring hver substitution**, ikke total resten af artiklen. Det er stadig
+værd at rette — en artikel med 34 udtale-poster har 34 lokale huller — men en overdreven
+skade-påstand i en plan-doc er den samme fejlform som et felt der ikke findes: en
+beskrivelse ingen har målt.
 
 Det er nøjagtig den slags vi ejer: vi bygger SSML'en, så vi ved hvor hver substitution
 faldt og hvad den erstattede. En forbruger der får rå Azure-data kan ikke vide det.
+
+**Og det første design var forkert — vores egen probe fandt det.** En flad
+`spokenToSource`-tabel lod aliassets «i» sluge det NÆSTE ægte danske ord «i» i
+«broberg.ai i dag». Danske alias-dele ER almindelige danske ord. Derfor forbruges en
+substitution som et **RUN**, længste alias først, og kun når kilde-ordet genuint ligger
+foran cursoren.
 
 ## Omfang
 
@@ -76,14 +91,22 @@ ekstra felt.
 
 **F055.1 kan bevises fuldt ud** og gør det: ren tekstbehandling, ingen nøgle nødvendig.
 Fælderne har hver sin prøve — tegnsætning som egen post, gentagne ord, `<sub>`-desync,
-et ord der slet ikke findes i kilden.
+et ord der slet ikke findes i kilden. To mutationer kørt: `unaligned` altid tom → 2 røde
+prøver; gennemgangen søger fra 0 hver gang → 3 røde. Begge på præcis de navngivne prøver.
 
 **F055.2 kan IKKE live-verificeres i dette repo.** Der er ingen Azure-nøgle i `.env`
 og ingen i projektets vault (målt: Recraft, Mistral, OpenAI, Vertex, OpenRouter — ingen
 Azure). Koden skrives mod Microsofts dokumenterede form og **mærkes eksplicit som
 ikke-runtime-verificeret**, både i plan-doc'en, i kortet og til cms. cms har nøglen —
 de kører `ai.tts` i drift i dag — så den første ægte kørsel er deres, og den er et
-acceptkriterium frem for en antagelse.
+acceptkriterium frem for en antagelse. **F055.2's sidste AC står bevidst ukrydset** og
+må ikke krydses på vores egen læsning af Microsofts dokumentation.
+
+ZIP-læseren er derimod bevist offline: prøven bygger selv arkiverne med `zlib`, både
+deflated (word.json) og stored (lyd), med præfiks-kollision og ukendt
+komprimeringsmetode. Et manglende entry giver `undefined`; en krop der ikke er et ZIP
+KASTER og navngiver hvad den er — en HTML-fejlside fra en udløbet SAS-URL må aldrig
+læses som «ingen ordgrænser».
 
 ## Reuse
 
