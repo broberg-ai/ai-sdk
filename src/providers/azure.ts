@@ -103,8 +103,17 @@ export function azureAdapter(
     sttPricePerMin?: number;
     /** STT base URL override (e.g. a resource custom domain). */
     sttBaseUrl?: string;
-    /** Resource name → custom-domain STT host `{resource}.cognitiveservices.azure.com`
-     *  (or env AZURE_SPEECH_RESOURCE). Without it, STT uses the regional host. */
+    /** Resource name → custom-domain host `{resource}.cognitiveservices.azure.com`
+     *  (or env AZURE_SPEECH_RESOURCE).
+     *
+     *  **STT works without it** — the regional host is a legitimate route for
+     *  `speechtotext/transcriptions` and is the tested default (F029).
+     *
+     *  **BATCH SYNTHESIS REQUIRES IT.** Every example in Microsoft's batch-synthesis
+     *  docs uses the resource host; the regional host is shown nowhere, and cms measured
+     *  it answering 401 with a valid key (F055.3). Without this set, `wordTimings` fails
+     *  before the call rather than spending your time on Azure's "invalid subscription
+     *  key or wrong API endpoint" — which names the key first and sends you the wrong way. */
     resource?: string;
     /** Fast-transcription api-version (overrides the GA default). */
     sttApiVersion?: string;
@@ -145,11 +154,18 @@ export function azureAdapter(
     return classifyRegionName(region());
   }
 
-  function sttBaseUrl(): string {
-    if (config.sttBaseUrl) return config.sttBaseUrl.replace(/\/$/, "");
+  /** The host AND how we arrived at it. The second half is load-bearing: batch synthesis
+   *  must refuse the regional host, and STT must not — so a caller cannot be judged on the
+   *  URL string alone. "explicit" means the caller named it and owns where it forwards. */
+  function sttHost(): { url: string; source: "explicit" | "resource" | "regional-fallback" } {
+    if (config.sttBaseUrl) return { url: config.sttBaseUrl.replace(/\/$/, ""), source: "explicit" };
     const resource = config.resource ?? process.env.AZURE_SPEECH_RESOURCE;
-    if (resource) return `https://${resource}.cognitiveservices.azure.com`;
-    return `https://${region()}.api.cognitive.microsoft.com`;
+    if (resource) return { url: `https://${resource}.cognitiveservices.azure.com`, source: "resource" };
+    return { url: `https://${region()}.api.cognitive.microsoft.com`, source: "regional-fallback" };
+  }
+
+  function sttBaseUrl(): string {
+    return sttHost().url;
   }
 
   function priceFor(chars: number, model: string): ReturnType<typeof freshUsage> {
@@ -233,7 +249,24 @@ export function azureAdapter(
    *  service. The ZIP reader and the alignment ARE proven offline; what is unproven is
    *  the network round-trip. cms holds the key and runs the first real call. */
   async function ttsBatch(req: TtsRequest): Promise<PodcastResult> {
-    const host = sttBaseUrl(); // same {resource}.cognitiveservices.azure.com host
+    // NOT simply sttBaseUrl(): that falls back to the REGIONAL host, and batch synthesis
+    // does not answer there. Microsoft's docs use {resource}.cognitiveservices.azure.com in
+    // all four examples and list no 401 at all — so the 401 cms measured comes from the
+    // gateway before the API, and Azure's own wording ("invalid subscription key or wrong
+    // API endpoint") names the key first and costs the reader the twenty minutes it cost
+    // them. Refuse the IMPLICIT fallback only: STT is legitimately regional (F029), and an
+    // explicit sttBaseUrl is the caller's own decision about their own gateway.
+    const picked = sttHost();
+    if (picked.source === "regional-fallback") {
+      throw new Error(
+        `azure batch synthesis (wordTimings) needs the resource's custom subdomain, not the ` +
+          `regional host ${picked.url}. Set AZURE_SPEECH_RESOURCE (or config.resource) to your ` +
+          `Speech resource name so the call goes to {resource}.cognitiveservices.azure.com, and ` +
+          `make sure custom subdomain is enabled on that resource. Azure answers 401 here with a ` +
+          `VALID key, and its message blames the key — measured by cms 11 September 2026.`,
+      );
+    }
+    const host = picked.url;
     const api = "api-version=2024-04-01";
     const id = `wt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const headers = { "Ocp-Apim-Subscription-Key": key(), "Content-Type": "application/json" };

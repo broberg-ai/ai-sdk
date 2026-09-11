@@ -345,3 +345,174 @@ describe("F055.2 — the Azure batch route", () => {
     expect(batchSsml).toContain("<sub alias='broberg punktum a i'>broberg.ai</sub>");
   });
 });
+
+describe("F055.3 — the batch route refuses the REGIONAL host, and only it", () => {
+  // cms ran the first real call and got 401 with a key that works on the real-time route.
+  // Azure's message blames the key; the host is the fault. These prove we now say so
+  // BEFORE spending anyone's time — and, just as load-bearing, that we did not break the
+  // route where the regional host is correct.
+  const spec = { provider: "azure", model: "tts", transport: "http" as const };
+  const base = { text: "Læs mere på broberg.ai i dag", voiceId: "da-DK-JeppeNeural", spec };
+
+  /** No resource, no sttBaseUrl — the implicit regional fallback cms was on. */
+  async function noResourceAdapter() {
+    const { azureAdapter } = await import("./azure.js");
+    const calls: string[] = [];
+    const a = azureAdapter({
+      apiKey: "k",
+      region: "westeurope",
+      fetch: (async (url: string) => {
+        calls.push(String(url));
+        return new Response(new ArrayBuffer(4), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    return { a, calls };
+  }
+
+  test("ttsBatch throws BEFORE any network call, naming AZURE_SPEECH_RESOURCE", async () => {
+    delete process.env.AZURE_SPEECH_RESOURCE;
+    const { a, calls } = await noResourceAdapter();
+    await expect(a.tts!({ ...base, wordTimings: true })).rejects.toThrow(/AZURE_SPEECH_RESOURCE/);
+    // The whole point is that it costs NOTHING to find out. A guard that throws after the
+    // 401 would still be a guard, and would have saved cms none of the twenty minutes.
+    expect(calls).toEqual([]);
+  });
+
+  test("the message names custom subdomain too — the half Azure's 401 never mentions", async () => {
+    delete process.env.AZURE_SPEECH_RESOURCE;
+    const { a } = await noResourceAdapter();
+    await expect(a.tts!({ ...base, wordTimings: true })).rejects.toThrow(/custom subdomain/);
+  });
+
+  test("NEGATIVE CONTROL — transcribe on the SAME regional host still works", async () => {
+    // The trap this test exists for: sttBaseUrl() is shared, and the regional host is the
+    // TESTED, legitimate route for speech-to-text (F029). A guard on the shared function
+    // would reject the route it exists to allow — regionOfProvider all over again.
+    delete process.env.AZURE_SPEECH_RESOURCE;
+    const { azureAdapter } = await import("./azure.js");
+    let hit = "";
+    const a = azureAdapter({
+      apiKey: "k",
+      region: "westeurope",
+      fetch: (async (url: string) => {
+        hit = String(url);
+        return new Response(JSON.stringify({ combinedPhrases: [{ text: "hej" }], duration: 1000 }), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    const r = await a.transcribe!({
+      audio: new Uint8Array([1, 2, 3]), language: "da-DK",
+      spec: { provider: "azure", model: "stt", transport: "http" as const },
+    });
+    expect(r.text).toBe("hej");
+    expect(hit).toContain("westeurope.api.cognitive.microsoft.com");
+  });
+
+  test("an EXPLICIT sttBaseUrl is honoured — the caller owns their own gateway", async () => {
+    delete process.env.AZURE_SPEECH_RESOURCE;
+    const { azureAdapter } = await import("./azure.js");
+    const calls: string[] = [];
+    const a = azureAdapter({
+      apiKey: "k",
+      region: "westeurope",
+      sttBaseUrl: "https://westeurope.api.cognitive.microsoft.com",
+      batchPollMs: 1,
+      fetch: (async (url: string) => {
+        calls.push(String(url));
+        return new Response(JSON.stringify({ status: "Failed" }), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    // It reaches Azure and fails on Azure's answer, NOT on our guard. Even a host that
+    // looks regional is the caller's decision; we cannot know where it forwards.
+    await expect(a.tts!({ ...base, wordTimings: true })).rejects.toThrow(/batch synthesis .* failed/);
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  test("AZURE_SPEECH_RESOURCE from the ENV is enough — the env path cannot rot unnoticed", async () => {
+    process.env.AZURE_SPEECH_RESOURCE = "ai-sdk-generic";
+    try {
+      const { azureAdapter } = await import("./azure.js");
+      const calls: string[] = [];
+      const a = azureAdapter({
+        apiKey: "k",
+        region: "westeurope",
+        batchPollMs: 1,
+        fetch: (async (url: string) => {
+          calls.push(String(url));
+          return new Response(JSON.stringify({ status: "Failed" }), { status: 200 });
+        }) as unknown as typeof fetch,
+      });
+      await expect(a.tts!({ ...base, wordTimings: true })).rejects.toThrow(/batch synthesis .* failed/);
+      expect(calls[0]).toContain("https://ai-sdk-generic.cognitiveservices.azure.com/texttospeech/batchsyntheses/");
+    } finally {
+      delete process.env.AZURE_SPEECH_RESOURCE;
+    }
+  });
+});
+
+describe("F055.3 — cms' REAL dictionary, all 35 rows", () => {
+  // Sent by cms 11 September 2026 from broberg.ai's production pronunciation table. Test
+  // data we did not invent: our own fixtures used short aliases, and the expensive rows
+  // here are the domains — "broberg.ai" becomes FOUR spoken words, "sanneandersen.dk"
+  // five. A walk that survives a 2-word alias can still lose a 5-word one.
+  const DICT = [
+    { word: "AI", alias: "A I" }, { word: "HTML", alias: "H T M L" },
+    { word: "CSS", alias: "C S S" }, { word: "CMS", alias: "C M S" },
+    { word: "API", alias: "A P I" }, { word: "URL", alias: "U R L" },
+    { word: "SEO", alias: "S E O" }, { word: "GDPR", alias: "G D P R" },
+    { word: "SaaS", alias: "sas" }, { word: "SDK", alias: "S D K" },
+    { word: "MCP", alias: "M C P" }, { word: "PWA", alias: "P W A" },
+    { word: "UI", alias: "U I" }, { word: "UX", alias: "U X" },
+    { word: "broberg.ai", alias: "broberg punktum A I" },
+    { word: "trailmem.com", alias: "trail mem punktum com" },
+    { word: "trailmem", alias: "trail mem" },
+    { word: "webhouse.app", alias: "web house punktum app" },
+    { word: "xrt81.com", alias: "x r t 81 punktum com" },
+    { word: "fdsundhed.dk", alias: "f d sundhed punktum d k" },
+    { word: "sanneandersen.dk", alias: "sanne andersen punktum d k" },
+    { word: "gbrain", alias: "G brain" }, { word: "webhooks", alias: "web-hooks" },
+    { word: "webhook", alias: "web-hook" }, { word: "native", ipa: "ˈneɪtɪv" },
+    { word: "stylet", alias: "stajlet" }, { word: "stylede", alias: "stajlede" },
+    { word: "styling", alias: "stajling" }, { word: "fine-tuning", alias: "fajn-tjuning" },
+    { word: "workflows", ipa: "ˈwɜːkfloʊs" }, { word: "workflow", ipa: "ˈwɜːkfloʊ" },
+    { word: "engineering", ipa: "ˌɛndʒɪˈnɪərɪŋ" }, { word: "agentic", ipa: "eɪˈdʒɛntɪk" },
+    { word: "harness", ipa: "ˈhɑːnəs" }, { word: "lens", ipa: "lɛnz" },
+  ];
+
+  test("all 35 rows load, and the ipa-only ones contribute no run", () => {
+    expect(DICT.length).toBe(35);
+    // 7 ipa-only entries speak the ORIGINAL spelling — <phoneme> does not change the word
+    // count, so they must not consume a run. Counting them would desync every later word.
+    expect(DICT.filter((d) => !("alias" in d)).length).toBe(7);
+  });
+
+  test("the five-word domain alias — sanneandersen.dk — maps back to ONE source word", () => {
+    const text = "Læs mere på sanneandersen.dk i dag";
+    const spoken = ["Læs", "mere", "på", "sanne", "andersen", "punktum", "d", "k", "i", "dag"];
+    const words = spoken.map((t, i) => ({ Text: t, AudioOffset: i * 200, Duration: 150 }));
+    const r = alignWordTimings(text, words, { pronunciations: DICT });
+
+    const span = (i: number) => text.slice(r.words[i]!.sourceStart, r.words[i]!.sourceEnd);
+    for (let i = 3; i <= 7; i++) expect(span(i)).toBe("sanneandersen.dk");
+    // The real Danish "i" AFTER the domain must be its own word, not eaten by the run.
+    expect(span(8)).toBe("i");
+    expect(r.words[8]!.sourceStart).toBeGreaterThan(r.words[7]!.sourceStart);
+    expect(r.unaligned).toEqual([]);
+  });
+
+  test("AI appears as itself AND inside a hyphen compound — both stay aligned", () => {
+    // cms measured 60+ "AI" in their texts, and their hyphen rule turns "AI-agenter" into
+    // "AI agenter" before the dictionary runs. Both forms must land on their OWN source.
+    const text = "AI og AI-agenter bruger AI";
+    const spoken = ["A", "I", "og", "A", "I", "agenter", "bruger", "A", "I"];
+    const words = spoken.map((t, i) => ({ Text: t, AudioOffset: i * 200, Duration: 150 }));
+    const r = alignWordTimings(text, words, { pronunciations: DICT });
+
+    const starts = r.words.map((w) => w.sourceStart);
+    // Strictly non-decreasing: three separate "AI" occurrences, none folded onto the first.
+    for (let i = 1; i < starts.length; i++) expect(starts[i]!).toBeGreaterThanOrEqual(starts[i - 1]!);
+    expect(text.slice(r.words[0]!.sourceStart, r.words[0]!.sourceEnd)).toBe("AI");
+    expect(text.slice(r.words[8]!.sourceStart, r.words[8]!.sourceEnd)).toBe("AI");
+    expect(r.words[8]!.sourceStart).toBeGreaterThan(r.words[3]!.sourceStart);
+    expect(r.unaligned).toEqual([]);
+  });
+});

@@ -108,6 +108,51 @@ komprimeringsmetode. Et manglende entry giver `undefined`; en krop der ikke er e
 KASTER og navngiver hvad den er — en HTML-fejlside fra en udløbet SAS-URL må aldrig
 læses som «ingen ordgrænser».
 
+## F055.3 — den første ægte kørsel fejlede, og den fandt en fejl i VORES tavshed
+
+**cms kørte batch-ruten 11. september 2026.** Det var den kørsel vi selv udpegede som
+beviset for F055.2. Den fejlede — og ikke på koblingen eller ZIP-læseren.
+
+```
+GET  {region}.tts.speech.microsoft.com/cognitiveservices/voices/list   200   ← samme nøgle
+PUT  {region}.api.cognitive.microsoft.com/texttospeech/batchsyntheses  401
+PUT  {region}.cognitiveservices.azure.com/texttospeech/batchsyntheses  401
+PUT  {region}.tts.speech.microsoft.com/texttospeech/batchsyntheses     404
+```
+
+**Nøglen er gyldig. Det er værten.** cms fandt resource-navnet i Azures eget
+`issueToken`-svar (JWT-claims bærer `azure-resource-id`) og målte så at værten slet ikke
+har en DNS-record: custom subdomain er ikke slået til på resourcen.
+
+**VERIFICERET HER, ikke overtaget fra rapporten.** Microsofts batch-synthesis-side bruger
+`https://YourResourceName.cognitiveservices.azure.com` i **samtlige fire** eksempler —
+PUT, GET, LIST og DELETE. Regions-værten optræder ikke ét eneste sted. Og dokumentets
+egen liste over HTTP-koder rummer 400, 404, 429 og 500 — **intet 401**. En 401 kommer
+altså fra gatewayen *før* API'et ser kaldet, hvilket passer præcis på en vært der ikke
+hører til resourcen.
+
+### Fejlen er vores, og det er ikke valget af vært — det er tavsheden
+
+`sttBaseUrl()` falder tilbage på regions-værten når `AZURE_SPEECH_RESOURCE` ikke er sat,
+og `ttsBatch` brugte den uden at sige noget. Azures svar lyder *«invalid subscription key
+or wrong API endpoint»* — **den første halvdel sender enhver læser efter den forkerte
+fejl.** cms brugte tyve minutter på at udelukke nøglen, hvilket er præcis den udgift en
+tidlig, navngiven fejl fjerner.
+
+### Og hvorfor rettelsen er SMAL — fælden i den nemme version
+
+`sttBaseUrl()` deles med **tale-til-tekst** (`speechtotext/transcriptions`), og dér er
+regions-værten en **legitim** rute: F029's plan-doc siger det ordret, og den live-smoke
+afgjorde det dengang. En spærre på den fælles funktion ville afvise en rute der virker.
+
+Det er nøjagtig **`regionOfProvider`-fælden** i ny forklædning: en fail-closed spærre der
+filtrerer præcis det den findes for at tillade. Derfor rammer spærren kun `ttsBatch`, kun
+den **implicitte** fallback, og en eksplicit `sttBaseUrl` respekteres — sætter kalderen
+selv værten, kan vi ikke vide hvor deres gateway sender videre hen.
+
+Den negative kontrol er derfor den bærende prøve: **`ai.transcribe` mod den samme
+implicitte regions-vært skal stadig gå igennem.**
+
 ## Reuse
 
 Discovery-søgt 11. september 2026 på `tts`, `word timing`, `speech`, `alignment`.
