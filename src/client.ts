@@ -719,7 +719,7 @@ export function createAI(config: AiConfig = {}): AiClient {
           if (!adapter.tts) throw new Error(`createAI: provider "${spec.provider}" does not support tts`);
           return adapter.tts({
             text: input.text, voiceId, lang: input.lang, format: input.format, rate: input.rate,
-            pronunciations: input.pronunciations, spec,
+            pronunciations: input.pronunciations, wordTimings: input.wordTimings, spec,
           });
         },
       });

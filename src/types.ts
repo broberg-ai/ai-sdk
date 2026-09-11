@@ -458,11 +458,20 @@ export interface PodcastResult {
   /** Episode audio bytes. */
   audio: Uint8Array;
   mimeType: string;
+  /** F055 — per-word timings, present only when `wordTimings` was asked for AND the
+   *  route produces them. Its ABSENCE says "not available here"; an empty `words` array
+   *  would say "the text had no words", which is a different claim.
+   *
+   *  `sourceStart`/`sourceEnd` index the ORIGINAL text you passed, not the SSML we sent
+   *  — Azure reports only audio time, so the link back to the manuscript is derived
+   *  here. `unaligned` names any spoken word that could not be placed. */
+  wordTimings?: AlignedWordTimings;
   usage: Usage;
 }
 
 // Single-voice TTS (F020.4) — text → audio in one voice. ElevenLabs or Azure (F026).
 import type { Pronunciation } from "./providers/pronunciation.js";
+import type { AlignedWordTimings } from "./providers/word-timings.js";
 export type { Pronunciation } from "./providers/pronunciation.js";
 
 export interface TtsRequest {
@@ -482,6 +491,16 @@ export interface TtsRequest {
    *  into SSML** — the substitution happens adapter-side AFTER the text is escaped, so
    *  `text` can never inject markup, and `alias`/`ipa` are escaped too. */
   pronunciations?: Pronunciation[];
+  /** F055 — ask for per-word timings so a reader can highlight each word as it is
+   *  spoken. Azure only. Absent from the result means "this route does not produce
+   *  them", which is a different answer from an empty list.
+   *
+   *  **This changes the ROUTE, not just the payload.** The real-time endpoint returns
+   *  audio only; word boundaries exist solely on Azure's asynchronous batch synthesis
+   *  API, so the call becomes submit → poll → fetch. Microsoft quotes 10–20s for half
+   *  of all jobs and up to 120s for 95%. Worth it for a pre-generated, cached reading;
+   *  wrong for anything a user is waiting on. */
+  wordTimings?: boolean;
   spec: TierSpec;
 }
 

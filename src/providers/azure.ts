@@ -8,6 +8,8 @@ import { classifyRegionName, type Region } from "../cost/region.js";
 import { xmlEscape, applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, TranscribeResult } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { alignWordTimings, type AzureWordBoundary } from "./word-timings.js";
+import { readZipEntry, listZipEntries } from "./zip.js";
 
 /** Fast-transcription REST api-version. 2025-10-15 is required for the `phraseList`
  *  biasing field (2024-11-15 rejects it as "Invalid JSON"); both serve plain
@@ -106,6 +108,11 @@ export function azureAdapter(
     resource?: string;
     /** Fast-transcription api-version (overrides the GA default). */
     sttApiVersion?: string;
+    /** F055 — how long to wait for a batch synthesis job. Default 180s (Microsoft's own
+     *  95th percentile is 120s). */
+    batchTimeoutMs?: number;
+    /** F055 — poll interval for batch synthesis. Default 3s. */
+    batchPollMs?: number;
     /** phraseList biasing weight (0–2) applied when a call passes `phrases`. Default 1.5. */
     sttBiasingWeight?: number;
   } = {},
@@ -161,14 +168,12 @@ export function azureAdapter(
     return usage;
   }
 
-  // Single-voice TTS. POST .../cognitiveservices/v1 with an SSML body.
-  async function tts(req: TtsRequest): Promise<PodcastResult> {
+  /** The SSML both TTS routes send. ONE builder: the real-time and batch routes must
+   *  speak the same thing, or a word list would describe audio the other route produced.
+   *  It also keeps F051's escaping reasoning in one place rather than in two. */
+  function buildSsml(req: TtsRequest): string {
     const voice = resolveAzureVoice(req.voiceId);
     const lang = req.lang ?? localeOf(voice);
-    const format = req.format ?? DEFAULT_FORMAT;
-    // Speaking rate via SSML <prosody>: a multiplier of the default (1 = normal,
-    // 0.9 = 10% slower, 1.1 = 10% faster). An explicit req.rate wins; otherwise the
-    // voice's own defaultRate (e.g. Christel = 0.85) applies; else no wrapper.
     // F051 — the dictionary applies AFTER escaping, on purpose. Before it, our tags
     // would be escaped away; on the raw text field, `text` would become a way INTO the
     // SSML. `pronunciations` is the controlled door, and the door is escaped too:
@@ -184,12 +189,18 @@ export function azureAdapter(
           : `<sub alias='${xmlEscape(p.alias!)}'>${matched}</sub>`,
       xmlEscape,
     );
+    // Speaking rate via SSML <prosody>: a multiplier of the default (1 = normal,
+    // 0.9 = 10% slower). An explicit req.rate wins; else the voice's own defaultRate.
     const effRate = req.rate ?? AZURE_DANISH_VOICE_LIST.find((v) => v.voiceId === voice)?.defaultRate;
     const inner =
       effRate != null && effRate !== 1 ? `<prosody rate='${effRate}'>${escaped}</prosody>` : escaped;
-    const ssml =
-      `<speak version='1.0' xml:lang='${lang}'>` +
-      `<voice name='${voice}'>${inner}</voice></speak>`;
+    return `<speak version='1.0' xml:lang='${lang}'>` + `<voice name='${voice}'>${inner}</voice></speak>`;
+  }
+
+  // Single-voice TTS. POST .../cognitiveservices/v1 with an SSML body.
+  async function tts(req: TtsRequest): Promise<PodcastResult> {
+    if (req.wordTimings) return ttsBatch(req);
+    const format = req.format ?? DEFAULT_FORMAT;
     const res = await fetchImpl(
       `https://${region()}.tts.speech.microsoft.com/cognitiveservices/v1`,
       {
@@ -199,7 +210,7 @@ export function azureAdapter(
           "Content-Type": "application/ssml+xml",
           "X-Microsoft-OutputFormat": format,
         },
-        body: ssml,
+        body: buildSsml(req),
       },
     );
     if (!res.ok) {
@@ -208,6 +219,106 @@ export function azureAdapter(
     }
     const audio = new Uint8Array(await res.arrayBuffer());
     return { audio, mimeType: "audio/mpeg", usage: priceFor(req.text.length, req.spec.model) };
+  }
+
+  /** F055 — TTS via BATCH synthesis, the only Azure route that reports word boundaries.
+   *
+   *  NOT the same call shape as the real-time route: submit → poll → fetch a ZIP.
+   *  Microsoft quotes 10-20s for half of all jobs and up to 120s for 95%, so this is
+   *  for pre-generated, cached audio — not for a user waiting on a page.
+   *
+   *  **NOT RUNTIME-VERIFIED in this repo (11 September 2026).** There is no Azure key
+   *  in ai-sdk's .env and none in its vault, so this path is written against Microsoft's
+   *  own documented request/response examples and has never been run against the live
+   *  service. The ZIP reader and the alignment ARE proven offline; what is unproven is
+   *  the network round-trip. cms holds the key and runs the first real call. */
+  async function ttsBatch(req: TtsRequest): Promise<PodcastResult> {
+    const host = sttBaseUrl(); // same {resource}.cognitiveservices.azure.com host
+    const api = "api-version=2024-04-01";
+    const id = `wt-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const headers = { "Ocp-Apim-Subscription-Key": key(), "Content-Type": "application/json" };
+
+    const put = await fetchImpl(`${host}/texttospeech/batchsyntheses/${id}?${api}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        inputKind: "SSML",
+        inputs: [{ content: buildSsml(req) }],
+        properties: {
+          wordBoundaryEnabled: true,
+          // ONE audio file and ONE word list for the whole text. Without it a chunked
+          // input yields per-chunk offsets that somebody has to re-base — the kind of
+          // arithmetic that looks right and is 40 ms wrong by the end.
+          concatenateResult: true,
+          ...(req.format ? { outputFormat: req.format } : {}),
+        },
+      }),
+    });
+    if (!put.ok) {
+      const body = await put.text().catch(() => "");
+      throw new Error(`azure batch synthesis submit ${put.status}: ${body.slice(0, 300)}`);
+    }
+
+    // Poll. The ceiling is Microsoft's own 95th percentile (120s) with headroom, and it
+    // FAILS rather than returning a half-answer: a timeout that resolved with no audio
+    // would look like a text that produced none.
+    const deadline = Date.now() + (config.batchTimeoutMs ?? 180_000);
+    let resultUrl = "";
+    for (;;) {
+      const get = await fetchImpl(`${host}/texttospeech/batchsyntheses/${id}?${api}`, {
+        headers: { "Ocp-Apim-Subscription-Key": key() },
+      });
+      if (!get.ok) {
+        const body = await get.text().catch(() => "");
+        throw new Error(`azure batch synthesis poll ${get.status}: ${body.slice(0, 300)}`);
+      }
+      const job = (await get.json()) as { status?: string; outputs?: { result?: string } };
+      if (job.status === "Succeeded") {
+        resultUrl = job.outputs?.result ?? "";
+        break;
+      }
+      if (job.status === "Failed") throw new Error(`azure batch synthesis ${id} failed`);
+      if (Date.now() > deadline) {
+        throw new Error(
+          `azure batch synthesis ${id} still "${job.status}" after ` +
+            `${Math.round((config.batchTimeoutMs ?? 180_000) / 1000)}s`,
+        );
+      }
+      await new Promise((r) => setTimeout(r, config.batchPollMs ?? 3000));
+    }
+    if (!resultUrl) throw new Error(`azure batch synthesis ${id} succeeded without a result URL`);
+
+    const zipRes = await fetchImpl(resultUrl, { headers: { "Ocp-Apim-Subscription-Key": key() } });
+    if (!zipRes.ok) {
+      throw new Error(`azure batch synthesis results ${zipRes.status}`);
+    }
+    const zip = new Uint8Array(await zipRes.arrayBuffer());
+
+    const audio = readZipEntry(zip, "0001.wav");
+    if (!audio) {
+      throw new Error(`azure batch synthesis: no 0001.wav in results; archive holds ${listZipEntries(zip).join(", ")}`);
+    }
+    const wordsRaw = readZipEntry(zip, "0001.word.json");
+    if (!wordsRaw) {
+      // Names what WAS there, so "boundaries were never generated" and "I looked in the
+      // wrong place" are distinguishable from the message alone.
+      throw new Error(
+        `azure batch synthesis: wordTimings was requested but the archive has no ` +
+          `0001.word.json; it holds ${listZipEntries(zip).join(", ")}`,
+      );
+    }
+    const boundaries = JSON.parse(new TextDecoder().decode(wordsRaw)) as AzureWordBoundary[];
+
+    return {
+      audio,
+      // Batch defaults to riff PCM, not mp3 — saying audio/mpeg here would be a lie the
+      // browser would act on.
+      mimeType: req.format?.includes("mp3") ? "audio/mpeg" : "audio/wav",
+      // Aligned against the ORIGINAL text, with the dictionary, so the offsets index the
+      // manuscript rather than the SSML we sent.
+      wordTimings: alignWordTimings(req.text, boundaries, { pronunciations: req.pronunciations }),
+      usage: priceFor(req.text.length, req.spec.model),
+    };
   }
 
   // Speech-to-text (F029) via Azure fast transcription. Synchronous multipart POST

@@ -280,6 +280,8 @@ export const ttsInputSchema = z.object({
   /** F051 — see TtsRequest.pronunciations. The alias/ipa exclusivity is enforced in
    *  the adapter, not here: the message must name the provider that cannot do it. */
   pronunciations: z.array(pronunciationSchema).optional(),
+  /** F055 — per-word timings (Azure only). Changes the route to batch synthesis. */
+  wordTimings: z.boolean().optional(),
   /** F037: voice to use if `voice` is one we know the provider has retired. Without
    *  it a retired voice throws VoiceUnavailableError rather than reaching the API.
    *

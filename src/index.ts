@@ -105,6 +105,11 @@ export {
   listMediaPrices,
 } from "./catalogue/pricing-api.js";
 export type { PricingFreshness, UnitFreshness } from "./catalogue/pricing-api.js";
+// F055 — word timings. alignWordTimings is exported because the mapping back to the
+// manuscript is the part a consumer might need to redo on boundary data of their own:
+// Azure reports audio time only, never a text offset, so the link is always derived.
+export { alignWordTimings } from "./providers/word-timings.js";
+export type { AzureWordBoundary, WordTiming, AlignedWordTimings } from "./providers/word-timings.js";
 export {
   MEDIA_PRICING_CHECKED_AT,
   DEFAULT_CLIP_SEC,
