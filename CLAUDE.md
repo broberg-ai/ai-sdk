@@ -234,6 +234,93 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 // also: ai.vision · ai.video · ai.translate · ai.image · ai.embedding · ai.transcribe · ai.ocr · ai.moderate · ai.contracts.{extract,classify,…}
 ```
 
+**Route by tier, not by model-string.** Tiers → current model (overridable per call):
+**Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
+`fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=mistral-small-latest · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
+
+> This block named Claude for `smart`/`powerful`/`vision` for ~3 months after F030 moved them. Nobody was endangered — it UNDERSTATED how EU-safe the defaults are — but the same drift also lived in code (`resolveModel('smart')` answered claude-sonnet-4-6 while the call went to Mistral), and there it was dangerous: that lookup is what a reasonable person would use to show or decide where data goes. Fixed in v0.29 by deriving the registry's tier aliases from the router. **The `video` and `embedding` DEFAULTS still leave the EU** — do not send personal data through them without an override. But read the next paragraph before concluding there is no EU route: in September 2026 that same sentence, correct as written, was cited by another session as proof the fleet had no EU path for video. A default is not a capability.
+
+**Cost & provider policy.** Anthropic/Claude is what we **build and code with** (Claude Code) — it is *not* the reflexive API default. For cost-sensitive / high-volume cloud-API workloads, default to the **cheapest model that's good enough** (start cheap, only move up if a real test shows it's needed) — that's what the `cheap` tier is for. `claude -p` is retired as a route; don't reach for the Anthropic API just because it's familiar. The quality tiers (`smart`/`powerful`) resolve to **Mistral Large** (EU), not Claude — reach for Claude only via an explicit `override`, and never for personal data.
+
+**Model-availability gate (F022, v0.11+).** Before launching/spawning on a model, gate it — a suspended tier (e.g. Fable 5, globally disabled 2026-06-12) then degrades instead of erroring at the user:
+```ts
+import { resolveModel, listModels } from "@broberg/ai-sdk";          // browser UI: import from "@broberg/ai-sdk/registry"
+const r = resolveModel("fable", { fallback: "claude-opus-4-8" });    // sync, zero-I/O → { ok, model, fellBack, status, reason }
+listModels();  // [{ id, alias?, provider, available, status, note? }] — grey out dead tiers in a picker
+```
+
+**If you are GATING, pass `requireKnown: true` (v0.29+).** By default an id the
+registry does not track is fail-open — `ok:true`, `status:"unknown"`, and `model`
+is your own input echoed back. That is right for liveness (never block a model we
+simply do not track) and wrong for a gate: cms measured a consumer following the
+instruction above, passing the gate, and then sending the literal string `"cheap"`
+to a provider as a model id. A success-shaped non-answer is worse than an error,
+because an error gets handled and a shape does not.
+```ts
+resolveModel("smrt", { requireKnown: true });  // → { ok:false, status:"unknown", reason: "…not a model this registry knows…" }
+```
+
+**`resolveModel` does NOT tell you where data goes.** It reports provider + model,
+never region — and `video`/`embedding` leave the EU. For residency, read
+`usage.provider`/`usage.model` off the RESPONSE (the route that actually answered);
+a response with no `tier` means a fallback was taken.
+
+**Prompt caching is ON by default (v0.31+).** Mistral caches a repeated prompt prefix
+at 10% of the input rate, but only when the request carries a cache key — we used to
+drop it, so every consumer paid full price for an identical system instruction on every
+message. Now the SDK derives one automatically from the system prompt's content
+(content-derived on purpose: a key collision then implies the content was identical, so
+sharing a cached prefix cannot leak). Measured: an 8,810-token instruction costs
+$0.004411 the first time and $0.000458 every time after — **90% off**.
+```ts
+ai.chat({ system, prompt })                              // cached automatically
+ai.chat({ system, prompt, promptCache: false })          // opt out for this call
+ai.chat({ system, prompt, promptCacheKey: `${tenant}:${conversation}` })  // your own key
+createAI({ promptCache: false })                         // opt out client-wide
+```
+**Pass your own key when one system prompt serves several tenants** — the key is a
+shared-prefix identity, so derive it from (tenant, conversation), never the conversation
+alone. Only Mistral takes a key; openai/deepseek/gemini cache automatically.
+
+**GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
+
+**A TIER TABLE SAYS WHERE A CALL GOES BY DEFAULT. IT IS NOT A LIST OF THE ROUTES THAT EXIST.**
+A reader deciding whether personal data may leave the country needs the SECOND list,
+and a document carrying only the first answers a narrower question than the one being
+asked of it. Measured 11 September 2026: a session building Danish speech-to-text for
+named people read this block's default table and concluded the fleet had no EU route
+for speech. Two had been shipped for a month. Nobody wrote anything false — the table
+was right, and it was read as the whole answer because nothing said it was not.
+
+**The EU routes that EXIST beyond the defaults** (ai-sdk's own roster on
+discovery.broberg.ai is the source; verify there before relying on a line here):
+
+| need | the EU route | since |
+|---|---|---|
+| Danish speech-to-text | `ai.transcribe` — Azure **da-DK**, a 2nd EU STT beside Voxtral | F029, v0.22.0 |
+| video + image ANALYSIS | `override:{ provider:'vertex', model:'gemini-2.5-flash' }` on `ai.video` / `ai.vision`. One env var `GOOGLE_VERTEX_CREDENTIALS`; region defaults `europe-west1`, `europe-west4` also works | F038, v0.27.0 — **live-verified 2026-08-11** |
+| faces / portraits | Black Forest Labs, whole chain hard-pinned to EU hosts | F023, v0.15.0 |
+
+**Upgrading does NOT move you to the EU.** These are overrides you set deliberately on
+your PII paths. The owner refused to switch everyone's default silently.
+
+**A FALLBACK CHAIN KILLS THE EU ROUTE — and it fails GREEN.** The SDK never leaves the
+EU on its own (one region, one attempt, tested). But a caller-supplied fallback to a US
+route WILL be taken when the EU call has a bad five minutes, and you still get an
+answer, so nothing looks wrong. On a PII path the fallback must be **empty or EU-only**.
+*A fallback is a route, and it is the ROUTE that decides residency — never the model name.*
+
+**Do not write the obvious residency guard.** `regionOfProvider('mistral')` answers
+`'unknown'` while openai/anthropic/gemini answer `'us'`, so `if (regionOfProvider(p) !== 'eu') reject()`
+refuses the only EU route we have and admits nothing — fail-closed, useless, and
+anti-correlated with the truth. A provider that accepts a `baseUrl` cannot have its
+residency answered by its name. Read `usage.provider`/`usage.model` off the RESPONSE
+(the route that actually answered) instead.
+
+**Do NOT:** import a provider SDK directly · `fetch` a provider API · hardcode a model-string in app code (route by tier; pin via `override` only) · skip the SDK "just this once" · spawn/launch a model without `resolveModel`. The SDK is the single chokepoint so cost-tracking, fallback, and availability work everywhere.
+
+<!-- kept by the cardmem sync: written by this repo, not canonical -->
+
 **Pin with `^`, and keep it moving.** Under 1.0.0 npm's caret means PATCH-ONLY, so
 `^0.36.6` reaches 0.36.7 and never 0.37.0. That is the right behaviour for this package
 in both directions, and it is not the bug it looks like:
@@ -264,17 +351,6 @@ bump deliberately.
 **Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
 `fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=**mistral-medium-latest** · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
 
-> This block named Claude for `smart`/`powerful`/`vision` for ~3 months after F030 moved them. Nobody was endangered — it UNDERSTATED how EU-safe the defaults are — but the same drift also lived in code (`resolveModel('smart')` answered claude-sonnet-4-6 while the call went to Mistral), and there it was dangerous: that lookup is what a reasonable person would use to show or decide where data goes. Fixed in v0.29 by deriving the registry's tier aliases from the router. **`video` and `embedding` still leave the EU** — do not send personal data through them.
-
-**Cost & provider policy.** Anthropic/Claude is what we **build and code with** (Claude Code) — it is *not* the reflexive API default. For cost-sensitive / high-volume cloud-API workloads, default to the **cheapest model that's good enough** (start cheap, only move up if a real test shows it's needed) — that's what the `cheap` tier is for. `claude -p` is retired as a route; don't reach for the Anthropic API just because it's familiar. The quality tiers (`smart`/`powerful`) resolve to **Mistral Large** (EU), not Claude — reach for Claude only via an explicit `override`, and never for personal data.
-
-**Model-availability gate (F022, v0.11+).** Before launching/spawning on a model, gate it — a suspended tier (e.g. Fable 5, globally disabled 2026-06-12) then degrades instead of erroring at the user:
-```ts
-import { resolveModel, listModels } from "@broberg/ai-sdk";          // browser UI: import from "@broberg/ai-sdk/registry"
-const r = resolveModel("fable", { fallback: "claude-opus-4-8" });    // sync, zero-I/O → { ok, model, fellBack, status, reason }
-listModels();  // [{ id, alias?, provider, available, status, note? }] — grey out dead tiers in a picker
-```
-
 **A tier fails CLOSED; a model id fails OPEN — and the difference was written nowhere.**
 Measured by coverletter (2026-08-30): `ai.chat({tier:"chaep"})` throws and lists the
 valid tiers, `{tier:"CHEAP"}` throws (case-sensitive, no normalisation), `{tier:""}`
@@ -282,17 +358,6 @@ throws. But `resolveModel("chaep")` returns `{ok:true, model:"chaep"}`. Both con
 are deliberate; only one of them was documented, and it was the fail-open half. So: a
 misspelt TIER can never route your call to a different model than the one in your code
 — the bill cannot surprise you there. A misspelt MODEL ID can, unless you gate.
-
-**If you are GATING, pass `requireKnown: true` (v0.29+).** By default an id the
-registry does not track is fail-open — `ok:true`, `status:"unknown"`, and `model`
-is your own input echoed back. That is right for liveness (never block a model we
-simply do not track) and wrong for a gate: cms measured a consumer following the
-instruction above, passing the gate, and then sending the literal string `"cheap"`
-to a provider as a model id. A success-shaped non-answer is worse than an error,
-because an error gets handled and a shape does not.
-```ts
-resolveModel("smrt", { requireKnown: true });  // → { ok:false, status:"unknown", reason: "…not a model this registry knows…" }
-```
 
 **`resolveModel` does NOT tell you where data goes** — it reports provider + model,
 never region. **Read `usage.region` off the RESPONSE instead (v0.35+, F042):**
@@ -422,10 +487,6 @@ whatever their length. `codestral-embed` matches the default's 1536 so the *colu
 index config* survive, but the *content* still does not. Practical consequence: build a
 corpus you intend to ship on the model you intend to ship, or pay for it twice. At these
 rates the 5x is 8 dollars on a 100M-token corpus; the rebuild is the real bill.
-
-**GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
-
-**Do NOT:** import a provider SDK directly · `fetch` a provider API · hardcode a model-string in app code (route by tier; pin via `override` only) · skip the SDK "just this once" · spawn/launch a model without `resolveModel`. The SDK is the single chokepoint so cost-tracking, fallback, and availability work everywhere.
 
 ## Upmetrics — error + incident observability
 
@@ -663,13 +724,29 @@ here is worth more than pasting it in chat.** He opens it in the Communication
 surface, edits it in rich text if he wants, and then:
 
 ```
-approved  → you are told. It is your PERMISSION TO SEND, not a send — cardmem never
-            sends mail. Send it through @broberg/mail, cc cb@webhouse.dk, then
+approved  → you are told, and it is your PERMISSION TO SEND. Send it through
+            @broberg/mail, cc cb@webhouse.dk, then
             cardmem_mark_communication({ asset_id, status: 'sent' }).
 changes   → you get his REASON back. Rewrite from THAT — a rephrase of the same
             letter is what the reason exists to prevent.
 rejected  → do not send it, and do not send a softened version either.
 ```
+
+**THERE ARE TWO DOORS, AND THIS TEXT USED TO NAME ONE (F307.11).** It said
+"cardmem never sends mail" as a flat fact. That stopped being true when **Send
+now** shipped, and an agent that reads the old sentence does what fd-sundhed's did:
+writes the draft, waits, and never touches the mail — correctly, by the text it was
+given — while cardmem sends a different rendering of the same letter.
+
+| the owner presses | who sends | what you do |
+|---|---|---|
+| **Approve — agent sends** | YOU, from this repo, via `@broberg/mail` | send, then mark `sent` with the provider id |
+| **Send now** | **cardmem itself**, on his own press | nothing. Do NOT send, do NOT mark it — the send stamps `sent` on the provider's acceptance |
+
+`Send now` is deliberately closed to agents: the HTTP route refuses a Bearer
+credential outright, so a letter leaves the house only on his own press, in the
+product, on the exact text he just read. You may write and revise it, and you may
+be GIVEN permission to send it yourself — you may not press that button.
 
 **Marking it `sent` is not bookkeeping.** A directive can be re-delivered a day
 later (measured: 107 such deliveries across the fleet in a week), and `sent` is
@@ -761,6 +838,33 @@ fleet. Sloppy answers today become sloppy project management tomorrow.
   entitled to see.
 - **Volunteer the context it cannot know.** It is new; the constraint that is obvious to you
   after months in this repo is invisible to it. State the constraint, not just the answer.
+
+### Stopping Super — "super stop" works in any agent's chat
+
+**When Christian writes `super stop`, `super pause`, `super go` or `… all` to you, that
+sentence is an INSTRUCTION, not a remark.** Call `cardmem_super_pause` immediately:
+
+```
+cardmem_super_pause({ session_id: '<your session>', paused: true })             // stop Super on THIS project
+cardmem_super_pause({ session_id: '<your session>', paused: true,  all: true }) // "super stop all" — the whole fleet
+cardmem_super_pause({ session_id: '<your session>', paused: false })            // "super go" — let it run again
+```
+
+**There is no `project_id`, deliberately.** The project is derived from your session, so
+you cannot aim this at another team — and `all: true` is the only scope you may name.
+Pass it ONLY when he actually said "all".
+
+**Say what it does and does not promise.** The pause takes effect from Super's NEXT
+action; it finishes the step it is on rather than stopping mid-sentence. Do not tell him
+it stops instantly.
+
+**Your call is recorded as `agent:<your project>`, never as him.** That is not
+bookkeeping — the tool cannot tell his typing from an agent deciding to call it, so who
+acted has to be visible on his pill. Never describe a pause you set as one he set.
+
+**He can also do it himself** on the green Super pill in cardmem's topbar, which is the
+only place the switch can be set by a human. `cardmem_update_settings` refuses
+`super_pause` outright; this verb is the one door an agent has.
 
 **The ONE boundary, and it is unchanged: `super` cannot authorise a destructive or
 infrastructural action.** Deploys, `DROP`, `rm -rf`, env flips, force-pushes, DNS edits,
