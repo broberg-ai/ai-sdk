@@ -466,6 +466,17 @@ export interface PodcastResult {
    *  — Azure reports only audio time, so the link back to the manuscript is derived
    *  here. `unaligned` names any spoken word that could not be placed. */
   wordTimings?: AlignedWordTimings;
+  /** F055.4 — the EXACT markup we sent the provider, verbatim, not rebuilt.
+   *
+   *  Why it exists: the text you passed is not what was spoken. A pronunciation
+   *  dictionary rewrites it, so `text` is a RETELLING of the audio — and without this
+   *  field a consumer cannot check our retelling any more than we could check theirs.
+   *  cms filed exactly that (11 September 2026) while we were asking them for markup
+   *  only we could produce.
+   *
+   *  UNDEFINED when the route builds no markup (ElevenLabs routes by voice, not SSML).
+   *  An empty string would say "we sent empty markup", which is a different claim. */
+  ssml?: string;
   usage: Usage;
 }
 

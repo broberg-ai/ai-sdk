@@ -81,6 +81,43 @@ const { data } = await ai.contracts.extract({
 // also: ai.contracts.{ mockup, design, classify, rerank }
 ```
 
+## Read-aloud: what was actually SPOKEN is not your `text`
+
+`ai.tts({ pronunciations })` rewrites your text before the provider ever sees it —
+`broberg.ai` becomes four spoken words. So **`text` is a retelling of the audio**, and a
+word-highlighter built on `text` alone will drift at every rewritten word.
+
+Two fields close that gap:
+
+```ts
+const { audio, wordTimings, ssml } = await ai.tts({
+  text, voice, wordTimings: true, pronunciations,
+  override: { provider: "azure" },
+});
+wordTimings.words      // [{ text, startMs, endMs, sourceStart, sourceEnd }]
+wordTimings.unaligned  // spoken words we could NOT place — never a guessed offset
+ssml                   // the EXACT markup we sent, verbatim — your ground truth
+```
+
+`sourceStart`/`sourceEnd` index **your original text**, because Azure reports audio time
+only and carries no text offset at all; the link back to the manuscript is derived here.
+`ssml` exists so you can check that derivation instead of trusting it — it is the string
+we sent, not a rebuild (filed by a consumer who could not verify what was spoken, F055.4).
+It is `undefined` on routes that build no markup; an empty string would be a different claim.
+
+**Two matcher rules that surprise people**, both measured in `pronunciations`:
+
+- **Case-insensitive.** `ai`, `Ai` and `AI` all match a rule for `AI`.
+- **A word touching a hyphen keeps its spelling.** `broberg.ai-drevet` is NOT rewritten
+  unless that entry sets `matchInCompounds: true` — the rule that keeps `mail` out of
+  `e-mail`. A consumer deriving their own expected-word list got exactly these two
+  occurrences wrong before the field existed.
+
+**Word timings need Azure's BATCH route**, a different call shape (submit → poll → ZIP),
+and that route requires the resource's custom subdomain — the regional host answers 401
+with a valid key, blaming the key. Set `AZURE_SPEECH_RESOURCE`; without it `wordTimings`
+fails before the call, naming the fix.
+
 ## Providers & tiers
 
 Adapters: **Anthropic** (HTTP + `claude -p` subprocess), **OpenAI**, **Google

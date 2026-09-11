@@ -217,6 +217,10 @@ export function azureAdapter(
   async function tts(req: TtsRequest): Promise<PodcastResult> {
     if (req.wordTimings) return ttsBatch(req);
     const format = req.format ?? DEFAULT_FORMAT;
+    // F055.4 — built ONCE and both sent and returned. Calling buildSsml a second time
+    // for the result would be a rebuild, and a rebuild can diverge from what was sent:
+    // the consumer would then hold markup describing audio they do not have.
+    const ssml = buildSsml(req);
     const res = await fetchImpl(
       `https://${region()}.tts.speech.microsoft.com/cognitiveservices/v1`,
       {
@@ -226,7 +230,7 @@ export function azureAdapter(
           "Content-Type": "application/ssml+xml",
           "X-Microsoft-OutputFormat": format,
         },
-        body: buildSsml(req),
+        body: ssml,
       },
     );
     if (!res.ok) {
@@ -234,7 +238,7 @@ export function azureAdapter(
       throw new Error(`azure tts ${res.status}: ${body.slice(0, 300)}`);
     }
     const audio = new Uint8Array(await res.arrayBuffer());
-    return { audio, mimeType: "audio/mpeg", usage: priceFor(req.text.length, req.spec.model) };
+    return { audio, mimeType: "audio/mpeg", ssml, usage: priceFor(req.text.length, req.spec.model) };
   }
 
   /** F055 — TTS via BATCH synthesis, the only Azure route that reports word boundaries.
@@ -256,6 +260,8 @@ export function azureAdapter(
     // API endpoint") names the key first and costs the reader the twenty minutes it cost
     // them. Refuse the IMPLICIT fallback only: STT is legitimately regional (F029), and an
     // explicit sttBaseUrl is the caller's own decision about their own gateway.
+    // F055.4 — same rule as the real-time route: built once, sent and returned.
+    const ssml = buildSsml(req);
     const picked = sttHost();
     if (picked.source === "regional-fallback") {
       throw new Error(
@@ -276,7 +282,7 @@ export function azureAdapter(
       headers,
       body: JSON.stringify({
         inputKind: "SSML",
-        inputs: [{ content: buildSsml(req) }],
+        inputs: [{ content: ssml }],
         properties: {
           wordBoundaryEnabled: true,
           // ONE audio file and ONE word list for the whole text. Without it a chunked
@@ -347,6 +353,7 @@ export function azureAdapter(
       // Batch defaults to riff PCM, not mp3 — saying audio/mpeg here would be a lie the
       // browser would act on.
       mimeType: req.format?.includes("mp3") ? "audio/mpeg" : "audio/wav",
+      ssml,
       // Aligned against the ORIGINAL text, with the dictionary, so the offsets index the
       // manuscript rather than the SSML we sent.
       wordTimings: alignWordTimings(req.text, boundaries, { pronunciations: req.pronunciations }),

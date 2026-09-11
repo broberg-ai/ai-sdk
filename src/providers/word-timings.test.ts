@@ -344,6 +344,20 @@ describe("F055.2 — the Azure batch route", () => {
     expect(batchSsml).toBe(realtime);
     expect(batchSsml).toContain("<sub alias='broberg punktum a i'>broberg.ai</sub>");
   });
+
+  // F055.4 — lives here because the batch harness does. The route must hand BACK the
+  // exact string it put in inputs[0].content, not a second call to buildSsml.
+  test("F055.4 — batch returns the SSML it sent, strictly identical", async () => {
+    const { a, calls } = await adapterWith([
+      { name: "0001.wav", text: "RIFFfake" },
+      { name: "0001.word.json", text: WORDS },
+    ]);
+    const r = await a.tts!({
+      ...base, wordTimings: true,
+      pronunciations: [{ word: "broberg.ai", alias: "broberg punktum a i" }],
+    });
+    expect(r.ssml).toBe(JSON.parse(calls[0]!.body!).inputs[0].content);
+  });
 });
 
 describe("F055.3 — the batch route refuses the REGIONAL host, and only it", () => {
@@ -514,5 +528,44 @@ describe("F055.3 — cms' REAL dictionary, all 35 rows", () => {
     expect(text.slice(r.words[8]!.sourceStart, r.words[8]!.sourceEnd)).toBe("AI");
     expect(r.words[8]!.sourceStart).toBeGreaterThan(r.words[3]!.sourceStart);
     expect(r.unaligned).toEqual([]);
+  });
+});
+
+describe("F055.4 — the SSML we sent comes back, byte for byte", () => {
+  // cms could not verify what was actually spoken, because the markup that decides it
+  // never left this package — while we were asking THEM for exactly that markup.
+  const spec = { provider: "azure", model: "tts", transport: "http" as const };
+  const base = { text: "Læs mere på broberg.ai i dag", voiceId: "da-DK-JeppeNeural", spec };
+  const pron = [{ word: "broberg.ai", alias: "broberg punktum a i" }];
+
+  test("real-time: the field is STRICTLY IDENTICAL to the body that was sent", async () => {
+    const { azureAdapter } = await import("./azure.js");
+    let sentBody = "";
+    const a = azureAdapter({
+      apiKey: "k", region: "westeurope",
+      fetch: (async (_u: string, init?: RequestInit) => {
+        sentBody = String(init?.body);
+        return new Response(new ArrayBuffer(4), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    const r = await a.tts!({ ...base, pronunciations: pron });
+    // Strict equality, not toContain: a rebuild that differed by one attribute would
+    // pass a "contains the alias" check and still describe different audio.
+    expect(r.ssml).toBe(sentBody);
+    expect(r.ssml).toContain("<sub alias='broberg punktum a i'>broberg.ai</sub>");
+  });
+
+  test("a route that builds NO markup leaves it undefined, never an empty string", async () => {
+    // ElevenLabs routes by voice id, not SSML. "" would claim we sent empty markup.
+    const { elevenlabsAdapter } = await import("./elevenlabs.js");
+    const a = elevenlabsAdapter({
+      apiKey: "k",
+      fetch: (async () => new Response(new ArrayBuffer(4), { status: 200 })) as unknown as typeof fetch,
+    });
+    const r = await a.tts!({
+      ...base,
+      spec: { provider: "elevenlabs", model: "tts", transport: "http" as const },
+    });
+    expect(r.ssml).toBeUndefined();
   });
 });
