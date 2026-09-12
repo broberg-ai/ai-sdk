@@ -2,6 +2,7 @@
 // transports: http (api.anthropic.com/v1/messages) and subprocess (claude -p,
 // Max plan, costUsd 0). Critical for the xrt81 vision pilot. Tools normalized
 // via F4.5. No @anthropic-ai/sdk package — plain fetch through httpTransport.
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { httpTransport, errorBody } from "../transport/http.js";
 import { subprocessTransport } from "../transport/subprocess.js";
 import { streamTransport } from "../transport/stream.js";
@@ -76,7 +77,7 @@ function flattenForSubprocess(messages: Message[]): { prompt: string; system?: s
 export function anthropicAdapter(
   config: { apiKey?: string; baseUrl?: string; anthropicVersion?: string; fetch?: typeof fetch } = {},
 ): ProviderAdapter {
-  const baseUrl = config.baseUrl ?? "https://api.anthropic.com";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.anthropic;
   const version = config.anthropicVersion ?? "2023-06-01";
 
   /** Build the /v1/messages body (shared by the http + stream paths). */

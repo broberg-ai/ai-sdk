@@ -1,6 +1,7 @@
 // OpenAI adapter (F4.1 chat/vision + F5.4 embedding). Chat/vision come from the
 // shared OpenAI-compatible core; embedding uses the /embeddings endpoint. No
 // openai npm package — plain fetch through httpTransport.
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { httpTransport, errorBody } from "../transport/http.js";
 import { freshUsage } from "../cost/usage.js";
@@ -16,7 +17,7 @@ import { getMediaPrice } from "../cost/media-pricing.js";
 export function openaiAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
 ): ProviderAdapter {
-  const baseUrl = config.baseUrl ?? "https://api.openai.com/v1";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.openai;
   const base = makeOpenAICompatibleAdapter({ name: "openai", baseUrl, apiKey: config.apiKey });
 
   async function embedding(req: EmbeddingRequest): Promise<EmbeddingResult> {

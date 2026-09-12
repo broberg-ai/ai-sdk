@@ -1,6 +1,7 @@
 // OpenRouter adapter (F4.4). Meta-router with an OpenAI-compatible API — reuses
 // the shared core + OpenRouter's attribution headers. Any upstream model is
 // reachable by its slug, e.g. "minimax/minimax-m2.7", "google/gemini-2.5-flash".
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
@@ -29,7 +30,7 @@ export interface OpenRouterAdapterConfig {
 }
 
 export function openrouterAdapter(config: OpenRouterAdapterConfig = {}): ProviderAdapter {
-  const baseUrl = config.baseUrl ?? "https://openrouter.ai/api/v1";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.openrouter;
   const headers = {
     "HTTP-Referer": config.referer ?? "https://broberg.ai",
     "X-Title": config.title ?? "@broberg/ai-sdk",

@@ -2,6 +2,7 @@
 // endpoint (the shared core), plus two specialty endpoints we add here:
 // /ocr (F016.2, per-page) and /moderations (F016.4, per-token). Key resolved
 // from MISTRAL_API_KEY when not passed.
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
 import { regionOfHost } from "../cost/region.js";
@@ -27,7 +28,7 @@ import { getMediaPrice } from "../cost/media-pricing.js";
 export function mistralAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerPage?: number } = {},
 ): ProviderAdapter {
-  const baseUrl = config.baseUrl ?? "https://api.mistral.ai/v1";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.mistral;
   const base = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl, apiKey: config.apiKey, supportsPromptCacheKey: true, supportsPrefix: true });
 
   function key(): string {

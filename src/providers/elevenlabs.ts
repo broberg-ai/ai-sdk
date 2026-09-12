@@ -2,6 +2,7 @@
 // {text, voice_id} turns into ONE cohesive multi-voice audio episode — the
 // "instant podcast" primitive. Also single-voice TTS + voice listing. Audio out
 // is MP3 bytes; billed per character. Key from ELEVENLABS_API_KEY.
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { freshUsage } from "../cost/usage.js";
 import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { Pronunciation } from "./pronunciation.js";
@@ -52,7 +53,7 @@ export function elevenlabsAdapter(
 ): ProviderAdapter & {
   listVoices(): Promise<ElevenLabsVoice[]>;
 } {
-  const baseUrl = config.baseUrl ?? "https://api.elevenlabs.io/v1";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.elevenlabs;
   const fetchImpl = config.fetch ?? fetch;
 
   function key(): string {

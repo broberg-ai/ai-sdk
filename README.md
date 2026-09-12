@@ -146,6 +146,40 @@ personal data by default; override per call for an even cheaper non-personal rou
 (The `claude -p` subprocess transport is still available via explicit
 `override: { transport: "subprocess" }`, but is no longer a default route.)
 
+## Where WOULD this go? — `wouldRouteTo` (a forecast, not a fact)
+
+`usage.region` answers **where a call went**. It cannot answer *may I send this?*, because
+it only exists once the bytes have left. `wouldRouteTo` answers that half:
+
+```ts
+import { wouldRouteTo } from "@broberg/ai-sdk";
+
+const f = wouldRouteTo("smart");
+// { kind: "forecast", provider: "mistral", host: "https://api.mistral.ai/v1",
+//   wouldRouteTo: "eu", onlyIf: [ …the assumptions… ] }
+```
+
+**It is deliberately not shaped like `usage.region`.** There is no field called `region` on
+it, and that is enforced by a test: a forecast that can be wrong must not wear the clothes
+of a fact that cannot. `onlyIf` comes back **with** the answer rather than living in these
+docs — the answer holds only while you override no `baseUrl` and pass no fallback, because
+**a fallback IS a route and the route decides residency**.
+
+**`"depends-on-config"` is an answer, not a failure.** `azure`, `vertex`, `deepl`, `requesty`
+and `fal` build their host from values you supply. `requesty` is why this state exists: it
+has *both* an EU and a non-EU host, so any region we named there would be a residency claim
+decided by a table instead of by a route.
+
+**It refuses nothing.** It never throws and never blocks a call — not even for a nonsense
+provider. Residency policy belongs to each consumer, not to this package; this is the
+information that makes that decision possible, which is the opposite of a gate.
+
+**Why it can say `"eu"` where `regionOfProvider` says `"unknown"`:** it asks the *host* the
+SDK would actually use, not the provider's *name*. `regionOfProvider("mistral")` is
+`"unknown"` by design — that adapter takes a `baseUrl`. Filed by a consumer who had
+hand-copied our tier table into their own repo to answer this; that copy can now be deleted
+instead of maintained.
+
 ## Cost, budget & sinks
 
 ```ts

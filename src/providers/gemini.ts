@@ -2,6 +2,7 @@
 // param (?key=), not a header. System turns map to systemInstruction; assistant
 // maps to role "model". Token counts come from usageMetadata. Tools normalized
 // via F4.5. No @google/generative-ai package — plain fetch through httpTransport.
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { httpTransport, errorBody } from "../transport/http.js";
 import { streamTransport } from "../transport/stream.js";
 import { toProviderTools, fromProviderToolCall } from "./tools.js";
@@ -95,7 +96,7 @@ export function geminiAdapter(
     videoTimeoutMs?: number;
   } = {},
 ): ProviderAdapter {
-  const baseUrl = config.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta";
+  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.gemini;
 
   function resolveKey(): string {
     const apiKey = config.apiKey ?? process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;

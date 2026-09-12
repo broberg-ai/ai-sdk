@@ -11,6 +11,7 @@
 // `deepseek-v4-flash`. Prefer `deepseek-v4-flash` going forward (same model, not
 // sunset). The direct API does NOT return a cost field → cost comes from the
 // pricing table (verify rates against a real key; see src/cost/pricing.ts).
+import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import type { ProviderAdapter } from "../types.js";
 
@@ -19,7 +20,7 @@ export function deepseekAdapter(
 ): ProviderAdapter {
   return makeOpenAICompatibleAdapter({
     name: "deepseek", // → key DEEPSEEK_API_KEY
-    baseUrl: config.baseUrl ?? "https://api.deepseek.com/v1",
+    baseUrl: config.baseUrl ?? DEFAULT_BASE_URLS.deepseek,
     apiKey: config.apiKey,
     // Direct API returns no usage.cost → price from the table (not response).
     costFromResponseField: false,

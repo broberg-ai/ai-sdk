@@ -121,6 +121,15 @@ export type { MediaPrice, MediaUnit } from "./cost/media-pricing.js";
 // BEFORE one, which is the half needed to build a fail-closed guard. Two consumers
 // (sanne, super) were blocked on a capability that already existed and had no door.
 export { regionOfHost, regionOfProvider, classifyRegionName, type Region } from "./cost/region.js";
+// F056 — "where WOULD this land?", the half regionOfProvider cannot answer. A FORECAST,
+// deliberately not shaped like usage.region: it carries no field called `region`, and it
+// returns its own assumptions so a caller cannot read a conditional answer as a fact.
+// It is NOT a guard — it refuses nothing (the owner rejected a euOnly blocker: residency
+// is each consumer's decision, and this is what makes that decision possible).
+export { wouldRouteTo, wouldProviderRouteTo } from "./cost/would-route.js";
+export type { RouteForecast } from "./cost/would-route.js";
+export { DEFAULT_BASE_URLS, CONFIG_DERIVED_HOSTS, LOCALLY_PINNED_HOSTS, defaultBaseUrl } from "./cost/default-hosts.js";
+export type { FixedHostProvider } from "./cost/default-hosts.js";
 export type { PricingEntry } from "./cost/pricing.js";
 export {
   httpTransport,
