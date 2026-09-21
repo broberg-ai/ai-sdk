@@ -75,3 +75,18 @@ test("deepseek-v4-flash on the DIRECT api stays refused while it has no price", 
   expect(PRICING["deepseek:deepseek-v4-flash"]).toBeUndefined();
   expect(resolveModel("deepseek-v4-flash", { requireKnown: true }).ok).toBe(false);
 });
+
+test("a green gate carries the row's caveat with it — ok:true can say \"yes, but\"", () => {
+  // Found in review of this card: the sunset lived only in the registry row, and
+  // `reason` is populated solely on the FAILURE path — so a consumer gating with
+  // requireKnown got a clean green and no hint, with the warning one call away in
+  // listModels(). A gate that hides a known caveat is the same shape as the bug
+  // this card fixes, one level up.
+  const r = resolveModel("deepseek-chat", { requireKnown: true });
+  expect(r.ok).toBe(true);
+  expect(r.note).toContain("2026-07-24");
+
+  // And a row with nothing to warn about stays clean — the field is a caveat,
+  // not decoration, so its presence has to mean something.
+  expect(resolveModel("mistral-large-latest", { requireKnown: true }).note).toBeUndefined();
+});

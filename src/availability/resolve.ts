@@ -64,6 +64,10 @@ export function resolveModel(requested: string, opts: ResolveOptions = {}): Reso
       provider,
       fellBack: false,
       status: entry?.status ?? "unknown",
+      // A green gate that hides a known caveat is the failure this whole card is
+      // about, one level up: the answer is shaped like "fine" and the warning is
+      // somewhere else. If the row has a note, the caller gets it with the yes.
+      ...(entry?.note ? { note: entry.note } : {}),
     };
   }
 

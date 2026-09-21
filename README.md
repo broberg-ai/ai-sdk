@@ -197,7 +197,8 @@ const ai = createAI({
 Sinks: `upmetricsSink` (canonical), `discordSink`, `sqliteSink`, `multiSink`,
 `noopSink`. A sink that fails *during* a call never crashes that call.
 
-> **`sqliteSink` and `getCostSummary` are Bun-only** (v0.48+). They are backed by
+> **`sqliteSink` and `getCostSummary` are Bun-only** (changed 2026-09-21; see the
+> release that carries it — this repo's `main` may be ahead of npm). They are backed by
 > `bun:sqlite`, which Node cannot import at all. On Node they now **throw where you
 > construct them** — deliberately, and this is a behaviour change: up to v0.47 you
 > got a sink object that threw on every `record()`, and the client swallows per-call

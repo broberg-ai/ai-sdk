@@ -12,6 +12,16 @@
 import { expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
 
+/** Newest-first numeric compare of "v22.18.0"-style names. NOT .sort(): that is
+ *  lexicographic, so "v9.11.2" outranks "v22.18.0" and a machine with both would
+ *  run these tests on Node 9. */
+function newestFirst(a: string, b: string): number {
+  const parts = (v: string) => v.replace(/^v/, "").split(".").map((n) => Number(n) || 0);
+  const [x, y] = [parts(a), parts(b)];
+  for (let i = 0; i < 3; i += 1) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (y[i] ?? 0) - (x[i] ?? 0);
+  return 0;
+}
+
 /** Absolute path to a Node binary, or null. CI provides one on PATH (setup-node);
  *  a dev machine often has it only under nvm, which is not on an agent's PATH. */
 function findNode(): string | null {
@@ -19,8 +29,7 @@ function findNode(): string | null {
   if (onPath) return onPath;
   const nvm = `${process.env.HOME}/.nvm/versions/node`;
   if (!existsSync(nvm)) return null;
-  const versions = readdirSync(nvm).sort().reverse();
-  for (const v of versions) {
+  for (const v of readdirSync(nvm).sort(newestFirst)) {
     const bin = `${nvm}/${v}/bin/node`;
     if (existsSync(bin)) return bin;
   }
@@ -29,11 +38,16 @@ function findNode(): string | null {
 
 const NODE = findNode();
 
-/** Run one ES-module snippet under Node and hand back what it printed. */
-function underNode(script: string): { stdout: string; stderr: string; exitCode: number } {
-  // A missing Node is reported as a FAILURE, never as a silent skip: the point of
-  // this file is that the guard is Node-verified, and "we could not check" must
-  // not read the same as "we checked and it was fine".
+/** Run one ES-module snippet under Node and hand back stdout.
+ *
+ *  Every failure mode in here is raised as a FAILURE, never swallowed. That is not
+ *  fastidiousness: these tests import `.ts` directly and so need Node's native
+ *  type-stripping (>=22.18). On an older Node the subprocess dies, stdout is empty,
+ *  and every assertion below fails for a reason that has nothing to do with the
+ *  guard — a red suite pointing at the wrong thing, in the job that blocks publish.
+ *  This file argues that "we could not check" must not look like "we checked"; it
+ *  has to hold itself to that too. */
+function underNode(script: string): string {
   if (!NODE) throw new Error("no Node binary found (PATH or ~/.nvm) — the F057.1 guard is UNVERIFIED");
   const r = Bun.spawnSync({
     cmd: [NODE, "--input-type=module", "-e", script],
@@ -41,11 +55,20 @@ function underNode(script: string): { stdout: string; stderr: string; exitCode: 
     stdout: "pipe",
     stderr: "pipe",
   });
-  return { stdout: r.stdout.toString(), stderr: r.stderr.toString(), exitCode: r.exitCode ?? -1 };
+  const stdout = r.stdout.toString();
+  const stderr = r.stderr.toString();
+  if ((r.exitCode ?? -1) !== 0) {
+    throw new Error(
+      `Node (${NODE}) exited ${r.exitCode}. These tests need native type-stripping ` +
+        `(Node >=22.18) — ERR_UNKNOWN_FILE_EXTENSION here means the runtime is too old, ` +
+        `not that the guard is broken.\nstderr: ${stderr.trim() || "(empty)"}`,
+    );
+  }
+  return stdout;
 }
 
 test("Node really cannot import bun:sqlite — the premise this guard rests on", () => {
-  const { stdout } = underNode(`
+  const stdout = underNode(`
     try { await import("bun:sqlite"); console.log("IMPORTED"); }
     catch (e) { console.log("THREW:" + (e.code ?? e.constructor.name)); }
   `);
@@ -53,7 +76,7 @@ test("Node really cannot import bun:sqlite — the premise this guard rests on",
 });
 
 test("sqliteSink throws at SETUP on Node, before any record()", () => {
-  const { stdout } = underNode(`
+  const stdout = underNode(`
     const { sqliteSink } = await import("./sqlite.ts");
     let phase = "none", message = "";
     try {
@@ -78,7 +101,7 @@ test("sqliteSink throws at SETUP on Node, before any record()", () => {
 });
 
 test("getCostSummary also refuses at setup on Node", () => {
-  const { stdout } = underNode(`
+  const stdout = underNode(`
     const { getCostSummary } = await import("./sqlite.ts");
     try { await getCostSummary("/tmp/f057-nope.db"); console.log("RESOLVED"); }
     catch (e) { console.log("THREW:" + e.message.slice(0, 40)); }
@@ -96,7 +119,7 @@ test("getCostSummary also refuses at setup on Node", () => {
 // quietly soften the budget half down to the sink half's old behaviour. A budget
 // guard that degrades to silence would stop capping spend while still looking fine.
 test("sqliteBudgetStore still fails LOUDLY on Node (direction lock)", () => {
-  const { stdout } = underNode(`
+  const stdout = underNode(`
     const { sqliteBudgetStore } = await import("../budget-store.ts");
     const store = sqliteBudgetStore({ dbPath: "/tmp/f057-budget.db" });
     let outcome = "resolved-silently";

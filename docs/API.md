@@ -40,7 +40,9 @@ bun add @broberg/ai-sdk     # or: npm i @broberg/ai-sdk / pnpm add
 - **ESM-only.** Your app must be `"type": "module"` (or import dynamically).
 - **Runs on Node and Bun.** `bun:sqlite` (used only by `sqliteSink` /
   `sqliteBudgetStore`) is loaded lazily, so importing the package never breaks a
-  Node consumer.
+  Node consumer. **Those two are Bun-only, though**, and since 2026-09-21 they
+  say so where you construct them rather than failing quietly later — on Node use
+  `upmetricsSink`. See §5.
 - **No keys in code.** Each adapter reads its key from the environment at call
   time. Set what you use:
 
@@ -157,7 +159,11 @@ spawns the local `claude -p` CLI (Max plan, `costUsd 0`, flagged
 - **`BudgetGuard`** — pre-flight estimate; throws `BudgetExceededError`
   (`{ kind, limit, spent, requested }`) *before* the request fires. Backed by a
   pluggable `BudgetStore` (default in-memory; `sqliteBudgetStore` for persistent).
-- **`CostSink`** — `record(usage)`. A failing sink never crashes a call.
+- **`CostSink`** — `record(usage)`. A sink that fails *during* a call never
+  crashes that call. A sink that can never work in this runtime is a different
+  thing and says so at construction: `sqliteSink` and `getCostSummary` throw on
+  Node (Bun-only — `bun:sqlite`). Up to v0.47 they returned a healthy-looking
+  sink whose every write was swallowed, so cost tracking went silently dead.
   Built-ins: **`upmetricsSink`** (canonical — forwards to upmetrics
   `/api/agent`), `discordSink`, `sqliteSink` (+ `getCostSummary`), `multiSink`
   (fan-out, error-isolated), `noopSink`.
@@ -483,7 +489,7 @@ const ai = createAI({
   budget: { perCallUsd: 0.05, rollingUsd: 5 },
   costSink: multiSink([
     upmetricsSink({ baseUrl: "https://upmetrics.org", apiKey: KEY, agentName: "my-app" }),
-    sqliteSink({ dbPath: "./ai-cost.db" }),
+    sqliteSink({ dbPath: "./ai-cost.db" }), // Bun only — throws on Node, see §1
   ]),
 });
 

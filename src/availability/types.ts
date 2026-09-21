@@ -38,6 +38,15 @@ export interface ResolveResult {
   status: AvailabilityStatus;
   /** Why it degraded / why it is unavailable. */
   reason?: string;
+  /** The registry row's caveat, surfaced on the SUCCESS path too (F057.2).
+   *
+   *  `reason` only ever appears when a model is unavailable, so a caveat written
+   *  on an AVAILABLE row — "documented to deprecate 2026-07-24", "preview", a
+   *  known rate limit — was reachable through listModels() and invisible to the
+   *  one caller who most needs it: the gate. A consumer passing requireKnown got
+   *  a clean green with the warning sitting one call away, unread. Carrying it
+   *  here costs an optional field and makes `ok:true` able to say "yes, but". */
+  note?: string;
 }
 
 /** Thrown by resolveModel when the requested model is unavailable, no usable

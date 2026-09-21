@@ -246,3 +246,43 @@ låser tilstanden og siger hvad der skal ske når raten lander.
 - **Registret dækker 5 providers** efter dette kort. Adaptere findes til
   elevenlabs, vertex, azure, bfl, fal, openrouter, deepinfra. Noteret, ikke
   lukket.
+
+---
+
+## Review-runde 1 — fem fund, alle rettet (21/9 2026)
+
+`/code-review 3f557b9 high`. Alle fem efterprøvet her før de blev rettet — to af
+dem var ting jeg selv havde overset, ikke stilspørgsmål.
+
+| # | fund | status |
+|---|---|---|
+| 1 | README lovede "(v0.48+)" mens `package.json` står i `0.47.1` | rettet — versionsnummeret er væk, erstattet af en **dato** |
+| 2 | `docs/API.md` sagde stadig "Runs on Node and Bun" + "A failing sink never crashes a call" og wirede `sqliteSink` i sit hovedeksempel uden forbehold | rettet, tre steder |
+| 3 | `findNode()` sorterede versioner som TEKST, så `v9.11.2` slår `v22.18.0` | rettet — numerisk sammenligning |
+| 4 | `underNode()` hentede `stderr`/`exitCode` og så aldrig på dem | rettet — en død subprocess kaster nu med Nodes egen stderr |
+| 5 | En grøn gate skjulte rækkens forbehold: `reason` udfyldes KUN på fejl-stien | rettet — `note` bæres nu med på `ok:true` |
+
+### Fund 1 bar et argument der er vigtigere end selve rettelsen
+
+Reviewet påpegede at denne ændring **ikke må ud som `0.47.2`**. Under 1.0.0
+betyder npm's caret PATCH-ONLY, så `^0.47.1` henter en patch **automatisk** — og
+for en Node-forbruger der bruger `sqliteSink` er rettelsen et opstarts-crash.
+En patch ville altså skubbe et crash ud til alle på én gang, mens `0.48.0` ikke
+når nogen uden et bevidst bump. Det er den rigtige retning her: rettelsen gør
+noget synligt der før var usynligt, og den skal adopteres med åbne øjne.
+
+### Fund 5 var den samme fejl som hele kortet, ét niveau oppe
+
+Solnedgangs-forbeholdet stod kun i registry-rækkens `note`, og `resolveModel`
+udfylder `reason` udelukkende når noget er utilgængeligt. En forbruger der
+gatede med `requireKnown` fik altså et rent grønt svar med advarslen liggende ét
+kald væk i `listModels()`. Et svar formet som «fint» med forbeholdet et andet
+sted — præcis den form kortet findes for at fjerne.
+
+`ResolveResult.note` er tilføjet (valgfrit felt, additivt, ingen brudflade), og
+den er udfyldt fra registry-rækken på succes-stien. En række uden forbehold har
+stadig intet felt — tilstedeværelsen skal betyde noget.
+
+**Efterprøvet:** `typecheck=0 · test=0 (700 pass) · build=0`, og fund 4's nye
+fejl-sti er mutationsprøvet: lader man subprocessen dø, kommer Nodes rigtige
+stderr frem i stedet for en tom streng.
