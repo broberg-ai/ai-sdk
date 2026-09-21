@@ -34,6 +34,31 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   subprocess INTEGER NOT NULL DEFAULT 0
 )`;
 
+/** bun:sqlite exists only in Bun. On Node the dynamic import above rejects with
+ *  ERR_UNSUPPORTED_ESM_URL_SCHEME — and it rejects on the FIRST record(), not at
+ *  import time, because the import is lazy (see the file header: a static import
+ *  would break every Node consumer of the package entry).
+ *
+ *  That deferral is what made this dangerous. client.report() swallows every sink
+ *  error on purpose (F3.3 — a broken sink must never crash a real AI call), which
+ *  is right for a transient failure (network, disk, a 503) and wrong for a runtime
+ *  that can NEVER work: the sink object looked healthy, every record() threw, every
+ *  throw was swallowed, and the cost dataset stayed empty with nothing said. An
+ *  empty cost dataset and a working one look identical in a report.
+ *
+ *  So an unusable RUNTIME is a setup error, not a transient one — it is raised here,
+ *  once, where the consumer is still looking. Reported by pitch (ref 28546) via
+ *  components, verified against dist/ of v0.47.1 on Node v25.6.1. F057.1. */
+function requireBun(what: string): void {
+  if (typeof (globalThis as { Bun?: unknown }).Bun !== "undefined") return;
+  throw new Error(
+    `${what} requires the Bun runtime: it is backed by bun:sqlite, which Node cannot import ` +
+      `(ERR_UNSUPPORTED_ESM_URL_SCHEME). Use upmetricsSink() on Node — it is the canonical sink. ` +
+      `This throws at setup on purpose: the client swallows per-call sink errors, so a sink that ` +
+      `can never write would otherwise look exactly like one recording zero spend.`,
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function openDb(dbPath: string, readonly = false): Promise<any> {
   const { Database } = await import("bun:sqlite");
@@ -41,6 +66,7 @@ async function openDb(dbPath: string, readonly = false): Promise<any> {
 }
 
 export function sqliteSink(config: SqliteSinkConfig): CostSink {
+  requireBun("sqliteSink");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let ready: Promise<any> | null = null;
   const init = async () => {
@@ -106,6 +132,7 @@ export interface CostSummary {
 /** Aggregate the recorded spend from a sqliteSink DB. Creates the table if the
  *  DB has never been written to, so an empty DB summarises cleanly to 0. */
 export async function getCostSummary(dbPath: string): Promise<CostSummary> {
+  requireBun("getCostSummary");
   const db = await openDb(dbPath);
   db.run(CREATE_TABLE);
   const total = db

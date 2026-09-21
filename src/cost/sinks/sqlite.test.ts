@@ -154,3 +154,72 @@ test("an existing db from BEFORE cost_basis gains the column instead of failing"
   // already made.
   expect(rows.map((r) => r.cost_basis)).toEqual(["unknown", "estimated"]);
 });
+
+// F057.1 — the regression probe for the bug itself, written the way the house
+// rule demands: write a value that could not already be there, read it back with
+// a RAW query (not through the layer that wrote it), and compare with ===.
+//
+// "record() resolved" is exactly the evidence that was worthless here — on Node
+// it resolved through a swallowed throw with nothing written. An aggregate would
+// be almost as weak: getCostSummary() sums cost_usd and would stay green on a row
+// whose provider, model or region was silently wrong.
+test("a recorded usage is READ BACK field-for-field from the DB (not just summed)", async () => {
+  cleanup();
+  const nonce = `f057-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const written = usage({
+    provider: "mistral",
+    model: "mistral-large-latest",
+    tier: "smart",
+    region: "eu",
+    purpose: nonce,
+    capability: "chat",
+    inputTokens: 8810,
+    outputTokens: 42,
+    costUsd: 0.004411,
+    latencyMs: 1234,
+    ts: "2026-09-21T19:00:00.000Z",
+  });
+
+  const sink = sqliteSink({ dbPath: DB });
+  await sink.record(written);
+
+  const { Database } = await import("bun:sqlite");
+  const db = new Database(DB, { readonly: true });
+  const rows = db.query(`SELECT * FROM ai_usage WHERE purpose = $p`).all({ $p: nonce }) as Record<
+    string,
+    unknown
+  >[];
+  expect(rows).toHaveLength(1);
+  const row = rows[0]!;
+
+  expect(row.provider).toBe("mistral");
+  expect(row.model).toBe("mistral-large-latest");
+  expect(row.tier).toBe("smart");
+  expect(row.region).toBe("eu");
+  expect(row.capability).toBe("chat");
+  expect(row.purpose).toBe(nonce);
+  expect(row.input_tokens).toBe(8810);
+  expect(row.output_tokens).toBe(42);
+  expect(row.cost_usd).toBe(0.004411);
+  expect(row.latency_ms).toBe(1234);
+  expect(row.ts).toBe("2026-09-21T19:00:00.000Z");
+  db.close();
+});
+
+// The negative control the same rule asks for: a field that is genuinely absent
+// must come back NULL, not as a leftover from another row. Without this, the
+// assertions above could pass on a table that always holds the same values.
+test("an absent optional field reads back as NULL (negative control)", async () => {
+  cleanup();
+  const nonce = `f057-null-${Date.now()}`;
+  const sink = sqliteSink({ dbPath: DB });
+  await sink.record(usage({ purpose: nonce, tier: undefined }));
+
+  const { Database } = await import("bun:sqlite");
+  const db = new Database(DB, { readonly: true });
+  const row = db.query(`SELECT tier FROM ai_usage WHERE purpose = $p`).get({ $p: nonce }) as {
+    tier: string | null;
+  };
+  expect(row.tier).toBeNull();
+  db.close();
+});

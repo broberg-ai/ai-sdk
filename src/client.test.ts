@@ -287,3 +287,32 @@ test("embedding default tier returns one vector per input", async () => {
   const res = await ai.embedding({ text: ["a", "b"] });
   expect(res.vectors).toHaveLength(2);
 });
+
+// F057.1 — the OTHER half of the sink contract, and the reason the setup-guard
+// had to go where it did rather than making report() loud.
+//
+// A sink that breaks PART-WAY THROUGH (network blip, disk full, a 503) is
+// transient, and F3.3 is right about it: swallow, keep serving. What was wrong
+// was treating "this runtime can never work" as the same class. So this test
+// pins the behaviour that must SURVIVE the F057.1 fix — remove the swallow and
+// this goes red, which is the point.
+test("a costSink that starts throwing mid-life never crashes a later call (F3.3 preserved)", async () => {
+  let calls = 0;
+  const sink: CostSink = {
+    record: () => {
+      calls += 1;
+      if (calls >= 2) throw new Error("sink went down after the first call");
+    },
+  };
+  const ai = createAI({ costSink: sink });
+
+  const first = await ai.chat({ prompt: "one" });
+  expect(first.text).toContain("one");
+
+  const second = await ai.chat({ prompt: "two" });
+  expect(second.text).toContain("two");
+  const third = await ai.chat({ prompt: "three" });
+  expect(third.text).toContain("three");
+
+  expect(calls).toBe(3); // it was called every time — the throw was swallowed, not routed around
+});

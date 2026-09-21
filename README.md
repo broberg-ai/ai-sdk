@@ -189,13 +189,22 @@ const ai = createAI({
   budget: { perCallUsd: 0.05, rollingUsd: 5 }, // pre-flight guard (throws BudgetExceededError)
   costSink: multiSink([
     upmetricsSink({ baseUrl: "https://upmetrics.org", apiKey: process.env.UPMETRICS_API_KEY!, agentName: "my-app" }),
-    sqliteSink({ dbPath: "./ai-cost.db" }),
+    sqliteSink({ dbPath: "./ai-cost.db" }), // Bun only — throws on Node, see below
   ]),
 });
 ```
 
 Sinks: `upmetricsSink` (canonical), `discordSink`, `sqliteSink`, `multiSink`,
-`noopSink`. A failing sink never crashes a call.
+`noopSink`. A sink that fails *during* a call never crashes that call.
+
+> **`sqliteSink` and `getCostSummary` are Bun-only** (v0.48+). They are backed by
+> `bun:sqlite`, which Node cannot import at all. On Node they now **throw where you
+> construct them** — deliberately, and this is a behaviour change: up to v0.47 you
+> got a sink object that threw on every `record()`, and the client swallows per-call
+> sink errors by design, so cost tracking went silently dead. An empty cost dataset
+> and a working one look identical in a report. **On Node use `upmetricsSink`.**
+> `sqliteBudgetStore` is Bun-only for the same reason; it has always failed loudly
+> there, because a budget error is not swallowed.
 
 ### Cost-tracking is on by default (v0.24+)
 

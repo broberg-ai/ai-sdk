@@ -47,6 +47,27 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite"], provider: "gemini", available: true, status: "available", source: "default" },
   // ── OpenAI ───────────────────────────────────────────────────────────────
   { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default" },
+  // ── DeepSeek (CN-hosted — NOT GDPR-safe; non-PII workloads only) ─────────
+  //
+  // F057.2. These were missing while pricing.ts carried OFFICIAL rates for them
+  // and providers/deepseek.ts shipped an adapter (F030.2) — so our own CLAUDE.md
+  // instruction ("if you are GATING, pass requireKnown:true") refused a route we
+  // built, priced and wrote an F-number for. Two tables disagreed, and the gate
+  // is the one that decides. Reported by pitch (ref 28546) via components.
+  //
+  // The note carries the sunset because the registry is what a picker renders, and
+  // a row that says only "available" would hide it. Both ids were documented to
+  // deprecate 2026-07-24 in favour of `deepseek-v4-flash` — we have NOT verified
+  // against a live key (no DEEPSEEK_API_KEY here), so this is the curated seed's
+  // usual standing: a default, not a measurement. A live refresh may overrule it.
+  //
+  // `deepseek-v4-flash` on the DIRECT api is deliberately NOT here: it has no
+  // price in pricing.ts (measured — getPrice("deepseek","deepseek-v4-flash") is
+  // undefined), so a row would pass the gate for a route that silently bills
+  // nothing. That is the same green-direction failure this card exists to remove,
+  // and it needs a rate from a real source, not a guess. See the plan-doc.
+  { id: "deepseek-chat", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com; documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
+  { id: "deepseek-reasoner", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com (thinking); documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },

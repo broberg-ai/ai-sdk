@@ -182,3 +182,67 @@ læser ikke tror det er lukket.
 Når begge er ude: `ask_peer` til `components` (og videre til pitch, ref 28546)
 med version + delta, **formuleret som en dateret måling, ikke som en tilstand.**
 Og til Discovery hvis en eksisterende note bliver forkert af rettelsen.
+
+---
+
+## Resultat — 21. september 2026
+
+Begge stories implementeret og verificeret **mod `dist/` under Node**, altså i den
+runtime fejlene bor i. `typecheck=0 · test=0 (699 pass) · build=0`.
+
+### F057.1
+
+`requireBun()` i `src/cost/sinks/sqlite.ts` kaster nu i `sqliteSink()` og
+`getCostSummary()` — ved OPSÆTNING, ikke ved første `record()`. Beskeden
+navngiver Bun-kravet og peger på `upmetricsSink`.
+
+Målt mod `dist/index.js`, Node v25.6.1:
+
+```
+sqliteSink({dbPath}) → "sqliteSink requires the Bun runtime: it is backed by
+bun:sqlite, which Node cannot import (ERR_UNSUPPORTED_ESM_URL_SCHEME). Use
+upmetricsSink() on Node — it is the canonical sink. …"
+```
+
+**Mutationsprøve:** fjernes `requireBun("sqliteSink")`, går
+`sqlite-node.test.ts` rød med `Expected "threw-on-setup" / Received
+"threw-on-record"` — præcis den gamle adfærd. Testen kan altså se fejlen.
+
+`budget-store.ts` er **ikke** rørt. Den fejler fortsat højlydt på Node, og en
+test låser den retning fast.
+
+### F057.2
+
+To rækker i `src/availability/registry.ts` (`deepseek-chat`,
+`deepseek-reasoner`), hver med en `note` der bærer sunset-datoen og siger at den
+ikke er live-verificeret. `pricing-registry-drift.test.ts` binder tabellerne:
+hver `deepseek:*`-pris skal have en række, ellers rød — og fejlbeskeden
+NAVNGIVER de manglende modeller frem for at sige `0 !== 1`.
+
+**Mutationsprøve:** fjernes rækkerne, går tre tests rød.
+
+### NYT FUND — ikke i pitchs melding, og bevidst ikke lukket her
+
+`providers/deepseek.ts` anbefaler selv `deepseek-v4-flash` fremover ("same
+model, not sunset"). Men **målt**: `getPrice("deepseek","deepseek-v4-flash")` er
+`undefined` — kun `openrouter:deepseek/deepseek-v4-flash` har en pris.
+
+En forbruger der følger vores egen anbefaling på den direkte API rammer altså
+BÅDE en lukket gate OG ingen pris. Vi har **ikke** lagt en registry-række ind
+for den, og det er et valg, ikke en forglemmelse: en række uden en pris ville
+åbne gaten for en rute der lydløst fakturerer nul — samme grønne fejlretning som
+hele dette kort findes for at fjerne.
+
+At lukke det kræver en rate fra en rigtig kilde (pricing-tabellen siger selv
+"verify against a real key when it lands"), og en pris må ikke gættes. En test
+låser tilstanden og siger hvad der skal ske når raten lander.
+**Kandidat til eget kort.**
+
+### Hvad der endnu IKKE er gjort
+
+- **CLAUDE.md-blokken om `@broberg/ai-sdk`** (den hver forbruger-repo læser)
+  siger stadig intet om at `sqliteSink` er Bun-only. Den fil genereres af
+  cardmem, ikke her — så den går via release-meldingen til components/Discovery.
+- **Registret dækker 5 providers** efter dette kort. Adaptere findes til
+  elevenlabs, vertex, azure, bfl, fal, openrouter, deepinfra. Noteret, ikke
+  lukket.
