@@ -45,6 +45,19 @@ export interface ClassifyInput {
   labels: string[];
   tier?: Tier;
   purpose?: string;
+  /** What to do when the model's reply contains no JSON at all (F059).
+   *
+   *  `"throw"` (the DEFAULT, and unchanged) is right in product use: a refusal or an
+   *  outage is not a classification, and a throw is the loudest honest answer.
+   *
+   *  `"value"` is for MEASURING. Requested by trail with the measurement behind it:
+   *  over 444 golden examples in one batch, a throw at example 212 is not informative,
+   *  it is destructive — the 232 that were never measured afterwards look like they
+   *  did not exist. Their alternative was to wrap every call in try/catch and count
+   *  the throws, which is this field built by hand, worse.
+   *
+   *  Opt-in on purpose: the caller who sets it is the caller who is reading for it. */
+  onUnparseable?: "throw" | "value";
 }
 export interface ClassifyResult {
   /** The chosen label, or `null` when the model named a label that is not in `labels`
@@ -69,6 +82,23 @@ export interface ClassifyResult {
    *  `0` — the two used to be the same number, which made the field unusable as a
    *  signal even for a caller who wanted to check it. */
   confidence: number | null;
+  /** WHICH of the three things happened, as a value you must read rather than a shape
+   *  you might infer (F059).
+   *
+   *  `"answered"`     the model named a label from `labels`; `label` is it.
+   *  `"out-of-set"`   it named something else; `label` is null, `rawLabel` is its answer.
+   *  `"unparseable"`  the reply held no JSON. Only reachable with
+   *                   `onUnparseable: "value"` — the default still throws.
+   *
+   *  It is NOT decoration. Once the throw is optional, `out-of-set` and `unparseable`
+   *  both yield `label: null` with `rawLabel` set, so without this field they cannot be
+   *  told apart — and telling them apart ("got it wrong" vs "did not answer" vs "could
+   *  not be read") is the whole reason the flag was asked for.
+   *
+   *  The form is components' argument, not ours: a boolean like `fallbackUsed` can be
+   *  destructured away as easily as a `confidence` field can be ignored, while a value
+   *  you must read to proceed cannot. `answered` ⟺ `label !== null`. */
+  outcome: "answered" | "out-of-set" | "unparseable";
   usage: Usage;
 }
 

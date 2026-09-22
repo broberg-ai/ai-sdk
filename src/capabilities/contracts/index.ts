@@ -141,22 +141,35 @@ export function makeContracts(client: ChatVision): Contracts {
         tier: input.tier ?? "cheap",
         purpose: input.purpose ?? "contract:classify",
       });
-      const parsed = parseJsonLoose(res.text) as { label?: string; confidence?: number };
       // F052 — no fallback to labels[0]. "The model chose the first one" and "the model
       // named something we do not offer" were the same value, and a consumer was routing
       // an autonomy level off it. The raw answer is kept so the failure is inspectable,
       // not merely reported.
       //
-      // A reply with no JSON in it throws one line up, in parseJsonLoose, and is left
-      // that way deliberately: a refusal or an outage is not a classification, and a
-      // throw is the loudest honest answer. Only the parseable-but-wrong case needed
-      // fixing — which is also the dangerous one, since it LOOKS like a real answer.
+      // F059 — a reply with no JSON still THROWS by default, and that stays: in product
+      // use a refusal or an outage is not a classification. The catch below fires only
+      // when the caller asked for a value, because they are MEASURING and a throw at
+      // example 212 of 444 destroys the other 232 rather than reporting one.
+      let parsed: { label?: string; confidence?: number };
+      try {
+        parsed = parseJsonLoose(res.text) as { label?: string; confidence?: number };
+      } catch (err) {
+        if (input.onUnparseable !== "value") throw err;
+        return {
+          label: null,
+          rawLabel: res.text.slice(0, 200),
+          confidence: null,
+          outcome: "unparseable",
+          usage: res.usage,
+        };
+      }
       const matched = matchLabel(parsed.label, input.labels);
       return {
         label: matched,
         ...(matched !== null ? {} : { rawLabel: typeof parsed.label === "string" ? parsed.label : res.text.slice(0, 200) }),
         // 0 is a real confidence; "no confidence reported" is not 0.
         confidence: typeof parsed.confidence === "number" ? parsed.confidence : null,
+        outcome: matched !== null ? "answered" : "out-of-set",
         usage: res.usage,
       };
     },

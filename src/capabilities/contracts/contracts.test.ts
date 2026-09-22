@@ -204,3 +204,98 @@ test("ai.contracts is wired on the real client", async () => {
   expect(typeof ai.contracts.mockup).toBe("function");
   expect(typeof ai.contracts.extract).toBe("function");
 });
+
+// ── F059 — an unreadable reply must not destroy a 444-example measurement ────────
+//
+// Requested by trail with the measurement behind it. The throw is RIGHT in product
+// use and stays the default; it is destructive in a batch, where it stops the loop
+// and leaves everything after it looking like it never existed.
+
+test("F059: outcome is set on all three paths, and answered ⟺ label !== null", async () => {
+  const labels = ["approved", "denied"];
+
+  const hit = makeContracts(fakeClient({ chat: ['{"label":"approved","confidence":0.9}'] }).client);
+  const a = await hit.classify({ text: "x", labels });
+  expect(a.outcome).toBe("answered");
+  expect(a.label).toBe("approved");
+
+  const off = makeContracts(fakeClient({ chat: ['{"label":"maybe","confidence":0.4}'] }).client);
+  const b = await off.classify({ text: "x", labels });
+  expect(b.outcome).toBe("out-of-set");
+  expect(b.label).toBeNull();
+  expect(b.rawLabel).toBe("maybe");
+
+  const bad = makeContracts(fakeClient({ chat: ["I'm sorry, I can't help with that."] }).client);
+  const c = await bad.classify({ text: "x", labels, onUnparseable: "value" });
+  expect(c.outcome).toBe("unparseable");
+  expect(c.label).toBeNull();
+  expect(c.confidence).toBeNull();
+});
+
+test("F059: the DEFAULT still throws on an unreadable reply — unchanged", async () => {
+  const c = makeContracts(fakeClient({ chat: ["I'm sorry, I can't help with that."] }).client);
+  // No onUnparseable, and the explicit "throw", must behave identically to 0.48.0.
+  await expect(c.classify({ text: "x", labels: ["a", "b"] })).rejects.toThrow(
+    "no JSON found in model output",
+  );
+  const c2 = makeContracts(fakeClient({ chat: ["nope"] }).client);
+  await expect(
+    c2.classify({ text: "x", labels: ["a", "b"], onUnparseable: "throw" }),
+  ).rejects.toThrow("no JSON found in model output");
+});
+
+// THE TEST THAT PROVES THE CARD, not merely that the field exists. trail's own shape:
+// a batch where one example is unreadable. With the flag the loop completes; without
+// it the loop dies partway and the rest are indistinguishable from never having run.
+test("F059: a batch with one unreadable reply completes with 'value' and aborts by default", async () => {
+  const replies = [
+    '{"label":"approved","confidence":0.9}',
+    '{"label":"maybe"}', // parseable, out of set
+    "I cannot answer that.", // unreadable — this is the one that used to kill the run
+    '{"label":"denied","confidence":0.7}',
+  ];
+  const labels = ["approved", "denied"];
+
+  const counted = { answered: 0, "out-of-set": 0, unparseable: 0 } as Record<string, number>;
+  const withFlag = makeContracts(fakeClient({ chat: replies }).client);
+  for (const _ of replies) {
+    const r = await withFlag.classify({ text: "x", labels, onUnparseable: "value" });
+    counted[r.outcome] = (counted[r.outcome] ?? 0) + 1;
+  }
+  // All four measured, and the three categories are countable SEPARATELY — which is
+  // the thing trail could not do before: "got it wrong", "did not answer" and "could
+  // not be read" were not three numbers.
+  expect(counted).toEqual({ answered: 2, "out-of-set": 1, unparseable: 1 });
+
+  // And the default still aborts, so nobody gets the new behaviour by accident.
+  const noFlag = makeContracts(fakeClient({ chat: replies }).client);
+  let completed = 0;
+  await expect(
+    (async () => {
+      for (const _ of replies) {
+        await noFlag.classify({ text: "x", labels });
+        completed += 1;
+      }
+    })(),
+  ).rejects.toThrow();
+  expect(completed).toBe(2); // died on the third — the 4th was never measured
+});
+
+test("F059: out-of-set and unparseable are told apart WITHOUT reading rawLabel's content", async () => {
+  const labels = ["approved", "denied"];
+  const off = await makeContracts(
+    fakeClient({ chat: ['{"label":"maybe"}'] }).client,
+  ).classify({ text: "x", labels, onUnparseable: "value" });
+  const bad = await makeContracts(
+    fakeClient({ chat: ["maybe"] }).client, // same WORD, but not JSON
+  ).classify({ text: "x", labels, onUnparseable: "value" });
+
+  // Deliberately adversarial: both carry rawLabel "maybe", both have label null. If the
+  // discriminator were inferred from the fields instead of stated, these two would be
+  // the same value — which is the bug this card exists to prevent.
+  expect(off.rawLabel).toBe(bad.rawLabel);
+  expect(off.label).toBe(bad.label);
+  expect(off.outcome).not.toBe(bad.outcome);
+  expect(off.outcome).toBe("out-of-set");
+  expect(bad.outcome).toBe("unparseable");
+});

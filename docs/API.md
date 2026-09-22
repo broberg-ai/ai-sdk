@@ -467,8 +467,27 @@ Structured calls layered on chat/vision (so budget + cost apply uniformly):
 | `mockup({ description, constraints? })` | description → HTML/Tailwind mockup |
 | `design({ screenshot, instructions })` | vision-based design iteration → HTML |
 | `extract({ text, schema })` | text → JSON validated against a **Zod schema** (retries once) |
-| `classify({ text, labels })` | zero-shot → `{ label, confidence }` |
+| `classify({ text, labels, onUnparseable? })` | zero-shot → `{ label, rawLabel?, confidence, outcome }` |
 | `rerank({ query, items })` | relevance → `{ ranked: [{item, score}] }` |
+
+**`classify` tells you WHICH of three things happened** — `outcome` is
+`"answered" | "out-of-set" | "unparseable"`, and `answered` ⟺ `label !== null`.
+`label` is `null` when the model named something outside `labels`; `rawLabel`
+then carries what it actually said. `confidence` is `null` when the model
+reported none — `0` is a real confidence and stays `0`.
+
+```ts
+const r = await ai.contracts.classify({ text, labels: ["approved", "denied"] });
+if (r.outcome !== "answered") log.warn("not a classification", r.rawLabel);
+```
+
+**A reply with no JSON THROWS by default, and that is deliberate** — a refusal
+or an outage is not a classification. **When you are MEASURING, pass
+`onUnparseable: "value"`** and you get `outcome: "unparseable"` instead of an
+exception (v0.49+, F059). Asked for by trail with the measurement behind it: over
+444 golden examples in one batch, a throw at example 212 is not informative, it is
+destructive — the 232 that never ran afterwards look like they did not exist. The
+default is unchanged, so this only reaches a caller who asked for it.
 
 ```ts
 import { z } from "zod";
