@@ -46,8 +46,28 @@ mints provenance from the workflow identity `broberg-ai/ai-sdk`).
 To ship a change:
 
 1. Bump `version` in `package.json`.
-2. Commit, then `git tag vX.Y.Z` (tag MUST equal package.json version — a CI
-   guard rejects a mismatch) and `git push --follow-tags` (or push the tag).
+2. Commit, then tag and push the tag EXPLICITLY:
+
+   ```bash
+   git tag -a vX.Y.Z -m "…"     # -a is REQUIRED, see below
+   git push origin main
+   git push origin vX.Y.Z       # the tag needs its OWN push
+   git ls-remote --tags origin | grep vX.Y.Z   # CONFIRM it arrived
+   ```
+
+   The tag MUST equal package.json version — a CI guard rejects a mismatch.
+
+   **Do NOT use `git push --follow-tags` with a plain `git tag`.** It sends only
+   ANNOTATED tags, and `git tag vX.Y.Z` makes a LIGHTWEIGHT one — so the tag is
+   silently skipped while `git push` still exits 0 and puts the commit on main.
+   Nothing says the tag did not go: no workflow run, no release, no error.
+   Measured on the 0.48.0 release, 22 September 2026, following the previous
+   wording of this step literally (F058).
+
+   That is why the `git ls-remote` line is a step and not a flourish: the tag is
+   what TRIGGERS the workflow, so a guard inside the workflow cannot fire on this
+   failure. Confirm the tag is on the remote BEFORE waiting on npm — otherwise
+   you are waiting on a run that was never started.
 3. The `v*` tag push triggers `publish.yml`: build → test → guards (tag==version,
    version-not-already-on-npm) → `npm publish --access public --provenance`.
 
