@@ -107,14 +107,40 @@ Afsenderen er os. **Hvad vores egen historik kan og ikke kan fastslå:**
 - Vores historik indeholder **intet** spor af at nogen kendte fælden før i nat:
   ingen `release-gotcha`, ingen omtale af annoterede tags, intet.
 
-Så enten filede en tidligere session tippet direkte til Discovery over HTTP
-(hvilket ikke efterlader spor i repoet) uden at rette vores egen opskrift —
-eller tippet blev filet i nat ud fra denne rapport og krediteret os. **Herfra kan
-de to ikke skelnes**, og Discovery viser ingen dato på tips.
+**AFGJORT — og det er den ubehagelige af de to muligheder.** Tippet kunne ikke
+dateres fra Discovery (ingen dato på tips) eller fra vores egen historik, men
+components' repo ligger på samme maskine, så spørgsmålet kunne måles direkte:
 
-Det er værd at sige præcist, fordi components' konklusion hviler på hvilken af
-dem der gælder: var tippet der i forvejen, var den fleet-vendte halvdel dækket;
-blev det filet i nat, var den ikke.
+```
+~/.buddy/repos/components/scripts/inventory-data.mjs:201
+  { t: "git push --follow-tags only pushes ANNOTATED tags…", by: "ai-sdk", tag: "release-gotcha" }
+
+git log -S"follow-tags only pushes"
+  3f5b559  2026-06-15  feat(F038): fold ~25 crowd-sourced infra tips + add npm/OIDC platform
+```
+
+**Tidslinjen, og den skal stå som den er:**
+
+```
+4. juni 2026    --follow-tags-linjen kommer ind i VORES CLAUDE.md (3341bf6)
+15. juni 2026   ai-sdk leverer tippet til flåden: «--follow-tags only pushes
+                ANNOTATED tags … the release just doesn't happen»
+16. juni →      99 dage hvor advarslen står i rosteret med vores navn på
+22. sept 2026   den første der følger vores egen opskrift ORDRET falder i
+```
+
+Vi vidste det. Vi fortalte hele flåden det elleve dage efter vi selv skrev fejlen
+ind. Og vi rettede ikke vores egen opskrift.
+
+Det forklarer også hvorfor vores historik intet spor har: tippet gik direkte til
+Discovery, ikke gennem en commit her. **Repoet kan ikke se hvad repoet har fortalt
+andre** — og derfor kan en session ikke opdage den slags ved at læse sin egen
+historik. Den kan kun opdages ved at læse rosteret med spørgsmålet «hvad har VI
+sagt, og gør vi det?»
+
+components' konklusion var altså rigtig: den fleet-vendte halvdel var dækket, og
+det var repoernes egne opskrifter der ikke var. Vores var bare det repo der
+leverede advarslen.
 
 **Deres lektie står uanset hvad, og den er bedre end fundet:**
 
