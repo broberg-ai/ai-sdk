@@ -76,7 +76,13 @@ export interface ClassifyResult {
    *  absence IS the signal. */
   label: string | null;
   /** The model's own answer when it did not match, so a caller can log or route what
-   *  actually came back instead of only knowing that something did not. */
+   *  actually came back instead of only knowing that something did not.
+   *
+   *  **It can contain RAW model output** — on the `unparseable` path it always does
+   *  (the first 200 characters of the reply), and on `out-of-set` it does whenever the
+   *  reply had no usable `label` string. A model that echoes part of your prompt can
+   *  therefore put part of YOUR INPUT here. On a path carrying personal or health data,
+   *  treat this field with the same care as the input before you log it. */
   rawLabel?: string;
   /** `null` when the model reported no confidence. `0` is a REAL confidence and stays
    *  `0` — the two used to be the same number, which made the field unusable as a
@@ -87,8 +93,13 @@ export interface ClassifyResult {
    *
    *  `"answered"`     the model named a label from `labels`; `label` is it.
    *  `"out-of-set"`   it named something else; `label` is null, `rawLabel` is its answer.
-   *  `"unparseable"`  the reply held no JSON. Only reachable with
-   *                   `onUnparseable: "value"` — the default still throws.
+   *  `"unparseable"`  we could not read the reply. Only reachable with
+   *                   `onUnparseable: "value"` — the default still throws. It covers
+   *                   BOTH ways parsing fails: no JSON in the reply at all, AND JSON
+   *                   that is present but malformed or truncated. Said explicitly
+   *                   because you are going to COUNT this, and a count that quietly
+   *                   includes a category the docs deny is a wrong number that reads
+   *                   as a right one.
    *
    *  It is NOT decoration. Once the throw is optional, `out-of-set` and `unparseable`
    *  both yield `label: null` with `rawLabel` set, so without this field they cannot be
@@ -97,7 +108,12 @@ export interface ClassifyResult {
    *
    *  The form is components' argument, not ours: a boolean like `fallbackUsed` can be
    *  destructured away as easily as a `confidence` field can be ignored, while a value
-   *  you must read to proceed cannot. `answered` ⟺ `label !== null`. */
+   *  you must read to proceed cannot. `answered` ⟺ `label !== null`.
+   *
+   *  REQUIRED, not optional — additive for anyone READING a result, a compile fix for
+   *  anyone CONSTRUCTING one (a test stub or mock of `classify`). Saying it rather than
+   *  calling the change "purely additive": this package has shipped that exact
+   *  over-claim before, about `toolCall.arguments`, and it was wrong then. */
   outcome: "answered" | "out-of-set" | "unparseable";
   usage: Usage;
 }

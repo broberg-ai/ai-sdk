@@ -299,3 +299,26 @@ test("F059: out-of-set and unparseable are told apart WITHOUT reading rawLabel's
   expect(off.outcome).toBe("out-of-set");
   expect(bad.outcome).toBe("unparseable");
 });
+
+test("F059: 'unparseable' covers MALFORMED json too, not only a reply with none", async () => {
+  // Raised in review of this card: the catch takes both ways parseJsonLoose fails, while
+  // the type doc said only "no JSON". trail is going to COUNT this category, so the
+  // wider meaning is now documented — and a documented claim gets a test, not a promise.
+  const labels = ["approved", "denied"];
+
+  const noJson = await makeContracts(
+    fakeClient({ chat: ["I cannot answer that."] }).client,
+  ).classify({ text: "x", labels, onUnparseable: "value" });
+
+  const truncated = await makeContracts(
+    fakeClient({ chat: ['{"label":"appro'] }).client, // a bracket IS present; JSON.parse dies
+  ).classify({ text: "x", labels, onUnparseable: "value" });
+
+  expect(noJson.outcome).toBe("unparseable");
+  expect(truncated.outcome).toBe("unparseable");
+
+  // And both still THROW under the default, from the two different error paths.
+  await expect(
+    makeContracts(fakeClient({ chat: ['{"label":"appro'] }).client).classify({ text: "x", labels }),
+  ).rejects.toThrow();
+});

@@ -17,6 +17,11 @@ import type {
 } from "./types.js";
 
 /** Pull the first JSON value out of a model reply (tolerates ```json fences + prose). */
+/** How much of a raw model reply we keep when we could not use it — in `rawLabel` and
+ *  in the rerank error. One constant because it was three literals, and a snippet that
+ *  is 200 chars in one place and 100 in another is a diff nobody can read. */
+const RAW_SNIPPET_CHARS = 200;
+
 export function parseJsonLoose(text: string): unknown {
   const fenced = text.replace(/```(?:json)?/gi, "").trim();
   const start = fenced.search(/[[{]/);
@@ -146,10 +151,16 @@ export function makeContracts(client: ChatVision): Contracts {
       // an autonomy level off it. The raw answer is kept so the failure is inspectable,
       // not merely reported.
       //
-      // F059 — a reply with no JSON still THROWS by default, and that stays: in product
-      // use a refusal or an outage is not a classification. The catch below fires only
-      // when the caller asked for a value, because they are MEASURING and a throw at
-      // example 212 of 444 destroys the other 232 rather than reporting one.
+      // F059 — a reply we cannot read still THROWS by default, and that stays: in
+      // product use a refusal or an outage is not a classification. The catch below
+      // fires only when the caller asked for a value, because they are MEASURING and a
+      // throw at example 212 of 444 destroys the other 232 rather than reporting one.
+      //
+      // It catches BOTH ways parseJsonLoose fails — no bracket at all ("no JSON found")
+      // AND a SyntaxError from JSON.parse on a truncated or malformed object. Both are
+      // honestly "unparseable", and a caller counting them gets both; the type doc says
+      // so, because a count that silently includes a category the docs deny is a wrong
+      // number wearing a right one's clothes.
       let parsed: { label?: string; confidence?: number };
       try {
         parsed = parseJsonLoose(res.text) as { label?: string; confidence?: number };
@@ -157,7 +168,7 @@ export function makeContracts(client: ChatVision): Contracts {
         if (input.onUnparseable !== "value") throw err;
         return {
           label: null,
-          rawLabel: res.text.slice(0, 200),
+          rawLabel: res.text.slice(0, RAW_SNIPPET_CHARS),
           confidence: null,
           outcome: "unparseable",
           usage: res.usage,
@@ -166,7 +177,7 @@ export function makeContracts(client: ChatVision): Contracts {
       const matched = matchLabel(parsed.label, input.labels);
       return {
         label: matched,
-        ...(matched !== null ? {} : { rawLabel: typeof parsed.label === "string" ? parsed.label : res.text.slice(0, 200) }),
+        ...(matched !== null ? {} : { rawLabel: typeof parsed.label === "string" ? parsed.label : res.text.slice(0, RAW_SNIPPET_CHARS) }),
         // 0 is a real confidence; "no confidence reported" is not 0.
         confidence: typeof parsed.confidence === "number" ? parsed.confidence : null,
         outcome: matched !== null ? "answered" : "out-of-set",
@@ -190,7 +201,7 @@ export function makeContracts(client: ChatVision): Contracts {
       if (!Array.isArray(raw)) {
         throw new Error(
           `ai.contracts.rerank: the model did not return a JSON array. ` +
-            `Got: ${res.text.slice(0, 200)}${res.text.length > 200 ? "…" : ""}`,
+            `Got: ${res.text.slice(0, RAW_SNIPPET_CHARS)}${res.text.length > RAW_SNIPPET_CHARS ? "…" : ""}`,
         );
       }
       const scored = new Map<string, number>();
