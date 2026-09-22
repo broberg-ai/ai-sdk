@@ -40,7 +40,7 @@ bun add @broberg/ai-sdk     # or: npm i @broberg/ai-sdk / pnpm add
 - **ESM-only.** Your app must be `"type": "module"` (or import dynamically).
 - **Runs on Node and Bun.** `bun:sqlite` (used only by `sqliteSink` /
   `sqliteBudgetStore`) is loaded lazily, so importing the package never breaks a
-  Node consumer. **Those two are Bun-only, though**, and since 2026-09-21 they
+  Node consumer. **Those two are Bun-only, though**, and since v0.48.0 they
   say so where you construct them rather than failing quietly later — on Node use
   `upmetricsSink`. See §5.
 - **No keys in code.** Each adapter reads its key from the environment at call
