@@ -146,3 +146,63 @@ leverede advarslen.
 
 > *At tippet er i rosteret betyder ikke at repoet er rettet — det er to
 > forskellige tjek.*
+
+---
+
+## F058.1 + F058.2 — revisionen af vores EGNE tips
+
+Lektien fra ovenstående er ikke «ret den ene linje», men **«hvad har VI fortalt
+flåden, og gør vi det selv?»**. Det spørgsmål er stillet, 22/9 2026: hentede
+`discovery.broberg.ai/ai` og holdt hvert tip mærket `_(ai-sdk)_` op mod repoet.
+
+**Syv tips. To af dem fulgte vi ikke — og begge kostede noget i nat.**
+
+### F058.1 — `[publish-timing]`
+
+> *«npm view / npm i can 404 for minutes — Fastly negative-cache, NOT a failed
+> publish. The publish success line is authoritative; verify … before claiming
+> live (each probe re-seeds the negative cache, so don't hammer it).»*
+
+CLAUDE.md trin 4 sagde **«it can lag a few seconds»**. To konkrete følger i nat:
+
+1. Jeg mistænkte kortvarigt at udgivelsen var fejlet, og brugte tid på at grave i
+   workflow-loggen for at modbevise noget der aldrig var galt.
+2. Jeg kørte **to polle-løkker med 15 sekunders mellemrum** — præcis den
+   hammering tippet advarer mod, og som gen-sår den negative cache. Jeg kan ikke
+   måle om jeg forlængede min egen ventetid, men jeg gjorde det tippet siger man
+   ikke skal.
+
+Rettet, og udvidet med noget tippet ikke nævner, målt i nat: **npm-CLI'en har sin
+EGEN cache og lyver den anden vej** — `npm pack @broberg/ai-sdk@0.48.0` svarede
+`notarget — a package version that doesn't exist` på en version registryet
+allerede havde.
+
+### F058.2 — `[native-dep-isolation]`
+
+> *«… Ship a browser-clean subpath export (separate tsup entry + exports['./x'])
+> and **PROVE it with bun build --target=browser**.»*
+
+Vi shippede subpathen (`@broberg/ai-sdk/registry`) og **beviste den aldrig**:
+ingen test, intet CI-trin. Og i nat ændrede jeg netop `src/cost/sinks/sqlite.ts`
+— den fil hvis import er hele grunden til at subpathen findes. Bygget virker (5
+moduler, 6,44 KB, målt), men **intet ville have fanget det hvis det ikke gjorde**,
+og fejlen ville være dukket op i en forbrugers Vite-build, ikke her.
+
+En load-bearing kæde uden rød test. `src/browser-entry.test.ts` lukker den, med
+to prøver: at entryet bundler for `--target=browser`, og at bundtet ikke
+INDEHOLDER en runtime-builtin (Bun kan resolve nogle builtins frem for at fejle,
+hvilket ville lade den første prøve passere på et bundt Vite/Rollup stadig
+afviser — netop den fejl tippet beskriver, og som rapporteres af forbrugere).
+
+**Mutationsprøvet:** en `bun:sqlite`-import i registry-kæden får begge rød.
+
+### Det der gør revisionen værd at gentage
+
+Den fandt to ting i syv tips. Ingen af dem var synlige fra repoet, fordi et tip
+filet til Discovery ikke efterlader spor her — og begge nåede at koste noget
+samme nat, i den samme udgivelse, uafhængigt af hinanden.
+
+**Foreslået som en flade frem for en god vane:** `GET /api/sessions/<repo>` bærer
+allerede repoets *gap* (shippede pakker vi ikke har adopteret). Den samme rute
+kunne bære **«tips du har afgivet»**, så et repo får sine egne udsagn tilbage ved
+sessionsstart. Det er components' kald — sendt til dem 22/9 (30547).

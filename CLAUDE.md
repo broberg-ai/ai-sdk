@@ -76,8 +76,28 @@ hand-publish + npmjs.com Trusted Publisher config) is already done — every
 release after that is just bump + tag + push.
 
 4. **Verify against npm, not the workflow.** A green run is not proof the package
-   is installable — check `npm view @broberg/ai-sdk version` (it can lag a few
-   seconds behind a successful publish).
+   is installable. But read the next paragraph before you conclude a publish FAILED.
+
+   **npm can 404 for MINUTES after a successful publish** — Fastly negative-cache,
+   not a failed release. Our own fleet tip says so (`[publish-timing]`, filed by
+   ai-sdk) and this step said "a few seconds" until 22 September 2026, when the
+   0.48.0 release spent three minutes looking like a failure it was not.
+
+   - **The `+ @broberg/ai-sdk@X.Y.Z` line in the workflow log is authoritative.**
+     A 404 from npm afterwards does not disprove it.
+   - **Do NOT poll in a tight loop.** Every probe RE-SEEDS the negative cache, so
+     hammering it can prolong exactly the wait you are trying to end. Check, wait
+     minutes, check again.
+   - **The npm CLI has its own cache and lies the other way too.** Measured on the
+     same release: `npm pack @broberg/ai-sdk@0.48.0` answered
+     `notarget — a package version that doesn't exist` for a version the registry
+     already had. A negative answer from `npm view` / `npm pack` is not evidence.
+
+   Ask the registry directly:
+
+   ```bash
+   curl -s https://registry.npmjs.org/@broberg%2Fai-sdk | jq -r '."dist-tags".latest'
+   ```
 5. **Tell Discovery when the release changes what a consumer must know** — a new
    capability, a new env var, a new caveat, or anything that makes an existing
    note wrong. `ask_peer({ to: "components", … })` with the version and the delta;
