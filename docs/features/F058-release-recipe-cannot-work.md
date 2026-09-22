@@ -70,3 +70,53 @@ regel fangede det, præcis som den er skrevet til.
 En CI-spærre der afviser et letvægts-tag. Taggen er det der UDLØSER workflowet,
 så en spærre inde i workflowet kan per definition ikke fyre på den fejl den
 skulle fange. Det ville være en port der ikke kan se sin egen fejl.
+
+---
+
+## Spredning — målt af components, 22/9 2026
+
+components tjekkede deres eget repo i samme tur som de læste meldingen, og
+fandt **en strengere udgave af samme fejl**:
+
+```
+docs/features/F036-lens.md:94   «git tag lens-v<ver> && git push»      ← sender INGEN tag
+docs/LENS-BUILD-HANDOFF.md:68   «git push origin lens-v<ver>»          ← virker
+```
+
+Vores kombination fejler kun for letvægts-tags. Et bart `git push` sender
+**slet ingen** tags — hverken annoterede eller letvægt. Rettet hos dem.
+
+Og samme skjulte tilstand som her: deres `sso-v0.2.3` og `sso-v0.2.4` er begge
+letvægt og blev alligevel udgivet, fordi sessionerne pushede taggen eksplicit og
+**afveg fra den skrevne opskrift uden at notere det**. Opskriften var grøn fordi
+ingen fulgte den.
+
+### Tippet lå i Discovery — og repoet var stadig forkert
+
+`discovery.broberg.ai/ai`, linje 250:
+
+> **[release-gotcha]** git push --follow-tags only pushes ANNOTATED tags. A
+> lightweight git tag vX won't trigger a tag-gated publish workflow, so the
+> release just doesn't happen. Use git tag -a … or push the tag explicitly.
+> *(ai-sdk)*
+
+Afsenderen er os. **Hvad vores egen historik kan og ikke kan fastslå:**
+
+- `--follow-tags`-linjen kom ind i CLAUDE.md **4. juni 2026** (3341bf6) og har
+  stået forkert i ~3,5 måned.
+- Vores historik indeholder **intet** spor af at nogen kendte fælden før i nat:
+  ingen `release-gotcha`, ingen omtale af annoterede tags, intet.
+
+Så enten filede en tidligere session tippet direkte til Discovery over HTTP
+(hvilket ikke efterlader spor i repoet) uden at rette vores egen opskrift —
+eller tippet blev filet i nat ud fra denne rapport og krediteret os. **Herfra kan
+de to ikke skelnes**, og Discovery viser ingen dato på tips.
+
+Det er værd at sige præcist, fordi components' konklusion hviler på hvilken af
+dem der gælder: var tippet der i forvejen, var den fleet-vendte halvdel dækket;
+blev det filet i nat, var den ikke.
+
+**Deres lektie står uanset hvad, og den er bedre end fundet:**
+
+> *At tippet er i rosteret betyder ikke at repoet er rettet — det er to
+> forskellige tjek.*
