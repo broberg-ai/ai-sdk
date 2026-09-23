@@ -477,10 +477,13 @@ so the model was never allowed to refuse. Measured by trail on 444 golden exampl
 prompt turned **34 into a confident wrong label** and let none through. No aggregate
 score showed it — overall accuracy even ticked up, because other examples reshuffled.
 The prompt now carries one sentence: *"If none of the labels fit, return
-{"label": null}."* **Expect `label: null` / `outcome: "out-of-set"` routinely** — about
-1 in 12 on trail's tasks; your share depends on your labels. If you route anything
-automatic off `label`, route `null` to a human: a refusal is the model being honest,
-and the old behaviour was a guess dressed as an answer.
+{"label": null}."* **Expect `label: null` / `outcome: "out-of-set"` routinely.** How
+often is NOT yet measured for this prompt: trail's ~1 in 12 was measured on *their*
+prompt, which differs from ours in the JSON line that follows the sentence. Our own
+rate is pending a re-run on the same 444 examples (F060.2) — read it as "common, not
+rare", not as a number. If you route anything automatic off `label`, route `null` to
+a human: a refusal is the model being honest, and the old behaviour was a guess
+dressed as an answer.
 
 **`classify` tells you WHICH of three things happened** — `outcome` is
 `"answered" | "out-of-set" | "unparseable"`, and `answered` ⟺ `label !== null`.

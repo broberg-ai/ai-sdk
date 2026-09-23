@@ -78,8 +78,9 @@ export interface ClassifyResult {
    *  **Expect `null` routinely since F060 (23 September 2026)** — the prompt now
    *  explicitly lets the model say none of the labels fit. Before that it could not,
    *  and trail measured the cost: 34 of 38 honest refusals came back as confident
-   *  WRONG labels. If you route anything automatic off this field, send `null` to a
-   *  human. */
+   *  WRONG labels. How OFTEN `null` now occurs under this exact prompt is not yet
+   *  measured (F060.2) — expect it to be common, not rare. If you route anything
+   *  automatic off this field, send `null` to a human. */
   label: string | null;
   /** The model's own answer when it did not match, so a caller can log or route what
    *  actually came back instead of only knowing that something did not.
