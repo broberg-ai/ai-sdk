@@ -287,3 +287,30 @@ test("F061: the retry timer does NOT hold a process open (unref)", () => {
   expect(r.exitCode).toBe(0);
   expect(ms).toBeLessThan(10_000); // and exited anyway
 });
+
+test("F061: under overflow during a concurrent flush, it is the OLDEST that is dropped", async () => {
+  // Found in review: flush() used to push still-pending records to the BACK, so records
+  // arriving mid-flush got ahead of them and the cap dropped NEW ones — while the error
+  // message said "dropped the oldest". Reproduced before the fix: of 5 drops, 2 were new.
+  const seen: string[] = [];
+  const fetchImpl = (async (_u: string | URL | Request, init?: RequestInit) => {
+    seen.push(JSON.parse(String(init?.body)).purpose);
+    await Bun.sleep(1);
+    throw new Error("down");
+  }) as unknown as typeof fetch;
+  const sink = sinkWith(fetchImpl);
+
+  for (let i = 0; i < 30; i += 1) await sink.record(usage({ purpose: `OLD-${i}` }));
+  const f = sink.flush(); // retrying the 30 old ones…
+  for (let i = 0; i < 5; i += 1) await sink.record(usage({ purpose: `NEW-${i}` })); // …while 5 arrive
+  await f;
+  expect(sink.stats().queued).toBe(30);
+  expect(sink.stats().dropped).toBe(5);
+
+  seen.length = 0;
+  await sink.flush(); // one attempt each — shows exactly who survived the cap
+  const survivors = [...new Set(seen)];
+  expect(survivors.filter((s) => s.startsWith("NEW"))).toHaveLength(5); // every new one kept
+  expect(survivors.filter((s) => s.startsWith("OLD"))).toHaveLength(25); // the 5 oldest went
+  expect(survivors).not.toContain("OLD-0");
+});

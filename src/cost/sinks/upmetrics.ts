@@ -8,6 +8,7 @@
 //   - latencyMs → duration_ms; ts → started_at; ended_at = ts + latency
 // Errors never propagate (CostSink invariant). Do NOT use @upmetrics/agent
 // wrapAnthropic here — the SDK already owns the provider call.
+import { randomUUID } from "node:crypto";
 import { SDK_TAG } from "../../version.js";
 import type { CostSink, Usage } from "../../types.js";
 
@@ -147,7 +148,7 @@ export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
         // between records. Sent on the FIRST attempt too: a first attempt can reach the
         // server and lose its answer, and the retry must then dedupe against it. Placed
         // after the labels spread, so a consumer label cannot overwrite it.
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: randomUUID(),
       },
     };
     if (usage.tier !== undefined) body.tier = usage.tier;
@@ -280,14 +281,21 @@ export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
         timer = null;
       }
       const batch = queue.splice(0);
+      const stillPending: Pending[] = [];
       for (const p of batch) {
         inFlight += 1;
         p.attempts += 1;
         counts.retried += 1;
         const r = await send(p.body);
         inFlight -= 1;
-        if (settle(p, r)) queue.push(p);
+        if (settle(p, r)) stillPending.push(p);
       }
+      // Back at the FRONT, in their original order. Records that arrived DURING this
+      // flush were pushed behind them, so the oldest still stands first — and the cap
+      // drops from the front. Found in review: pushing these to the BACK put newer
+      // records ahead of them, the cap then dropped new ones, and the error message
+      // said "dropped the oldest" about a record that was not.
+      queue.unshift(...stillPending);
       enforceCap();
       schedule();
     },
