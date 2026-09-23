@@ -73,7 +73,13 @@ export interface ClassifyResult {
    *  an autonomy level off this field — an unclassifiable ticket therefore landed on the
    *  tenant's first intent, chosen by the order of a config array, with no error and no
    *  log trace. `null` is the whole fix: there is no field to hardcode, because the
-   *  absence IS the signal. */
+   *  absence IS the signal.
+   *
+   *  **Expect `null` routinely since F060 (23 September 2026)** — the prompt now
+   *  explicitly lets the model say none of the labels fit. Before that it could not,
+   *  and trail measured the cost: 34 of 38 honest refusals came back as confident
+   *  WRONG labels. If you route anything automatic off this field, send `null` to a
+   *  human. */
   label: string | null;
   /** The model's own answer when it did not match, so a caller can log or route what
    *  actually came back instead of only knowing that something did not.

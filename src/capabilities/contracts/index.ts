@@ -22,6 +22,11 @@ import type {
  *  is 200 chars in one place and 100 in another is a diff nobody can read. */
 const RAW_SNIPPET_CHARS = 200;
 
+/** F060 — the sentence that lets the model refuse. Exported so the test can pin the
+ *  exact words: this is the measured wording, and the whole finding is that dropping it
+ *  silently converts refusals into confident wrong answers no aggregate score shows. */
+export const CLASSIFY_ABSTAIN_SENTENCE = 'If none of the labels fit, return {"label": null}.';
+
 export function parseJsonLoose(text: string): unknown {
   const fenced = text.replace(/```(?:json)?/gi, "").trim();
   const start = fenced.search(/[[{]/);
@@ -139,8 +144,22 @@ export function makeContracts(client: ChatVision): Contracts {
 
     async classify(input: ClassifyInput): Promise<ClassifyResult> {
       const res = await client.chat({
+        // F060 — the model must be ALLOWED to say "none of these". Without that sentence,
+        // measured by trail on 444 golden examples (mistral-small-latest, temp 0): of 38
+        // inputs the model refused when invited to, this prompt turned 34 into a
+        // confident WRONG label inside the menu and let none through as a refusal. That
+        // undid F052 from the outside — the code stopped guessing labels[0], and the
+        // prompt made the model guess instead.
+        //
+        // It is exactly ONE sentence, the one trail measured. They isolated it: removing
+        // only this sentence reproduces the failure (35 wrong vs our 34), so it is the
+        // invitation to refuse that matters, not the confidence field or the wording
+        // around it. Do not "tidy" it away, and do not change the words — an unmeasured
+        // edit on top of a measured one makes the measurement say nothing.
         system:
           "You are a zero-shot classifier. Choose exactly one label from the provided list. " +
+          CLASSIFY_ABSTAIN_SENTENCE +
+          " " +
           'Return ONLY JSON: {"label": "<one of the labels>", "confidence": <0..1>}.',
         prompt: `Labels: ${JSON.stringify(input.labels)}\n\nText:\n${input.text}`,
         tier: input.tier ?? "cheap",

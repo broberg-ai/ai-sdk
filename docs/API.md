@@ -470,6 +470,18 @@ Structured calls layered on chat/vision (so budget + cost apply uniformly):
 | `classify({ text, labels, onUnparseable? })` | zero-shot → `{ label, rawLabel?, confidence, outcome }` |
 | `rerank({ query, items })` | relevance → `{ ranked: [{item, score}] }` |
 
+**`classify` may now answer "none of these" — and will, far more often than before
+(F060, 23 September 2026).** Its prompt used to say only *"Choose exactly one label"*,
+so the model was never allowed to refuse. Measured by trail on 444 golden examples
+(mistral-small-latest): of 38 inputs the model refused when it was allowed to, the old
+prompt turned **34 into a confident wrong label** and let none through. No aggregate
+score showed it — overall accuracy even ticked up, because other examples reshuffled.
+The prompt now carries one sentence: *"If none of the labels fit, return
+{"label": null}."* **Expect `label: null` / `outcome: "out-of-set"` routinely** — about
+1 in 12 on trail's tasks; your share depends on your labels. If you route anything
+automatic off `label`, route `null` to a human: a refusal is the model being honest,
+and the old behaviour was a guess dressed as an answer.
+
 **`classify` tells you WHICH of three things happened** — `outcome` is
 `"answered" | "out-of-set" | "unparseable"`, and `answered` ⟺ `label !== null`.
 `label` is `null` when the model named something outside `labels`; `rawLabel`

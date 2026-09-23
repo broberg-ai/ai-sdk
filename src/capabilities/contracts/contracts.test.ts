@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { z } from "zod";
-import { makeContracts, parseJsonLoose } from "./index.js";
+import { CLASSIFY_ABSTAIN_SENTENCE, makeContracts, parseJsonLoose } from "./index.js";
 import type { ChatResult, Usage } from "../../types.js";
 
 const usage = (): Usage => ({
@@ -321,4 +321,33 @@ test("F059: 'unparseable' covers MALFORMED json too, not only a reply with none"
   await expect(
     makeContracts(fakeClient({ chat: ['{"label":"appro'] }).client).classify({ text: "x", labels }),
   ).rejects.toThrow();
+});
+
+// ── F060 — the model must be allowed to say "none of these" ──────────────────────
+//
+// Measured by trail, 444 golden examples: without this sentence, 34 of 38 refusals
+// became confident wrong labels inside the menu, and no aggregate score showed it.
+
+test("F060: the classify prompt carries the measured abstain sentence, word for word", async () => {
+  // Pin the WORDS, not just the presence of some refusal. The finding is specific to
+  // this sentence (trail isolated it: removing only it reproduces 35 wrong vs 34), so
+  // a "clearer" rewording is an unmeasured change wearing a measured one's name.
+  expect(CLASSIFY_ABSTAIN_SENTENCE).toBe('If none of the labels fit, return {"label": null}.');
+
+  const f = fakeClient({ chat: ['{"label":"approved"}'] });
+  await makeContracts(f.client).classify({ text: "x", labels: ["approved", "denied"] });
+  const system = String(f.chatCalls[0]?.system ?? "");
+  expect(system).toContain(CLASSIFY_ABSTAIN_SENTENCE);
+  // And it still asks for exactly one label — the sentence ADDS a way out, it does not
+  // replace the instruction. That is the configuration trail measured.
+  expect(system).toContain("Choose exactly one label from the provided list.");
+});
+
+test('F060: an explicit {"label": null} refusal is out-of-set, not a crash and not a label', async () => {
+  const r = await makeContracts(
+    fakeClient({ chat: ['{"label": null}'] }).client,
+  ).classify({ text: "x", labels: ["approved", "denied"] });
+  expect(r.label).toBeNull();
+  expect(r.outcome).toBe("out-of-set");
+  expect(r.confidence).toBeNull();
 });
