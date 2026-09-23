@@ -1,0 +1,111 @@
+name: upmetrics-dedup-smoke
+
+# F061.2 — proves, against upmetrics' PRODUCTION database, that /api/agent
+# dedupes on tags.idempotencyKey. F061.1's background retry resends the same
+# body; if the receiver did not dedupe, every retry would double-count spend.
+#
+# The key is minted here by upmetrics' OIDC enrolment and never leaves this job:
+# no repo secret, no vault entry, no .env.
+#
+# The rows it writes cost nothing: cost_usd 0 AND tokens 0 (upmetrics derives a
+# price from model + tokens when one is missing, F027), tagged smoke=dedup.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # lets GitHub mint the token that proves which repo this is
+    steps:
+      # Copied verbatim from broberg-ai/upmetrics/.github/workflows/upmetrics-enroll.yml
+      - name: Enrol in Upmetrics
+        id: enroll
+        env:
+          UPMETRICS_URL: https://upmetrics.org
+        run: |
+          set -euo pipefail
+
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$UPMETRICS_URL" | jq -r '.value')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error::GitHub did not mint an OIDC token — is 'id-token: write' set on this job?"
+            exit 1
+          fi
+
+          BODY=$(curl -sS -w '\n%{http_code}' -X POST "$UPMETRICS_URL/api/enroll" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'content-type: application/json' \
+            -d '{"platform":"node"}')
+          CODE=$(echo "$BODY" | tail -n1)
+          JSON=$(echo "$BODY" | sed '$d')
+
+          if [ "$CODE" != "200" ] && [ "$CODE" != "201" ]; then
+            echo "::error::Upmetrics refused the enrolment (HTTP $CODE): $(echo "$JSON" | jq -c '{error,reason,message}')"
+            exit 1
+          fi
+
+          API_KEY=$(echo "$JSON" | jq -r '.api_key')
+          echo "::add-mask::$API_KEY"
+          echo "api_key=$API_KEY"                             >> "$GITHUB_OUTPUT"
+          echo "project=$(echo "$JSON" | jq -r '.project.id')" >> "$GITHUB_OUTPUT"
+
+      - name: Dedup smoke test
+        env:
+          KEY: ${{ steps.enroll.outputs.api_key }}
+          URL: https://upmetrics.org/api/agent
+        run: |
+          set -euo pipefail
+
+          payload() {
+            local now; now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+            jq -nc --arg k "$1" --arg t "$now" '{
+              mode: "record", agent_kind: "chatbot", agent_name: "ai-sdk-dedup-smoke",
+              provider: "mistral", model: "mistral-small-latest", status: "success",
+              input_tokens: 0, output_tokens: 0, cost_usd: 0, duration_ms: 0,
+              started_at: $t, ended_at: $t,
+              tags: { smoke: "dedup", sdk: "ai-sdk-ci", idempotencyKey: $k }
+            }'
+          }
+          post() {
+            local out code
+            out=$(curl -sS -w '\n%{http_code}' -X POST "$URL" \
+              -H 'content-type: application/json' -H "x-upmetrics-key: $KEY" -d "$1")
+            code=$(echo "$out" | tail -n1)
+            if [ "${code:0:1}" != "2" ]; then
+              echo "::error::/api/agent returned HTTP $code: $(echo "$out" | sed '$d' | head -c 300)" >&2
+              exit 1
+            fi
+            echo "$out" | sed '$d'
+          }
+
+          K1=$(cat /proc/sys/kernel/random/uuid)
+          K2=$(cat /proc/sys/kernel/random/uuid)
+          P1=$(payload "$K1")   # built ONCE, sent twice — exactly like the sink's retry
+
+          R1=$(post "$P1"); echo "1st (key A):     $R1"
+          R2=$(post "$P1"); echo "2nd (key A):     $R2"
+          R3=$(post "$(payload "$K2")"); echo "3rd (key B, ctl): $R3"
+
+          ID1=$(echo "$R1" | jq -r '.run_id'); ID2=$(echo "$R2" | jq -r '.run_id'); ID3=$(echo "$R3" | jq -r '.run_id')
+          U1=$(echo "$R1" | jq -r '.upserted'); U2=$(echo "$R2" | jq -r '.upserted'); U3=$(echo "$R3" | jq -r '.upserted')
+
+          fail=0
+          [ "$ID1" != "null" ] && [ -n "$ID1" ] || { echo "::error::1st reply has no run_id"; fail=1; }
+          [ "$U1" = "false" ] || { echo "::error::1st reply upserted=$U1, want false (fresh key)"; fail=1; }
+          [ "$U2" = "true" ]  || { echo "::error::2nd reply upserted=$U2, want true"; fail=1; }
+          [ "$ID2" = "$ID1" ] || { echo "::error::2nd run_id '$ID2' != 1st '$ID1'"; fail=1; }
+          [ "$U3" = "false" ] || { echo "::error::control upserted=$U3, want false"; fail=1; }
+          [ "$ID3" != "$ID1" ] || { echo "::error::control run_id '$ID3' == 1st — receiver collapses distinct keys"; fail=1; }
+          [ "$fail" = 0 ] || exit 1
+
+          {
+            echo "### upmetrics dedup: PASS"
+            echo "| call | idempotencyKey | run_id | upserted |"
+            echo "|---|---|---|---|"
+            echo "| 1 | A | \`$ID1\` | $U1 |"
+            echo "| 2 (same body) | A | \`$ID2\` | $U2 |"
+            echo "| 3 (control) | B | \`$ID3\` | $U3 |"
+          } >> "$GITHUB_STEP_SUMMARY"
