@@ -167,6 +167,25 @@ spawns the local `claude -p` CLI (Max plan, `costUsd 0`, flagged
   Built-ins: **`upmetricsSink`** (canonical — forwards to upmetrics
   `/api/agent`), `discordSink`, `sqliteSink` (+ `getCostSummary`), `multiSink`
   (fan-out, error-isolated), `noopSink`.
+- **`upmetricsSink` retries transient failures in the background (F061).** Up to
+  0.48 a failed POST was one attempt and gone — the only trace an optional
+  `onError`. Now: one attempt immediately (the AI call never waits longer than it
+  did), and on a network error, **408, 429** or 5xx the record is queued and
+  retried with backoff (up to 5 attempts, queue capped at 30 — the oldest is
+  dropped on overflow). Other 4xx are refused permanently and not retried.
+  Every payload carries `tags.idempotencyKey`, identical across retries of one
+  record, so a retry the server already stored collapses into one row.
+  - **Retry is only safe if your receiver dedupes on `tags.idempotencyKey`.**
+    upmetrics does (since 2026-09-08). If you point `baseUrl` elsewhere and it
+    does not, a retry becomes a double count — pass `retry: false`.
+  - **`onError` now fires when a record is actually LOST or REFUSED** — not on a
+    transient failure that later succeeds. A warn-on-every-blip hook gets
+    quieter; that is the point.
+  - **`stats()`** → `{ sent, retried, dropped, rejected, queued }`. In-process: it
+    resets on deploy, so a zero is a claim about uptime, not history.
+  - **Short-lived process (script, serverless)? `await sink.flush()` before
+    exit.** The retry timer is `unref`'d so it never holds your process open —
+    which also means it will not finish on its own before you exit.
 
 ### 3.6 Schema boundary
 Zod schemas are the single source of truth for the public input shapes — the

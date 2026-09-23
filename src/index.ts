@@ -76,6 +76,8 @@ export {
 } from "./cost/sinks/index.js";
 export type {
   UpmetricsSinkConfig,
+  UpmetricsSink,
+  UpmetricsSinkStats,
   DiscordSinkConfig,
   SqliteSinkConfig,
   CostSummary,
