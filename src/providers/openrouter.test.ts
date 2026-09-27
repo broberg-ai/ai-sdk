@@ -100,6 +100,15 @@ test("image() falls back to the price estimate when usage.cost is absent", async
   expect(res.usage.costUsd).toBe(0.035);
 });
 
+test("image() prices Recraft V4.1 Pro / Pro Vector when usage.cost is absent (F063)", async () => {
+  const a = openrouterAdapter({ apiKey: "or-key" });
+  for (const [model, usd] of [["recraft/recraft-v4.1-pro-vector", 0.3], ["recraft/recraft-v4.1-pro", 0.21]] as const) {
+    mockFetch({ data: [{ b64_json: "PHN2Zz48L3N2Zz4=", media_type: "image/svg+xml" }] });
+    const res = await a.image!({ prompt: "logo", spec: { provider: "openrouter", model, transport: "http" } });
+    expect(res.usage.costUsd).toBe(usd);
+  }
+});
+
 test("image() forwards seed + outputFormat to the request body", async () => {
   const seen = mockFetch({ data: [{ b64_json: "cGFzdGU=" }], usage: { cost: 0.035 } });
   const a = openrouterAdapter({ apiKey: "or-key" });

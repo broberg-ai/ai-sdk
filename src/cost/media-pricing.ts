@@ -111,6 +111,11 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   // OpenRouter images — the FALLBACK only. OpenRouter usually returns usage.cost.
   "openrouter:recraft/recraft-v4.1": { unit: "per_image", usd: 0.035, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/recraft/recraft-v4.1 — fallback when usage.cost is omitted" },
   "openrouter:recraft/recraft-v4.1-vector": { unit: "per_image", usd: 0.08, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/recraft/recraft-v4.1-vector — fallback when usage.cost is omitted" },
+  // F063: OpenRouter prices Recraft per image-token; both rows above are that rate
+  // x 4175 tokens/image exactly, so these use the same factor (measured 27/9 off
+  // /api/v1/models?output_modalities=image).
+  "openrouter:recraft/recraft-v4.1-pro-vector": { unit: "per_image", usd: 0.3, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/api/v1/models, measured 2026-09-27 — image_token 7.186e-5 x 4175; fallback when usage.cost is omitted" },
+  "openrouter:recraft/recraft-v4.1-pro": { unit: "per_image", usd: 0.21, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/api/v1/models, measured 2026-09-27 — image_token 5.030e-5 x 4175; fallback when usage.cost is omitted" },
 
   // Speech OUT — billed per 1000 characters of input text.
   "azure:tts": { unit: "per_1k_chars", usd: 0.016, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "azure.microsoft.com/pricing — neural standard, $16/1M chars" },

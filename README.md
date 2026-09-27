@@ -139,6 +139,8 @@ await ai.chat({ prompt: "…", override: { provider: "openrouter", model: "minim
 > await ai.image({ prompt: "…", override: { provider: "openrouter", model: "recraft/recraft-v4.1-vector" } });
 > // → data:image/svg+xml;base64,… with ground-truth cost
 > ```
+> `recraft/recraft-v4.1-pro-vector` gives higher detail for complex vectors (~$0.30
+> per image vs ~$0.08); `recraft/recraft-v4.1-pro` is the raster equivalent (~$0.21).
 
 `cheap` defaults to the cheapest-that's-good-enough cloud model — **Mistral Small**
 (EU/Paris-hosted, GDPR-safe, ~$0.10/$0.30) — so a cost-tier call is safe for
