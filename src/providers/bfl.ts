@@ -15,6 +15,9 @@
 //    BFL dashboard (finetune-CREATE was retired from the public API — live-verified
 //    2026-06-16: POST /v1/finetune 404s on every region; legacy eu1/us1 hosts dead).
 //    See the dashboard SOP in docs/features/F023-bfl-eu-portrait-lora.md.
+//  • neither, on a flux-2* model (F064) → plain text-to-image, same FLUX 2 body with
+//    no input_image*. The EU route for an ordinary prompt:
+//    ai.image({ prompt, override:{ provider:"bfl", model:"flux-2-pro" } }).
 //
 // Auth header `x-key`. Request→poll: POST returns {id, polling_url, cost}; we poll the
 // EU get_result by id (deliberately NOT the returned polling_url) so a response carrying
@@ -110,9 +113,12 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
     const headers = { "content-type": "application/json", "x-key": apiKey };
 
     const body: Record<string, unknown> = { prompt: req.prompt };
-    if (req.referenceImages?.length) {
+    // F064 — FLUX 2 generates from the prompt alone; references are optional. That is
+    // the EU route for a plain text-to-image call.
+    const flux2PromptOnly = !req.referenceImages?.length && !req.finetune && req.spec.model.startsWith("flux-2");
+    if (req.referenceImages?.length || flux2PromptOnly) {
       // F023.5 — FLUX 2 multi-reference: input_image, input_image_2 … input_image_8.
-      req.referenceImages.forEach((img, i) => {
+      req.referenceImages?.forEach((img, i) => {
         body[i === 0 ? "input_image" : `input_image_${i + 1}`] = toBflImage(img);
       });
       if (req.width) body.width = req.width;
@@ -131,7 +137,8 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       }
     } else {
       throw new Error(
-        "bfl adapter: requires referenceImages (FLUX 2 multi-reference) or a finetune id. " +
+        `bfl adapter: ${req.spec.model} requires referenceImages (FLUX 2 multi-reference) or a finetune id. ` +
+          "For a plain prompt use a FLUX 2 model: override:{ provider:\"bfl\", model:\"flux-2-pro\" }. " +
           "ai.image({ referenceImages: [...] }) needs no training; ai.image({ finetune }) uses a subject " +
           "trained once in the BFL dashboard (dashboard.bfl.ai — finetune-create is not in the public API).",
       );

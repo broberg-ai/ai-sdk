@@ -176,3 +176,37 @@ test("ai.image({ referenceImages }) routes to flux-2-max; override:{model} is th
   expect(proCalls.some((u) => u.includes("/v1/flux-2-pro"))).toBe(true); // one field switches to pro
   expect(proCalls.every((u) => u.startsWith("https://api.eu.bfl.ai/"))).toBe(true); // still EU, provider stays bfl
 });
+
+// ── F064 — plain text-to-image on FLUX 2 (the EU route for an ordinary prompt) ──
+
+test("ai.image({ prompt, override:{bfl, flux-2-pro} }) generates from the prompt alone, EU-pinned, region eu", async () => {
+  const { createAI } = await import("../client.js");
+  const calls: string[] = [];
+  let body: Record<string, unknown> = {};
+  const ai = createAI({
+    providers: { bfl: bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls, body: (b) => (body = b), cost: 12 }) }) },
+  });
+  const { url, usage } = await ai.image({
+    prompt: "a lighthouse at dusk",
+    width: 1024,
+    height: 768,
+    override: { provider: "bfl", model: "flux-2-pro" },
+  });
+  expect(url).toBe("https://delivery.eu2.bfl.ai/x.jpeg");
+  expect(body.prompt).toBe("a lighthouse at dusk");
+  expect(Object.keys(body).filter((k) => k.startsWith("input_image"))).toEqual([]);
+  expect(body.width).toBe(1024);
+  expect(body.height).toBe(768);
+  expect(body.output_format).toBe("jpeg");
+  expect(calls.some((u) => u.includes("/v1/flux-2-pro"))).toBe(true);
+  expect(calls.length).toBeGreaterThan(0);
+  for (const u of calls) expect(u.startsWith("https://api.eu.bfl.ai/")).toBe(true);
+  expect(usage.provider).toBe("bfl");
+  expect(usage.region).toBe("eu");
+  expect(usage.costUsd).toBe(0.12);
+});
+
+test("the finetuned model without a finetune id still refuses, and names the flux-2 route", async () => {
+  const adapter = bflAdapter({ apiKey: "k", fetch: scriptedFetch({ calls: [] }) });
+  await expect(adapter.image!({ prompt: "x", spec })).rejects.toThrow(/flux-2-pro/);
+});
