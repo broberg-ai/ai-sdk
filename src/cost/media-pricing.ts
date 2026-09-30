@@ -133,7 +133,7 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "mistral:voxtral-mini-2602": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral" },
 
   // OCR — per page.
-  "mistral:ocr": { unit: "per_page", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — OCR, $2/1000 pages" },
+  "mistral:ocr": { unit: "per_page", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "Mistral mail 2026-09-30 (OCR 4.1): $4/1000 pages direct; $2/1000 is the Batch-API price, which ai.ocr does not use" },
 
   // A flat fee per training run, not per anything produced.
   "fal:train": { unit: "per_training", usd: 2.0, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai/models/fal-ai/flux-lora-fast-training — approx $2, ESTIMATE" },

@@ -16,7 +16,7 @@ function jsonFetch(payload: unknown, status = 200) {
 const ocrSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" as const };
 const modSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" as const };
 
-test("ocr returns pages + per-page cost (3 pages × $0.002 = $0.006)", async () => {
+test("ocr returns pages + per-page cost (3 pages × $0.004 = $0.012 — F065)", async () => {
   const { f } = jsonFetch({
     pages: [{ index: 0, markdown: "# Intake form" }, { index: 1, markdown: "page 2" }],
     usage_info: { pages_processed: 3 },
@@ -25,7 +25,7 @@ test("ocr returns pages + per-page cost (3 pages × $0.002 = $0.006)", async () 
   const { pages, usage } = await adapter.ocr!({ document: "https://example.com/doc.pdf", spec: ocrSpec });
   expect(pages).toEqual([{ index: 0, markdown: "# Intake form" }, { index: 1, markdown: "page 2" }]);
   expect(usage.capability).toBe("ocr");
-  expect(usage.costUsd).toBeCloseTo(0.006, 9);
+  expect(usage.costUsd).toBeCloseTo(0.012, 9);
 });
 
 test("ocr routes image/* as image_url, else document_url", async () => {
