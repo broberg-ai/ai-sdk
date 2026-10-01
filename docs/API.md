@@ -531,7 +531,7 @@ const { data } = await ai.contracts.extract({
 });
 ```
 
-### 4.x `ai.judge` — Jev: decisions with calibrated probabilities (F066)
+### Decisions with calibrated probabilities — `ai.judge` (Jev, F066)
 
 **Jev (TypeSafe) is not a chat model.** It does not write text; it answers typed
 questions about a piece of content, and every answer carries a probability you can
@@ -572,6 +572,11 @@ answers.sev.score;         // may fall BETWEEN levels (0.91)
   `override:{ provider:"typesafe", model:"jev-1.13.0" }` once you have tuned a
   threshold on `confidence` — a new version can move it. Cost is booked on the model
   that ANSWERED; a version not yet in our price table is booked `unpriced`.
+- **A `noul`'s `criteria` is an OBJECT** — `{ true: "what yes means", false: "what no
+  means" }`. Measured live: a plain string is a 422 from TypeSafe.
+- **Everything descriptive may be structured.** `instructions`, choice option
+  descriptions, score levels and noul `true`/`false` accept text OR JSON (object, array,
+  null). TypeSafe's taxonomy-walk and JSON-rubric patterns depend on it.
 - **Limits:** 64k tokens per call (state + all questions); text only.
 - **Key:** `TYPESAFE_API_KEY` — Global Vault, "Typesafe AI". One shared $5 trial key,
   by the owner's choice (2026-10-01). Without it, `createAI()` still works and only

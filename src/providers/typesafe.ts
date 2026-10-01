@@ -16,6 +16,7 @@ import { regionOfHost } from "../cost/region.js";
 import { freshUsage } from "../cost/usage.js";
 import type {
   JudgeAnswer,
+  JudgeEntry,
   JudgeQuestion,
   JudgeRequest,
   JudgeResult,
@@ -27,7 +28,7 @@ type WireAnswer = {
   choice?: string;
   score?: number;
   probabilities?: Record<string, number>;
-  legend?: Record<string, string>;
+  legend?: Record<string, JudgeEntry>;
   confidence?: number;
 };
 

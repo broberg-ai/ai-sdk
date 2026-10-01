@@ -446,10 +446,19 @@ export interface ModerationResult {
 //   score  — rate against ordered described levels → a value that may fall between
 //            levels, a probability per level, confidence
 // US-hosted (TypeSafe's privacy policy, read 2026-10-01). NOT for personal data.
+/** TypeSafe's EntryType: plain text OR JSON structure. Instructions, choice option
+ *  descriptions, score levels and noul criteria all accept it — and TypeSafe's own
+ *  headline patterns (walking a taxonomy, a JSON rubric that sharpens the boundary
+ *  between options) depend on it. Measured live 2026-10-01: structured instructions and
+ *  object-valued choice options → 200. */
+export type JudgeEntry = string | null | unknown[] | { [key: string]: unknown };
 export type JudgeQuestion =
-  | { type: "noul"; instructions: string; criteria?: string }
-  | { type: "choice"; instructions: string; criteria: Record<string, string> }
-  | { type: "score"; instructions: string; criteria: string[] };
+  /** `criteria` is an OBJECT with `true`/`false`, not a string — measured live: a string
+   *  is a 422 from TypeSafe. The first version of this type had it as a string, which
+   *  let through exactly the shape the server refuses. */
+  | { type: "noul"; instructions: JudgeEntry; criteria?: { true?: JudgeEntry; false?: JudgeEntry } }
+  | { type: "choice"; instructions: JudgeEntry; criteria: Record<string, JudgeEntry> }
+  | { type: "score"; instructions: JudgeEntry; criteria: JudgeEntry[] };
 
 export interface JudgeNoulAnswer {
   type: "noul";
@@ -470,7 +479,9 @@ export interface JudgeScoreAnswer {
   /** Probability-weighted level; can fall BETWEEN levels (1.5). */
   score: number;
   probabilities: Record<string, number>;
-  legend: Record<string, string>;
+  /** Level number → the level as you DESCRIBED it. If you passed structured levels,
+   *  the legend echoes structure, not text — measured live: {"0":{"level":"minor"}}. */
+  legend: Record<string, JudgeEntry>;
   confidence: number;
 }
 export type JudgeAnswer = JudgeNoulAnswer | JudgeChoiceAnswer | JudgeScoreAnswer;

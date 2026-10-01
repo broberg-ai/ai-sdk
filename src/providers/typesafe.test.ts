@@ -126,3 +126,51 @@ test("F066: a gating consumer can reach both Jev ids", () => {
   // jev-latest is NOT folded into jev-1.13.0 — it moves when they release.
   expect(resolveModel("jev-latest").model).toBe("jev-latest");
 });
+
+// ── Review round 1: the schema was typed from a SUMMARY of the docs, not the spec ──
+//
+// Measured live 2026-10-01 against api.typesafe.ai with jev-1.13.0:
+//   noul criteria as {true,false}  → 200
+//   noul criteria as a string      → 422 "Input should be a valid dictionary"
+//   structured instructions + object-valued choice options → 200
+// The first schema accepted the 422 shape and refused both 200 shapes.
+
+test("F066: noul criteria is an OBJECT {true,false} — forwarded unchanged", async () => {
+  const { calls, fetchImpl } = fakeFetch({ model: "jev-1.13.0", answers: { q: { noul: 0.98 } }, usage: {} });
+  const ai = createAI({ costSink: null, providers: { typesafe: typesafeAdapter({ apiKey: "k", fetch: fetchImpl }) } });
+  const criteria = { true: "Mentions authorities or lawyers", false: "Only dissatisfaction" };
+  await ai.judge({ state: "s", questions: { q: { type: "noul", instructions: "Threatens escalation", criteria } } });
+  expect(JSON.parse(String(calls[0]!.init.body)).questions.q.criteria).toEqual(criteria);
+});
+
+test("F066: a noul criteria STRING is refused at the boundary — the shape TypeSafe 422s", async () => {
+  const { calls, fetchImpl } = fakeFetch(LIVE_LIKE);
+  const ai = createAI({ costSink: null, providers: { typesafe: typesafeAdapter({ apiKey: "k", fetch: fetchImpl }) } });
+  for (const criteria of ["a plain string", { yes: "typo for true" }]) {
+    await expect(
+      ai.judge({ state: "s", questions: { q: { type: "noul", instructions: "x", criteria } } } as never),
+    ).rejects.toMatchObject({ name: "ZodError" });
+  }
+  expect(calls).toHaveLength(0); // refused before a paid round-trip
+});
+
+test("F066: structured instructions, options and levels pass through unchanged", async () => {
+  const { calls, fetchImpl } = fakeFetch({
+    model: "jev-1.13.0",
+    answers: { c: { choice: "technical", probabilities: {}, confidence: 1 }, s: { score: 1, probabilities: {}, legend: {}, confidence: 1 } },
+    usage: {},
+  });
+  const ai = createAI({ costSink: null, providers: { typesafe: typesafeAdapter({ apiKey: "k", fetch: fetchImpl }) } });
+  const questions = {
+    c: {
+      type: "choice" as const,
+      instructions: { question: "Which team", focus: "primary request only" },
+      criteria: { technical: { covers: "login, bugs", examples: ["I can't log in"] }, billing: { covers: "invoices" } },
+    },
+    s: { type: "score" as const, instructions: ["compare a", "compare b"], criteria: [{ level: "low" }, { level: "high" }] },
+  };
+  await ai.judge({ state: { ticket: { subject: "x" } }, questions });
+  const sent = JSON.parse(String(calls[0]!.init.body));
+  expect(sent.questions).toEqual(questions);
+  expect(sent.state).toEqual({ ticket: { subject: "x" } });
+});

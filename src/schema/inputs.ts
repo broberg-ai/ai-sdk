@@ -252,21 +252,31 @@ export const moderationInputSchema = z.object({
 
 // Judge (F066) — TypeSafe Jev. Validated HERE so a malformed question is refused
 // before a metered call is made, not answered with a 4xx we pay latency for.
+// TypeSafe's EntryType: text, or JSON structure (object / array / null). Typed against
+// their spec (docs.typesafe.ai/primitives/advanced.md), NOT a summary of it — the first
+// version was typed from a summary and accepted the shape the server 422s.
+const judgeEntrySchema = z.union([z.string().min(1), z.null(), z.array(z.unknown()), z.record(z.unknown())]);
 const judgeQuestionSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("noul"), instructions: z.string().min(1), criteria: z.string().optional() }),
+  z.object({
+    type: z.literal("noul"),
+    instructions: judgeEntrySchema,
+    // An OBJECT with true/false. strict(): a typo like {yes: …} is refused here instead
+    // of being forwarded and 422'd after a paid round-trip.
+    criteria: z.object({ true: judgeEntrySchema.optional(), false: judgeEntrySchema.optional() }).strict().optional(),
+  }),
   z.object({
     type: z.literal("choice"),
-    instructions: z.string().min(1),
+    instructions: judgeEntrySchema,
     // A choice with fewer than two options is not a choice.
-    criteria: z.record(z.string(), z.string()).refine((o) => Object.keys(o).length >= 2, {
+    criteria: z.record(z.string(), judgeEntrySchema).refine((o) => Object.keys(o).length >= 2, {
       message: "a choice needs at least 2 options in criteria",
     }),
   }),
   z.object({
     type: z.literal("score"),
-    instructions: z.string().min(1),
+    instructions: judgeEntrySchema,
     // TypeSafe: a rubric of 2–10 ordered levels.
-    criteria: z.array(z.string().min(1)).min(2).max(10),
+    criteria: z.array(judgeEntrySchema).min(2).max(10),
   }),
 ]);
 export const judgeInputSchema = z.object({
