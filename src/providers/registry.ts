@@ -13,6 +13,7 @@ import { elevenlabsAdapter } from "./elevenlabs.js";
 import { azureAdapter } from "./azure.js";
 import { vertexAdapter } from "./vertex.js";
 import { deeplAdapter } from "./deepl.js";
+import { typesafeAdapter } from "./typesafe.js";
 import { falAdapter } from "./fal.js";
 import { bflAdapter } from "./bfl.js";
 import type { ProviderAdapter } from "../types.js";
@@ -30,6 +31,7 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   azure: azureAdapter(),
   vertex: vertexAdapter(),
   deepl: deeplAdapter(),
+  typesafe: typesafeAdapter(),
   fal: falAdapter(),
   bfl: bflAdapter(),
 };

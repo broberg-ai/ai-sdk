@@ -52,6 +52,11 @@ const HOST_REGION: Record<string, Region> = {
   "fal.run": "us",
   "queue.fal.run": "us",
   "api.deepseek.com": "cn",
+  // F066 — TypeSafe (Jev). "The Services are hosted in the United States" (their privacy
+  // policy, read 2026-10-01). MEASURED TRAP: a live call answered through Cloudflare's
+  // COPENHAGEN edge (cf-ray …-CPH). That is where the TLS terminated, not where the data
+  // is processed — a host behind a CDN cannot have its residency read off the edge.
+  "api.typesafe.ai": "us",
   // Aggregators: the host is theirs, the upstream is not ours to know.
   "openrouter.ai": "unknown",
   "router.requesty.ai": "unknown",

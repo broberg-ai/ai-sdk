@@ -53,7 +53,8 @@ export type Capability =
   | "design"
   | "extract"
   | "classify"
-  | "rerank";
+  | "rerank"
+  | "judge";
 
 // ── Messages + tools ───────────────────────────────────────────────────────
 
@@ -437,6 +438,53 @@ export interface ModerationResult {
   usage: Usage;
 }
 
+// Judge (F066) — TypeSafe's "System One" model, Jev. It does NOT generate text: it
+// answers typed questions about a piece of content with CALIBRATED probabilities.
+// Three question types, sent together in one call (that is the cheap way to use it):
+//   noul   — yes/no → the probability that the answer is yes
+//   choice — pick one of a closed set → the pick, a probability per option, confidence
+//   score  — rate against ordered described levels → a value that may fall between
+//            levels, a probability per level, confidence
+// US-hosted (TypeSafe's privacy policy, read 2026-10-01). NOT for personal data.
+export type JudgeQuestion =
+  | { type: "noul"; instructions: string; criteria?: string }
+  | { type: "choice"; instructions: string; criteria: Record<string, string> }
+  | { type: "score"; instructions: string; criteria: string[] };
+
+export interface JudgeNoulAnswer {
+  type: "noul";
+  /** Probability 0–1 that the answer is yes. */
+  noul: number;
+}
+export interface JudgeChoiceAnswer {
+  type: "choice";
+  /** The key of the most probable option. ALWAYS one of yours — Jev cannot answer
+   *  "none of these". Read `confidence` to decide whether to act on it. */
+  choice: string;
+  probabilities: Record<string, number>;
+  /** How peaked the distribution is, 0–1. NOT the same as the winning probability. */
+  confidence: number;
+}
+export interface JudgeScoreAnswer {
+  type: "score";
+  /** Probability-weighted level; can fall BETWEEN levels (1.5). */
+  score: number;
+  probabilities: Record<string, number>;
+  legend: Record<string, string>;
+  confidence: number;
+}
+export type JudgeAnswer = JudgeNoulAnswer | JudgeChoiceAnswer | JudgeScoreAnswer;
+
+export interface JudgeRequest {
+  state: string | string[] | Record<string, unknown>;
+  questions: Record<string, JudgeQuestion>;
+  spec: TierSpec;
+}
+export interface JudgeResult {
+  answers: Record<string, JudgeAnswer>;
+  usage: Usage;
+}
+
 // Podcast / multi-voice dialogue (F020) — a manuscript of speaker turns → one
 // finished multi-voice audio episode. ElevenLabs Text-to-Dialogue, billed per char.
 export interface DialogueTurn {
@@ -562,6 +610,8 @@ export interface ProviderAdapter {
   transcribe?(req: TranscribeRequest): Promise<TranscribeResult>;
   ocr?(req: OcrRequest): Promise<OcrResult>;
   moderate?(req: ModerationRequest): Promise<ModerationResult>;
+  /** F066 — typed decisions with calibrated probabilities (TypeSafe Jev). */
+  judge?(req: JudgeRequest): Promise<JudgeResult>;
   /** Multi-voice dialogue → one audio episode (F020). ElevenLabs. */
   dialogue?(req: DialogueRequest): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) → audio. ElevenLabs. */

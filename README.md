@@ -81,6 +81,11 @@ const { data } = await ai.contracts.extract({
 // also: ai.contracts.{ mockup, design, classify, rerank }
 ```
 
+**`ai.judge` — Jev (TypeSafe), F066.** Not a chat model: typed yes/no, choice and
+score questions about a piece of content, each answer with a calibrated probability
+and a `confidence` you can gate on. $0.042 per million input tokens, output free.
+**US-hosted — not for personal data.** See docs/API.md §4.
+
 ## Read-aloud: what was actually SPOKEN is not your `text`
 
 `ai.tts({ pronunciations })` rewrites your text before the provider ever sees it —

@@ -26,6 +26,7 @@ import {
   transcribeInputSchema,
   ocrInputSchema,
   moderationInputSchema,
+  judgeInputSchema,
   podcastInputSchema,
   ttsInputSchema,
 } from "./schema/inputs.js";
@@ -43,6 +44,7 @@ import type {
   TranscribeInput,
   OcrInput,
   ModerationInput,
+  JudgeInput,
   PodcastInput,
   TtsInput,
 } from "./schema/inputs.js";
@@ -56,6 +58,7 @@ import type {
   TranscribeResult,
   OcrResult,
   ModerationResult,
+  JudgeResult,
   PodcastResult,
   BatchRequestItem,
   BatchJob,
@@ -143,6 +146,10 @@ const DEFAULT_BFL_REFERENCE_SPEC: TierSpec = {
 /** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
 const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
 const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" };
+/** Judge route (F066) — TypeSafe Jev. "jev-latest" is a MOVING alias; pin
+ *  override:{provider:"typesafe", model:"jev-1.13.0"} if you tuned thresholds on
+ *  confidence. US-hosted — there is no EU route for this capability. */
+const DEFAULT_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-latest", transport: "http" };
 /** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
@@ -666,6 +673,25 @@ export function createAI(config: AiConfig = {}): AiClient {
           const adapter = pickProvider(spec.provider);
           if (!adapter.moderate) throw new Error(`createAI: provider "${spec.provider}" does not support moderation`);
           return adapter.moderate({ input: items, spec });
+        },
+      });
+    },
+
+    async judge(input: JudgeInput): Promise<JudgeResult> {
+      input = judgeInputSchema.parse(input);
+      const stateText = typeof input.state === "string" ? input.state : JSON.stringify(input.state);
+      return runCapability({
+        primary: withOverride(DEFAULT_JUDGE_SPEC, input.override, "judge"),
+        fallback: input.fallback,
+        capability: "judge",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: estTokens(stateText) + estTokens(JSON.stringify(input.questions)),
+        estOut: 0, // output tokens are free on Jev
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.judge) throw new Error(`createAI: provider "${spec.provider}" does not support judge`);
+          return adapter.judge({ state: input.state, questions: input.questions, spec });
         },
       });
     },

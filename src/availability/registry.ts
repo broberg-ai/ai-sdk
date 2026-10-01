@@ -68,6 +68,14 @@ const DEFAULTS: RegistryEntry[] = [
   // and it needs a rate from a real source, not a guess. See the plan-doc.
   { id: "deepseek-chat", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com; documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
   { id: "deepseek-reasoner", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com (thinking); documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
+  // ── TypeSafe (US-hosted — NOT for personal data) ─────────────────────────
+  //
+  // F066. Two rows, not an alias. TypeSafe's "jev-latest" points at jev-1.13.0 TODAY and
+  // moves on their next release; writing it here as an alias of 1.13.0 would make this
+  // registry assert a mapping we would have to remember to undo. As separate rows, both
+  // pass a requireKnown gate and neither claims to be the other.
+  { id: "jev-1.13.0", aliases: ["jev"], provider: "typesafe", available: true, status: "available", note: "TypeSafe Jev, pinned version. US-hosted — not for personal data. Decision model: use ai.judge, not ai.chat", source: "default" },
+  { id: "jev-latest", aliases: [], provider: "typesafe", available: true, status: "available", note: "MOVING alias (jev-1.13.0 as of 2026-10-01). Pin jev-1.13.0 if you tuned thresholds on confidence. US-hosted — not for personal data", source: "default" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },

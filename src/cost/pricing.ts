@@ -110,6 +110,12 @@ export const PRICING: Record<string, PricingEntry> = {
   // Verify against a real key when it lands.
   "deepseek:deepseek-chat": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
   "deepseek:deepseek-reasoner": { inputPer1M: 0.14, outputPer1M: 0.28, version: "2026-06-30-deepseek-direct" },
+  // F066 — TypeSafe Jev. docs.typesafe.ai/models, read 2026-10-01: "$42 per billion
+  // tokens (input only)", output free. Priced on the VERSIONED id because the response
+  // reports the model that actually ran ("jev-1.13.0") even when you ask for
+  // "jev-latest" — so a future version arrives unpriced and is booked as such, rather
+  // than inheriting a number nobody checked for it.
+  "typesafe:jev-1.13.0": { inputPer1M: 0.042, outputPer1M: 0, version: "2026-10-01-typesafe-official" },
 
   // Cached input tokens cost 10% of the input rate — $0.03 vs $0.30 (2.5-flash) and
   // $0.01 vs $0.10 (2.5-flash-lite), read from ai.google.dev/gemini-api/docs/pricing

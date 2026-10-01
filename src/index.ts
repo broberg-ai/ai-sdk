@@ -29,6 +29,7 @@ export { azureAdapter, AZURE_DANISH_VOICES, AZURE_DANISH_VOICE_LIST, listAzureDa
 export type { AzureVoiceInfo } from "./providers/azure.js";
 export { vertexAdapter } from "./providers/vertex.js";
 export { deeplAdapter } from "./providers/deepl.js";
+export { typesafeAdapter } from "./providers/typesafe.js";
 export { falAdapter } from "./providers/fal.js";
 export type { FalAdapterConfig } from "./providers/fal.js";
 export { bflAdapter, bflCredits } from "./providers/bfl.js";
@@ -201,6 +202,7 @@ export type {
   TranscribeInput,
   OcrInput,
   ModerationInput,
+  JudgeInput,
   PodcastInput,
   TtsInput,
 } from "./schema/inputs.js";
@@ -212,6 +214,12 @@ export type {
   OcrPage,
   ModerationRequest,
   ModerationResult,
+  JudgeResult,
+  JudgeQuestion,
+  JudgeAnswer,
+  JudgeNoulAnswer,
+  JudgeChoiceAnswer,
+  JudgeScoreAnswer,
   ModerationItem,
   DialogueTurn,
   DialogueRequest,

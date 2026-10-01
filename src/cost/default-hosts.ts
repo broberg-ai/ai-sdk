@@ -22,6 +22,8 @@ export const DEFAULT_BASE_URLS = {
   mistral: "https://api.mistral.ai/v1",
   openai: "https://api.openai.com/v1",
   openrouter: "https://openrouter.ai/api/v1",
+  // F066. US-hosted per the TypeSafe privacy policy — see region.ts.
+  typesafe: "https://api.typesafe.ai/v1",
 } as const;
 
 export type FixedHostProvider = keyof typeof DEFAULT_BASE_URLS;

@@ -531,6 +531,60 @@ const { data } = await ai.contracts.extract({
 });
 ```
 
+### 4.x `ai.judge` — Jev: decisions with calibrated probabilities (F066)
+
+**Jev (TypeSafe) is not a chat model.** It does not write text; it answers typed
+questions about a piece of content, and every answer carries a probability you can
+act on. Three question types, and you send several in ONE call — TypeSafe measured
+13 questions batched at 12.2× cheaper and 10× faster than one at a time.
+
+```ts
+const { answers, usage } = await ai.judge({
+  state: "Two of the items arrived broken. I want my money back.",
+  questions: {
+    team:   { type: "choice", instructions: "Which team should handle this",
+              criteria: { billing: "Refunds or payment", shipping: "Delivery or damage" } },
+    angry:  { type: "noul",   instructions: "The customer is angry" },
+    sev:    { type: "score",  instructions: "How severe", criteria: ["Minor", "Moderate", "Severe"] },
+  },
+});
+answers.team.choice;       // "billing"
+answers.team.confidence;   // 0.48 — measured on exactly this text: Jev is TELLING you not to trust it
+answers.angry.noul;        // probability of "yes"
+answers.sev.score;         // may fall BETWEEN levels (0.91)
+```
+
+| type | asks | returns |
+|---|---|---|
+| `noul` | yes/no | `noul` — probability 0–1 of yes |
+| `choice` | one of a closed set (≥2) | `choice`, `probabilities` per option, `confidence` |
+| `score` | ordered described levels (2–10) | `score`, `probabilities` per level, `legend`, `confidence` |
+
+- **`confidence` is not the winning probability.** It says how peaked the distribution
+  is. The pattern TypeSafe recommends — and the reason to use Jev at all — is to act
+  on the answer only above a confidence you choose, and route the rest to a human.
+- **A `choice` is ALWAYS one of your options.** Jev cannot say "none of these"; low
+  `confidence` is how it says "I don't know". (Contrast `contracts.classify`, which
+  returns `label: null` — F060.)
+- **Price: $0.042 per million INPUT tokens; output is free** (docs.typesafe.ai/models,
+  read 2026-10-01). Less than half the `cheap` tier.
+- **Models:** default `jev-latest`, a MOVING alias (jev-1.13.0 as of 2026-10-01). Pin
+  `override:{ provider:"typesafe", model:"jev-1.13.0" }` once you have tuned a
+  threshold on `confidence` — a new version can move it. Cost is booked on the model
+  that ANSWERED; a version not yet in our price table is booked `unpriced`.
+- **Limits:** 64k tokens per call (state + all questions); text only.
+- **Key:** `TYPESAFE_API_KEY` — Global Vault, "Typesafe AI". One shared $5 trial key,
+  by the owner's choice (2026-10-01). Without it, `createAI()` still works and only
+  `judge` fails.
+
+> **US-HOSTED. NOT FOR PERSONAL, CUSTOMER OR HEALTH DATA.** TypeSafe's privacy policy:
+> *"The Services are hosted in the United States."* Zero data retention is for
+> enterprise customers only, so on our key the input IS retained ("as long as
+> necessary" — no number given). They do commit not to train on input. `usage.region`
+> reports `"us"`. **Measured trap:** the live endpoint answered through Cloudflare's
+> COPENHAGEN edge — that is where the connection ended, not where your data is
+> processed. Do not read residency off a CDN.
+
 ---
 
 ## 5. Cost & budget in practice

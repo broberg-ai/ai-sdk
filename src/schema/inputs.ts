@@ -16,6 +16,7 @@ import type {
   TranscribeResult,
   OcrResult,
   ModerationResult,
+  JudgeResult,
   PodcastResult,
   BatchRequestItem,
   BatchJob,
@@ -249,6 +250,33 @@ export const moderationInputSchema = z.object({
   ...callOptions,
 });
 
+// Judge (F066) — TypeSafe Jev. Validated HERE so a malformed question is refused
+// before a metered call is made, not answered with a 4xx we pay latency for.
+const judgeQuestionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("noul"), instructions: z.string().min(1), criteria: z.string().optional() }),
+  z.object({
+    type: z.literal("choice"),
+    instructions: z.string().min(1),
+    // A choice with fewer than two options is not a choice.
+    criteria: z.record(z.string(), z.string()).refine((o) => Object.keys(o).length >= 2, {
+      message: "a choice needs at least 2 options in criteria",
+    }),
+  }),
+  z.object({
+    type: z.literal("score"),
+    instructions: z.string().min(1),
+    // TypeSafe: a rubric of 2–10 ordered levels.
+    criteria: z.array(z.string().min(1)).min(2).max(10),
+  }),
+]);
+export const judgeInputSchema = z.object({
+  state: z.union([z.string().min(1), z.array(z.string()), z.record(z.unknown())]),
+  questions: z.record(z.string(), judgeQuestionSchema).refine((q) => Object.keys(q).length > 0, {
+    message: "judge needs at least one question",
+  }),
+  ...callOptions,
+});
+
 // Podcast (F020) — a finished manuscript (speaker turns) + a speaker→voiceId map →
 // one finished multi-voice audio episode (ElevenLabs Text-to-Dialogue).
 const pronunciationSchema = z.object({
@@ -343,6 +371,7 @@ export type EmbeddingInput = z.infer<typeof embeddingInputSchema>;
 export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
 export type ModerationInput = z.infer<typeof moderationInputSchema>;
+export type JudgeInput = z.infer<typeof judgeInputSchema>;
 export type PodcastInput = z.infer<typeof podcastInputSchema>;
 export type TtsInput = z.infer<typeof ttsInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
@@ -374,6 +403,9 @@ export interface AiClient {
   ocr(input: OcrInput): Promise<OcrResult>;
   /** Moderation (F016.4) — classify text against safety categories. Mistral. */
   moderate(input: ModerationInput): Promise<ModerationResult>;
+  /** Judge (F066) — typed yes/no, choice and score decisions with calibrated
+   *  probabilities. TypeSafe Jev. US-hosted: NOT for personal data. */
+  judge(input: JudgeInput): Promise<JudgeResult>;
   /** Podcast (F020) — a finished manuscript → one multi-voice audio episode. ElevenLabs. */
   podcast(input: PodcastInput): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) — text → audio. `voice` = curated name or voiceId. ElevenLabs. */
