@@ -42,7 +42,8 @@ Anthropic-kompatibelt. Derfor hører den IKKE hjemme i `ai.chat`.
 
 **$0,042 pr. million INPUT-tokens. Output er gratis.** Under halvdelen af vores
 billigste tekst-tier (mistral-small, $0,10). Kaldet ovenfor kostede ca. $0,000018.
-$5 på nøglen ≈ 119 mio. input-tokens.
+Pr. indsat dollar ≈ 24 mio. input-tokens. (Beløbet på kontoen nævnes bevidst ikke — det
+ændrer sig, og den første angivelse her var allerede forkert dagen efter.)
 
 ### Residens — og den er AMERIKANSK
 
@@ -102,7 +103,7 @@ answers.team.choice; answers.team.confidence; answers.urgent.noul;
 - `contracts.classify` via Jev. Oplagt — en `choice` er en klassifikation med
   kalibreret confidence — men det er en adfærdsændring for en eksisterende funktion og
   hører i sit eget kort når nogen har prøvet `judge`.
-- Delt nøgle med $5 er Christians bevidste valg for en prøveperiode («så alle har
+- Delt forudbetalt prøvenøgle er Christians bevidste valg for en prøveperiode («så alle har
   adgang»). Det står i modsætning til «én Mistral-konto pr. repo», men den beslutning
   gælder Mistral og drift, ikke en prøvenøgle. Noteret, ikke udfordret.
 

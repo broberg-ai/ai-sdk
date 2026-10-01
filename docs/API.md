@@ -578,8 +578,9 @@ answers.sev.score;         // may fall BETWEEN levels (0.91)
   descriptions, score levels and noul `true`/`false` accept text OR JSON (object, array,
   null). TypeSafe's taxonomy-walk and JSON-rubric patterns depend on it.
 - **Limits:** 64k tokens per call (state + all questions); text only.
-- **Key:** `TYPESAFE_API_KEY` — Global Vault, "Typesafe AI". One shared $5 trial key,
-  by the owner's choice (2026-10-01). Without it, `createAI()` still works and only
+- **Key:** `TYPESAFE_API_KEY` — Global Vault, "Typesafe AI". One shared, prepaid trial key
+  with a small balance, by the owner's choice (2026-10-01) — one runaway loop can empty
+  it for everyone, and there is no balance API to warn you first. Without it, `createAI()` still works and only
   `judge` fails.
 
 > **US-HOSTED. NOT FOR PERSONAL, CUSTOMER OR HEALTH DATA.** TypeSafe's privacy policy:
