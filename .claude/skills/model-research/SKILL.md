@@ -1,6 +1,6 @@
 ---
 name: model-research
-description: Monthly model research (F067) — ask every provider we have a key for which models exist, diff against what ai-sdk prices and routes, refresh inventory.json, and file the report in cardmem Assets/Reports. Fired by the buddy job db90bb3f on the 1st at 06:00 Danish time; can be run by hand any time.
+description: Monthly model research (F067) — ask every provider we have a key for which models exist, diff against what ai-sdk prices and routes, refresh inventory.json, and file the report in cardmem Assets/Reports. Fired by buddy job 24cb5bbf (primary session, cb-2) on the 1st at 06:00 Danish time; can be run by hand any time.
 ---
 
 # /model-research
