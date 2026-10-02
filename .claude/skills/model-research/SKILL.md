@@ -19,7 +19,9 @@ report and makes a card.
 printf '%s=%s\n' "$ENV_NAME" "$VALUE" >> .env   # .env is gitignored — check: git check-ignore .env
 ```
 
-Never echo a value, never put one in a commit, a report or a message. A key that is
+Skip a value that spans several lines (the Vertex service-account JSON): `.env` cannot
+hold it and no catalogue fetcher reads it. Never echo a value, never put one in a
+commit, a report or a message. A key that is
 not in the vault is not an error here: the report names it under «Not checked — no key».
 
 ## 2. Run the research
@@ -51,15 +53,19 @@ edited by this skill.
 
 ## 4. File the report in cardmem Assets/Reports
 
-```
-cardmem_create_asset({
-  project_id: "019e850f-f390-771f-828f-4e0acc512b4e",   // ai-sdk
-  session_id: <this session>,
-  folder_name: "Reports",
-  name: "model-research-<date>.md",
-  mime: "text/markdown",
-  base64: <base64 of $OUT>
-})
+Upload over the cardmem MCP endpoint from the shell, so the base64 never passes
+through your context (first run 2026-10-02: 5 KB of report = 7 KB of base64):
+
+```bash
+AUTH=$(jq -r '.mcpServers.cardmem.headers.Authorization' .mcp.json)
+base64 -i "$OUT" | tr -d '\n' > "$OUT.b64"
+jq -n --rawfile b "$OUT.b64" --arg n "model-research-$D.md" --arg s "<this session id>" \
+  '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"cardmem_create_asset",arguments:{
+    project_id:"019e850f-f390-771f-828f-4e0acc512b4e",session_id:$s,folder_name:"Reports",
+    name:$n,mime:"text/markdown",base64:$b}}}' \
+| curl -s -X POST https://services.cardmem.com/mcp -H "Authorization: $AUTH" \
+    -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' -d @- \
+| sed -n 's/^data: //p' | jq -r '.result.content[0].text'
 ```
 
 ## 5. Read it back — the run is not done until this passes
