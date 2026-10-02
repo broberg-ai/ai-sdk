@@ -9,23 +9,23 @@
 //   bun run scripts/research-models.ts --json     # raw CatalogueDiff as JSON
 //
 // Exit code: 0 = catalogue clean, 1 = drift found (so CI can branch on it).
-import { fetchFullCatalogue } from "../src/catalogue/fetchers.js";
+import { fetchFullCatalogue, NO_LIST_API } from "../src/catalogue/fetchers.js";
 import { diffCatalogue, type CatalogueDiff } from "../src/catalogue/diff.js";
 
 const json = process.argv.includes("--json");
 
-const { models, errors, fetched } = await fetchFullCatalogue();
+const { models, errors, fetched, missingKeys } = await fetchFullCatalogue();
 const diff = diffCatalogue(models, { fetchedProviders: fetched });
 
 if (json) {
-  console.log(JSON.stringify({ fetched, errors, modelCount: models.length, diff }, null, 2));
+  console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff }, null, 2));
 } else {
   // F014.5 — loud drift alert when a priced model has vanished upstream (we'd keep
   // pricing a model that no longer exists).
   if (diff.removedUpstream.length > 0) {
     console.log(`⚠️ DRIFT: ${diff.removedUpstream.length} priced model(s) GONE UPSTREAM — ${diff.removedUpstream.join(", ")}\n`);
   }
-  console.log(renderReport(diff, { models: models.length, fetched, errors }));
+  console.log(renderReport(diff, { models: models.length, fetched, errors, missingKeys }));
 }
 
 const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length;
@@ -38,14 +38,25 @@ function num(n: number | undefined): string {
 
 function renderReport(
   d: CatalogueDiff,
-  meta: { models: number; fetched: string[]; errors: Record<string, string> },
+  meta: { models: number; fetched: string[]; errors: Record<string, string>; missingKeys: Record<string, string> },
 ): string {
   const lines: string[] = [];
   lines.push(`# Model-catalogue research`);
   lines.push("");
   lines.push(`${meta.models} models fetched across: ${meta.fetched.join(", ") || "(none)"}.`);
-  const errKeys = Object.keys(meta.errors);
-  if (errKeys.length) lines.push(`Providers skipped/failed: ${errKeys.join(", ")}.`);
+  lines.push("");
+
+  // F067.1 — three kinds of "not looked at", named apart. They used to share one
+  // line ("skipped/failed: openai, anthropic, gemini") and read as an outage.
+  const missing = Object.entries(meta.missingKeys);
+  lines.push(`## 🔐 Not checked — no key (${missing.length})`);
+  lines.push(missing.length === 0 ? "_None._" : missing.map(([p, env]) => `- **${p}** — set \`${env}\``).join("\n"));
+  lines.push("");
+  const failed = Object.entries(meta.errors);
+  lines.push(`## ❌ Fetch failed (${failed.length})`);
+  lines.push(failed.length === 0 ? "_None._" : failed.map(([p, e]) => `- **${p}** — ${e}`).join("\n"));
+  lines.push("");
+  lines.push(`No model-list API we call: ${NO_LIST_API.join(", ")} — their prices are the hand-checked table below.`);
   lines.push("");
 
   lines.push(`## 💰 Price drift (${d.priceChanged.length})`);
@@ -62,7 +73,13 @@ function renderReport(
   lines.push("");
 
   lines.push(`## ✨ New models to consider (${d.added.length})`);
-  lines.push(d.added.length === 0 ? "_None._" : d.added.map((m) => `- \`${m.provider}:${m.model}\``).join("\n"));
+  lines.push(
+    d.added.length === 0
+      ? "_None._"
+      : d.added
+          .map((m) => `- \`${m.provider}:${m.model}\`${m.aliases?.length ? ` (also: ${m.aliases.join(", ")})` : ""}`)
+          .join("\n"),
+  );
   lines.push("");
 
   lines.push(`## 🗑️ In our table but gone upstream (${d.removedUpstream.length})`);

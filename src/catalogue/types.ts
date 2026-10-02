@@ -12,6 +12,10 @@ export interface CatalogueModel {
   outputPer1M?: number;
   contextLength?: number;
   deprecated?: boolean;
+  /** Other ids the provider answers to for the SAME model (F067.1 — Mistral lists
+   *  `mistral-large-2512` and `mistral-large-latest` as two rows naming each other).
+   *  A model is known if its id OR any alias is known. */
+  aliases?: string[];
 }
 
 /** `${provider}:${model}` — the same key shape PRICING uses. */

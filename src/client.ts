@@ -157,6 +157,25 @@ const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_mult
 /** Batch route (F016.1) — Mistral batch jobs (50% cost), cheap default model. */
 const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-latest", transport: "http" };
 
+/** Every built-in route that is NOT in the tier map (F067.1). The model research reads
+ *  this to know which provider ids the SDK already calls, so a model it routes by
+ *  default is never reported as "new". One list, derived from the specs above. */
+export const ROUTED_SPECS: readonly TierSpec[] = [
+  DEFAULT_IMAGE_SPEC,
+  DEFAULT_LORA_IMAGE_SPEC,
+  DEFAULT_TRAINSTYLE_SPEC,
+  DEFAULT_ANIMATE_SPEC,
+  DEFAULT_BFL_FINETUNE_SPEC,
+  DEFAULT_BFL_REFERENCE_SPEC,
+  DEFAULT_OCR_SPEC,
+  DEFAULT_MODERATION_SPEC,
+  DEFAULT_JUDGE_SPEC,
+  DEFAULT_PODCAST_SPEC,
+  DEFAULT_TTS_SPEC,
+  DEFAULT_BATCH_SPEC,
+  DEFAULT_TRANSCRIBE_SPEC,
+];
+
 /** Cost-tracking on by DEFAULT (F034): an explicit config.costSink always wins;
  *  otherwise, when the upmetrics env is present, auto-wire the canonical sink so
  *  fleet-wide call-sites report without per-repo wiring (per-repo wiring drifts —
