@@ -13,11 +13,11 @@ test("MiniMax M2.7 is priced via openrouter", () => {
   expect(getPrice("openrouter", "minimax/minimax-m2.7")).toBeDefined();
 });
 
-test("DeepSeek V4 is priced via openrouter (official permanent prices)", () => {
+test("DeepSeek V4 is priced via openrouter (live rate, re-read 2026-10-02)", () => {
   // CN-hosted, non-GDPR — but a strong cheap route post-15-Jun. Must not log $0.
   expect(getPrice("openrouter", "deepseek/deepseek-v4-pro")).toBeDefined();
   expect(computeCost("openrouter", "deepseek/deepseek-v4-pro", 1_000_000, 1_000_000)).toBeCloseTo(
-    1.305, // $0.435 in + $0.87 out
+    0.6264, // $0.2088 in + $0.4176 out
     6,
   );
   expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toBeDefined();

@@ -89,19 +89,22 @@ export const PRICING: Record<string, PricingEntry> = {
   // (the `anthropic:` entry above). Was masked while the slug used dashes.
   "openrouter:anthropic/claude-haiku-4.5": { inputPer1M: 1.0, outputPer1M: 5.0, version: "2026-06-04" },
   "openrouter:google/gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
-  // Ground-truth from OpenRouter /api/v1/models (was a 0.3 estimate; now 0.279).
+  // Ground-truth from OpenRouter /api/v1/models, re-read 2026-10-02 (F067.5; was 0.279/1.2).
   "openrouter:minimax/minimax-m2.7": {
-    inputPer1M: 0.279,
-    outputPer1M: 1.2,
-    version: "2026-06-04",
+    inputPer1M: 0.21,
+    outputPer1M: 0.84,
+    version: "2026-10-02-openrouter-live",
   },
   // DeepSeek V4 (CN-hosted — NOT GDPR-safe; non-personal-data workloads only).
   // On 2026-05-22 DeepSeek made the "75% off" promo the permanent official price.
   // V4-Pro $0.435/$0.87 is ~34x cheaper than GPT-5.5 on output; flash is cheaper
   // still. Numbers match OpenRouter /api/v1/models 1:1 (no router markup). A strong
   // cheap route for fleet background work once `claude -p` is API-billed (15 Jun).
-  "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.435, outputPer1M: 0.87, version: "2026-05-22-deepseek-official" },
-  "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.0983, outputPer1M: 0.1966, version: "2026-05-22-deepseek-official" },
+  // Re-read from OpenRouter /api/v1/models 2026-10-02 (F067.5). These moved three
+  // times in a month (Sep 3: pro 1.02, Oct 1: flash 0.042, Oct 2: flash 0.028) — an
+  // OpenRouter call books usage.cost from the response anyway; this row is the fallback.
+  "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.2088, outputPer1M: 0.4176, version: "2026-10-02-openrouter-live" },
+  "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.028, outputPer1M: 0.056, version: "2026-10-02-openrouter-live" },
   // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from
   // api-docs.deepseek.com 2026-06-30 ($0.14/$0.28 per 1M; both map to deepseek-v4-flash).
   // `deepseek-chat` (non-thinking) + `deepseek-reasoner` (thinking) DEPRECATE 2026-07-24.
