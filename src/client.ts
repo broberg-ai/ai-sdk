@@ -293,7 +293,10 @@ export function createAI(config: AiConfig = {}): AiClient {
     usage.capability = capability;
     if (tier) usage.tier = tier;
     if (purpose) usage.purpose = purpose;
-    if (labels && Object.keys(labels).length > 0) usage.labels = labels;
+    // F069.2 — client-wide labels (e.g. {byok, tenantId}) under the call's own; the
+    // call wins on a shared key, so one request can still say something different.
+    const merged = { ...cfg.labels, ...labels };
+    if (Object.keys(merged).length > 0) usage.labels = merged;
     usage.latencyMs = Math.round(latencyMs);
     if (!usage.ts) usage.ts = new Date().toISOString();
     return usage;

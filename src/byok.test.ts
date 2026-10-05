@@ -73,3 +73,31 @@ test("a tier the customer did not map fails closed — no call to the fleet's pr
   await expect(ai.chat({ prompt: "hej", tier: "fast" })).rejects.toThrow(/no provider adapter registered/);
   expect(calls).toHaveLength(0);
 });
+
+// ── F069.2 — client-wide labels ─────────────────────────────────────────────
+test("client-wide labels land on every call's usage; the call's own label wins on a shared key", async () => {
+  const ai = createAI({
+    byok: true,
+    costSink: null,
+    labels: { byok: "true", tenantId: "t1" },
+    providers: { openai: byokAdapter(openaiAdapter, { apiKey: "sk-CUSTOMER" }) },
+    defaults: SMART,
+  });
+  const a = await ai.chat({ prompt: "hej", tier: "smart" });
+  expect(a.usage.labels).toEqual({ byok: "true", tenantId: "t1" });
+  const b = await ai.chat({ prompt: "hej", tier: "smart", labels: { tenantId: "t2", feature: "summary" } });
+  expect(b.usage.labels).toEqual({ byok: "true", tenantId: "t2", feature: "summary" });
+});
+
+test("client-wide labels reach the cost sink row", async () => {
+  const rows: { labels?: Record<string, string> }[] = [];
+  const ai = createAI({
+    costSink: { record: (u) => void rows.push(u) },
+    labels: { byok: "true", tenantId: "t1" },
+    providers: { openai: byokAdapter(openaiAdapter, { apiKey: "sk-CUSTOMER" }) },
+    defaults: SMART,
+  });
+  await ai.chat({ prompt: "hej", tier: "smart" });
+  expect(rows).toHaveLength(1);
+  expect(rows[0]!.labels).toEqual({ byok: "true", tenantId: "t1" });
+});

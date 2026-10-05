@@ -356,6 +356,9 @@ export const aiConfigSchema = z.object({
   /** F069.1 — customer-key mode. Every provider must be built with byokAdapter(), so no
    *  call can fall back to the fleet's env keys; createAI throws at setup otherwise. */
   byok: z.boolean().optional(),
+  /** F069.2 — attribution labels stamped on EVERY call's usage (and so on every cost-sink
+   *  row), e.g. { byok: "true", tenantId }. A call's own `labels` win on the same key. */
+  labels: z.record(z.string(), z.string()).optional(),
   /** F039.2 — client-wide opt-out from prompt caching (default: on where the
    *  provider supports it). A per-call `promptCache` wins over this. */
   promptCache: z.boolean().optional(),

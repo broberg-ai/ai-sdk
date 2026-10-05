@@ -175,8 +175,11 @@ run silently on our account, and nothing would fail.
 
 **What `byok` does NOT cover.** Non-secret settings still read env when you omit them:
 Azure's region (`AZURE_SPEECH_REGION`), Vertex's project/region. Those decide where data
-is processed, so pass them explicitly on a customer adapter. Use `labels` on each call
-(`{ byok: "true", tenantId }`) so cost rows show you are not the one paying.
+is processed, so pass them explicitly on a customer adapter.
+
+**Mark the cost rows (F069.2).** `createAI({ byok: true, labels: { byok: "true", tenantId } , … })`
+stamps those labels on every call's `usage` and every cost-sink row, so the spend shows as
+the customer's, not ours. A call's own `labels` win on the same key.
 
 ### 3.4 Transport — http vs subprocess
 The transport decides *how bytes travel*, never *what they contain*.
