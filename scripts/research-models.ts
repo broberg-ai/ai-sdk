@@ -11,11 +11,23 @@
 // Exit code: 0 = catalogue clean, 1 = drift found (so CI can branch on it).
 import { fetchFullCatalogue, NO_LIST_API } from "../src/catalogue/fetchers.js";
 import { diffCatalogue, type CatalogueDiff } from "../src/catalogue/diff.js";
+import { newSinceLastRun, nextSeen, type SeenLists } from "../src/catalogue/seen.js";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const json = process.argv.includes("--json");
 
 const { models, errors, fetched, missingKeys } = await fetchFullCatalogue();
 const diff = diffCatalogue(models, { fetchedProviders: fetched });
+
+// F067.6 — compare against the lists seen last run (committed by /model-research).
+// --dry leaves the file untouched, for a look without moving the baseline.
+const SEEN_FILE = "catalogue-seen.json";
+const seen: SeenLists = existsSync(SEEN_FILE) ? (JSON.parse(readFileSync(SEEN_FILE, "utf8")) as SeenLists) : {};
+const unknownTotal = diff.added.length;
+diff.added = newSinceLastRun(diff.added, seen);
+if (!process.argv.includes("--dry")) {
+  writeFileSync(SEEN_FILE, JSON.stringify(nextSeen(models, fetched, seen), null, 2) + "\n");
+}
 
 if (json) {
   console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff }, null, 2));
@@ -25,7 +37,7 @@ if (json) {
   if (diff.removedUpstream.length > 0) {
     console.log(`⚠️ DRIFT: ${diff.removedUpstream.length} priced model(s) GONE UPSTREAM — ${diff.removedUpstream.join(", ")}\n`);
   }
-  console.log(renderReport(diff, { models: models.length, fetched, errors, missingKeys }));
+  console.log(renderReport(diff, { models: models.length, fetched, errors, missingKeys, unknownTotal }));
 }
 
 const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length;
@@ -38,7 +50,7 @@ function num(n: number | undefined): string {
 
 function renderReport(
   d: CatalogueDiff,
-  meta: { models: number; fetched: string[]; errors: Record<string, string>; missingKeys: Record<string, string> },
+  meta: { models: number; fetched: string[]; errors: Record<string, string>; missingKeys: Record<string, string>; unknownTotal: number },
 ): string {
   const lines: string[] = [];
   lines.push(`# Model-catalogue research`);
@@ -72,7 +84,10 @@ function renderReport(
   lines.push(d.missingPrice.length === 0 ? "_None — every shipped route is priced._" : d.missingPrice.map((k) => `- \`${k}\``).join("\n"));
   lines.push("");
 
-  lines.push(`## ✨ New models to consider (${d.added.length})`);
+  lines.push(`## ✨ New since last run (${d.added.length})`);
+  lines.push(
+    `_${meta.unknownTotal} listed model(s) are not in our price table; only those not seen on the last run are shown. Dated snapshots of a listed model are folded in._`,
+  );
   lines.push(
     d.added.length === 0
       ? "_None._"

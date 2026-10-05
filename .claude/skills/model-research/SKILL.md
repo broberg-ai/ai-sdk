@@ -44,6 +44,10 @@ bun run scripts/build-inventory.ts
 git diff -I '"generatedAt"' -I '"checkedAt"' --quiet inventory.json && echo unchanged || echo changed
 ```
 
+Always add `catalogue-seen.json` to the same commit (F067.6): it holds the model lists
+this run saw, and next month's «New since last run» is measured against it. Leave it
+out and next month reports everything again.
+
 - `unchanged` → commit only the `checkedAt` stamp: `chore(inventory): verified, no changes`.
 - `changed` → commit it: `chore(inventory): monthly model-research refresh (<date>)`,
   and add one line to the report saying the inventory moved.

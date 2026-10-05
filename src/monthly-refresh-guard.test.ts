@@ -47,6 +47,10 @@ test("the no-change path still records that the check HAPPENED", () => {
   expect(skill).toContain("verified, no changes");
 });
 
+test("F067.6 — the run commits the seen-lists, or next month's «new» means nothing", () => {
+  expect(skill).toContain("catalogue-seen.json");
+});
+
 test("the monthly run never edits a price on its own", () => {
   expect(skill).toMatch(/src\/cost\/pricing\.ts` is NEVER\s+edited/);
 });

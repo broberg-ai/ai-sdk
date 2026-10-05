@@ -48,6 +48,13 @@ const DIRECT_PROVIDERS = new Set(["openai", "anthropic", "gemini"]);
  *  model could never appear: ElevenLabs has no token price, so it had no "brand". */
 const FULL_LIST_PROVIDERS = new Set(["mistral", "deepseek", "elevenlabs"]);
 
+/** F067.6 — the undated name of a dated snapshot: "gpt-4o-2024-08-06" → "gpt-4o",
+ *  "claude-sonnet-4-5-20250929" → "claude-sonnet-4-5", "gpt-4-0613" → "gpt-4". Returns
+ *  the id unchanged when it carries no date. */
+export function undatedBase(id: string): string {
+  return id.replace(/-(\d{4}-\d{2}-\d{2}|\d{8}|\d{4})$/, "");
+}
+
 /** Every `${provider}:${model}` the SDK already prices, tracks or routes to. */
 function knownKeys(): Set<string> {
   const known = new Set<string>([...Object.keys(PRICING), ...Object.keys(MEDIA_PRICING)]);
@@ -86,6 +93,22 @@ export function diffCatalogue(
   // ── added ────────────────────────────────────────────────────────────
   const added: CatalogueModel[] = [];
   const reportedGroups = new Set<string>();
+  // F067.6 — measured 2026-10-05: ~45 of 106 OpenAI "new models" were dated snapshots
+  // listed beside their own undated name (gpt-4o-2024-08-06 next to gpt-4o). A snapshot
+  // of something on the same list, or of something we know, is not news.
+  const listedByProvider = new Map<string, Set<string>>();
+  for (const m of fetched) {
+    if (!listedByProvider.has(m.provider)) listedByProvider.set(m.provider, new Set());
+    listedByProvider.get(m.provider)!.add(m.model);
+  }
+  const isSnapshotOfListed = (m: CatalogueModel): boolean => {
+    const base = undatedBase(m.model);
+    if (base === m.model) return false;
+    return (
+      listedByProvider.get(m.provider)?.has(base) === true ||
+      known.has(catalogueKey({ provider: m.provider, model: base }))
+    );
+  };
   for (const m of fetched) {
     if (FULL_LIST_PROVIDERS.has(m.provider)) {
       if (m.deprecated) continue;
@@ -96,6 +119,7 @@ export function diffCatalogue(
       continue;
     }
     if (!DIRECT_PROVIDERS.has(m.provider)) continue; // openrouter's full list is too broad to mine for adds
+    if (isSnapshotOfListed(m)) continue;
     const brands = trackedBrands.get(m.provider);
     if (!brands?.has(brandToken(m.model))) continue; // only brands we already price
     if (PRICING[catalogueKey(m)]) continue; // already priced
