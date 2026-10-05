@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-02T19:58:37.222Z",
-  "checkedAt": "2026-10-02T19:58:37.222Z",
-  "modelCount": 465,
+  "generatedAt": "2026-10-05T19:43:46.047Z",
+  "checkedAt": "2026-10-05T19:43:46.047Z",
+  "modelCount": 464,
   "models": [
     {
       "provider": "inclusionai",
@@ -381,37 +381,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "stealth",
-      "model": "stealth/space-bunny-alpha",
-      "name": "Space Bunny Alpha",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "Space Bunny Alpha is an anonymous large model with blazing-fast inference, strong coding capabilities and native multimodal input support. It delivers adjustable reasoning effort, and a 1M-token context window. Space...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -865,6 +834,30 @@
       "gdprSafe": false
     },
     {
+      "provider": "nvidia",
+      "model": "nvidia/switchyard",
+      "name": "NVIDIA: Switchyard",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [],
+      "description": "Switchyard is an open-source model router that switches between multiple models to optimize the cost of requests. By default it will use OpenRouter market data to select the most popular...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
       "provider": "xiaomi",
       "model": "xiaomi/mimo-v2.6-pro-ultraspeed",
       "name": "Xiaomi: MiMo-V2.6-Pro-UltraSpeed",
@@ -1140,9 +1133,9 @@
       "name": "DeepSeek: DeepSeek Pro Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.13199999999999998,
-        "output": 0.396,
-        "cacheReadPer1M": 0.004200000000000001
+        "input": 0.1901,
+        "output": 4.199999999999999,
+        "cacheReadPer1M": 0.19
       },
       "inputModalities": [
         "text"
@@ -1170,9 +1163,9 @@
       "name": "DeepSeek: DeepSeek Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.02,
-        "output": 0.6,
-        "cacheReadPer1M": 0.02
+        "input": 0.003,
+        "output": 2.4,
+        "cacheReadPer1M": 0.003
       },
       "inputModalities": [
         "text",
@@ -1487,9 +1480,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.02,
-        "output": 0.6,
-        "cacheReadPer1M": 0.02
+        "input": 0.3,
+        "output": 1.2,
+        "cacheReadPer1M": 0.006
       },
       "inputModalities": [
         "text",
@@ -2103,9 +2096,9 @@
       "name": "inclusionAI: Ling 3.0 Flash Fin",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.06,
-        "output": 0.18,
-        "cacheReadPer1M": 0.012
+        "input": 0.041999999999999996,
+        "output": 0.12319999999999999,
+        "cacheReadPer1M": 0.008400000000000001
       },
       "inputModalities": [
         "text"
@@ -2134,9 +2127,9 @@
       "name": "Z.ai: GLM Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.02625,
-        "output": 0.9287489999999999,
-        "cacheReadPer1M": 0.01125
+        "input": 0.035199999999999995,
+        "output": 0.5,
+        "cacheReadPer1M": 0.0232
       },
       "inputModalities": [
         "text",
@@ -2394,9 +2387,9 @@
       "name": "Z.ai: GLM Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.12,
-        "output": 4,
-        "cacheReadPer1M": 0.08
+        "input": 0.03,
+        "output": 12,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text"
@@ -2449,9 +2442,9 @@
       "name": "Z.ai: GLM 5.3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.4,
-        "output": 4.4,
-        "cacheReadPer1M": 0.14
+        "input": 0.06,
+        "output": 7,
+        "cacheReadPer1M": 0.055
       },
       "inputModalities": [
         "text"
@@ -2507,8 +2500,8 @@
       "name": "Qwen: Qwen3.8 27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.42,
-        "output": 3,
+        "input": 0.425,
+        "output": 2.5500000000000003,
         "cacheReadPer1M": 0.08499999999999999
       },
       "inputModalities": [
@@ -2520,37 +2513,6 @@
         "text"
       ],
       "contextLength": 1000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "Qwen3.8 27B is an open-weight dense vision-language model from Qwen. It is suited for coding, professional workflows, research, multimodal interaction, and long-running agent tasks, with flexible thinking that can be...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "qwen",
-      "model": "qwen/qwen3.8-27b:free",
-      "name": "Qwen: Qwen3.8 27B (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -2766,9 +2728,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0813",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.66,
-        "output": 1.9800000000000002,
-        "cacheReadPer1M": 0.022
+        "input": 0.39999999999999997,
+        "output": 5,
+        "cacheReadPer1M": 0.36
       },
       "inputModalities": [
         "text"
@@ -3039,9 +3001,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.005775,
-        "output": 0.948024,
-        "cacheReadPer1M": 0.0010500000000000002
+        "input": 0.0152,
+        "output": 1.28,
+        "cacheReadPer1M": 0.0152
       },
       "inputModalities": [
         "text"
@@ -3070,9 +3032,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0731",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.007699999999999999,
+        "input": 0.0152,
         "output": 1.28,
-        "cacheReadPer1M": 0.007699999999999999
+        "cacheReadPer1M": 0.0152
       },
       "inputModalities": [
         "text"
@@ -3639,9 +3601,9 @@
       "name": "MoonshotAI: Kimi K3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 2.7,
-        "output": 13.5,
-        "cacheReadPer1M": 0.27
+        "input": 1.3900000000000001,
+        "output": 14,
+        "cacheReadPer1M": 0.45999999999999996
       },
       "inputModalities": [
         "text",
@@ -4031,9 +3993,9 @@
       "name": "OpenAI: GPT-5.6 Sol Pro",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 4,
-        "output": 20,
-        "cacheReadPer1M": 0.39999999999999997
+        "input": 2,
+        "output": 10,
+        "cacheReadPer1M": 0.19999999999999998
       },
       "inputModalities": [
         "file",
@@ -4053,7 +4015,7 @@
         "frontier"
       ],
       "description": "GPT-5.6 Sol Pro is the same underlying model as [GPT-5.6 Sol](https://openrouter.ai/openai/gpt-5.6-sol), served with `reasoning.mode` set to `pro` for higher-quality responses on complex tasks. **Cost note:** pro mode spends far more...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -4600,9 +4562,9 @@
       "name": "Z.ai: GLM 5.2",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.41,
-        "output": 3.9899999999999998,
-        "cacheReadPer1M": 0.26
+        "input": 0.04,
+        "output": 12,
+        "cacheReadPer1M": 0.04
       },
       "inputModalities": [
         "text"
@@ -4841,9 +4803,9 @@
       "name": "NVIDIA: Nemotron 3 Ultra",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6,
-        "output": 2.4,
-        "cacheReadPer1M": 0.12
+        "input": 0.5,
+        "output": 2.2,
+        "cacheReadPer1M": 0.09999999999999999
       },
       "inputModalities": [
         "text"
@@ -5605,9 +5567,9 @@
       "name": "MoonshotAI: Kimi Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.3900000000000001,
+        "input": 0.777,
         "output": 13,
-        "cacheReadPer1M": 0.7999999999999999
+        "cacheReadPer1M": 0.44999999999999996
       },
       "inputModalities": [
         "text",
@@ -5835,7 +5797,8 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.32,
-        "output": 3.1999999999999997
+        "output": 3.25,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text",
@@ -6025,9 +5988,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.028,
-        "output": 0.056,
-        "cacheReadPer1M": 0.0056
+        "input": 0.03,
+        "output": 1.28,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text"
@@ -6242,9 +6205,9 @@
       "name": "MoonshotAI: Kimi K2.6",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.43415,
-        "output": 1.8279999999999998,
-        "cacheReadPer1M": 0.07311999999999999
+        "input": 0.95,
+        "output": 4,
+        "cacheReadPer1M": 0.16
       },
       "inputModalities": [
         "text",
@@ -6341,9 +6304,9 @@
       "name": "Z.ai: GLM 5.1",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.9646,
-        "output": 3.0316,
-        "cacheReadPer1M": 0.17914
+        "input": 1.4,
+        "output": 4.4,
+        "cacheReadPer1M": 0.26
       },
       "inputModalities": [
         "text"
@@ -6370,9 +6333,9 @@
       "name": "Google: Gemma 4 26B A4B ",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0675,
-        "output": 0.22499999999999998,
-        "cacheReadPer1M": 0.0375
+        "input": 0.0765,
+        "output": 0.255,
+        "cacheReadPer1M": 0.042499999999999996
       },
       "inputModalities": [
         "image",
@@ -9355,8 +9318,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.6,
-        "output": 2.5,
-        "cacheReadPer1M": 0.15
+        "output": 2.5
       },
       "inputModalities": [
         "text"
@@ -12593,7 +12555,7 @@
       ],
       "contextLength": 128000,
       "supportsTools": true,
-      "supportsStructuredOutput": false,
+      "supportsStructuredOutput": true,
       "categories": [],
       "goodFor": [
         "vision",
@@ -13342,8 +13304,9 @@
       "name": "Meta: Llama 3.3 70B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.32
+        "input": 0.22,
+        "output": 0.5,
+        "cacheReadPer1M": 0.11
       },
       "inputModalities": [
         "text"
@@ -14181,7 +14144,7 @@
         "agentic"
       ],
       "description": "GPT-4o (\"o\" for \"omni\") is OpenAI's latest AI model, supporting both text and image inputs with text outputs. It maintains the intelligence level of [GPT-4 Turbo](/models/openai/gpt-4-turbo) while being twice as...",
-      "isModerated": true,
+      "isModerated": false,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
