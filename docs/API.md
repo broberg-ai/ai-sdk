@@ -143,6 +143,41 @@ function-calling is normalized across providers via `toProviderTools` /
 `claude -p`), `openaiAdapter`, `geminiAdapter`, `deepinfraAdapter`,
 `openrouterAdapter`, `requestyAdapter`, `falAdapter`.
 
+#### Customer keys (BYOK) — `byok: true` + `byokAdapter` (F069.1)
+
+When a customer brings their own key, build the client like this:
+
+```ts
+import { createAI, byokAdapter, openaiAdapter } from "@broberg/ai-sdk";
+
+const ai = createAI({
+  byok: true,
+  providers: { openai: byokAdapter(openaiAdapter, { apiKey: customer.openaiKey }) },
+  defaults: { smart: { provider: "openai", model: "gpt-4o-mini", transport: "http" } },
+});
+await ai.chat({ prompt, tier: "smart" });   // the app's call does not change shape
+```
+
+**Why the two halves.** Every adapter resolves its key as `apiKey ?? process.env.<X>_API_KEY`.
+Measured 2026-10-05: `openaiAdapter({ apiKey: undefined })` with `OPENAI_API_KEY` in
+env sent the **fleet's** key. A customer whose key is missing from your store would
+run silently on our account, and nothing would fail.
+
+- `byokAdapter(factory, config)` throws at construction when the key is missing or
+  blank (`""` and `"   "` are not keys).
+- `createAI({ byok: true })` throws at setup when `providers` is absent or any provider
+  was not built with `byokAdapter`, so an adapter that could read env cannot slip in.
+  Nothing is sent when either throws.
+- A tier the customer did not map, and any capability whose provider is not in
+  `providers`, fails closed: «no provider adapter registered for "mistral"». There is no
+  implicit fallback to the fleet's providers. The only fallback is one you pass in
+  `fallback:` yourself — keep it empty or customer-only.
+
+**What `byok` does NOT cover.** Non-secret settings still read env when you omit them:
+Azure's region (`AZURE_SPEECH_REGION`), Vertex's project/region. Those decide where data
+is processed, so pass them explicitly on a customer adapter. Use `labels` on each call
+(`{ byok: "true", tenantId }`) so cost rows show you are not the one paying.
+
 ### 3.4 Transport — http vs subprocess
 The transport decides *how bytes travel*, never *what they contain*.
 `httpTransport` is a provider-agnostic `fetch` wrapper; `subprocessTransport`

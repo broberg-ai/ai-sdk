@@ -35,6 +35,7 @@ export type { FalAdapterConfig } from "./providers/fal.js";
 export { bflAdapter, bflCredits } from "./providers/bfl.js";
 export type { BflAdapterConfig, BflCredits } from "./providers/bfl.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
+export { byokAdapter, isByokKeyed } from "./byok.js";
 export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
 export { defaultProviders } from "./providers/registry.js";
 export {

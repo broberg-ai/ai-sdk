@@ -73,6 +73,7 @@ import type {
   CostSink,
 } from "./types.js";
 import { upmetricsSink } from "./cost/sinks/upmetrics.js";
+import { assertByokProviders } from "./byok.js";
 
 /** Built-in image route (no image tier in the tier map — fal owns its routing). */
 const DEFAULT_IMAGE_SPEC: TierSpec = {
@@ -198,6 +199,9 @@ function defaultCostSink(): CostSink | undefined {
 export function createAI(config: AiConfig = {}): AiClient {
   // Validate config at the boundary (throws ZodError on bad shape).
   const cfg = aiConfigSchema.parse(config);
+  // F069.1 — before anything else: a customer-key client may not start on adapters
+  // that could read the fleet's env keys, and never on the fleet's defaults.
+  if (cfg.byok) assertByokProviders(cfg.providers);
   const providers = cfg.providers ?? defaultProviders;
   // Explicit wins — including explicit NONE. `undefined` (omitted) auto-wires
   // from env (F034); `null` is a deliberate opt-out for a consumer that already
