@@ -7,78 +7,48 @@
 // nothing delivered, nobody told. Meanwhile a single week of drift produced 34 price
 // changes, 23 new models and 15 removals.
 //
-// This test reads the workflow as TEXT because that is the artifact GitHub runs. There
-// is no unit to call; the only way to stop the pattern coming back is to forbid it.
+// F067.3 (2026-10-02): the GitHub workflow is gone. The monthly run is now the
+// /model-research skill, fired by buddy job 24cb5bbf in the primary session, and the
+// report lands in cardmem Assets/Reports instead of a PR. The PROPERTIES this file
+// guarded did not go away with the workflow — "a run may not succeed without
+// delivering" is exactly why the skill reads its report back — so they are asserted
+// against the skill now. The skill is prose an agent follows; reading it as TEXT is
+// the same move as reading the YAML was, and for the same reason: it is the artifact
+// that runs.
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
-const wf = readFileSync(new URL("../.github/workflows/research-models.yml", import.meta.url), "utf8");
+const skill = readFileSync(new URL("../.claude/skills/model-research/SKILL.md", import.meta.url), "utf8");
 const pub = readFileSync(new URL("../.github/workflows/publish.yml", import.meta.url), "utf8");
 
-/** The workflow with its `#` comment lines removed.
- *
- *  Assertions run against THIS. The comments explaining why `::notice::` is banned
- *  contain the word `::notice::`, so a naive text search makes the prose that justifies
- *  the rule the thing that violates it — the guard would be red for writing down its own
- *  reason. Same lesson this repo learned on the mailto guard: strip the commentary
- *  first, or the documentation becomes the defect. */
-const code = wf
-  .split("\n")
-  .filter((l) => !/^\s*#/.test(l))
-  .join("\n");
-
-test("the workflow exists and still opens a PR on a substantive change", () => {
-  // Guard the guard: if the file were renamed away, every assertion below would vanish
-  // rather than fail.
-  expect(wf).toContain("gh pr create");
-  expect(wf).toContain("scripts/build-inventory.ts");
+test("the old workflow stays retired — one monthly job, not two", () => {
+  expect(existsSync(new URL("../.github/workflows/research-models.yml", import.meta.url))).toBe(false);
 });
 
-test("F050 — the monthly job REPORTS the prices it cannot refresh", () => {
-  // The job refreshes tokens from OpenRouter and cannot touch the per-second /
-  // per-image / per-minute / per-page numbers: no vendor serves them in a catalogue
-  // API. Until F050 nothing said so, so a run that refreshed half the table reported
-  // plain success and pricingFreshness() called the whole thing fresh.
-  expect(code).toContain("scripts/media-price-age.ts");
-  // Into BOTH the PR body and the job summary — a report only in the log is a report
-  // nobody reads, which is how three months of failed PR creation went unnoticed.
-  expect(code).toContain("GITHUB_STEP_SUMMARY");
-  expect(code).toContain("/tmp/report.md");
+test("the skill runs research, the media-price report AND the inventory rebuild", () => {
+  // Guard the guard: if the skill were renamed away, readFileSync above throws.
+  expect(skill).toContain("scripts/research-models.ts");
+  expect(skill).toContain("scripts/build-inventory.ts");
+  // F050 — the prices no catalogue API serves are reported every month, into the
+  // report itself (a report only in a log is a report nobody reads).
+  expect(skill).toMatch(/media-price-age\.ts >> "\$OUT"/);
 });
 
-test("F050 — the media-price report may NOT fail the run", () => {
-  // Deliberately not a gate. A gate no automation can clear blocks a release on a
-  // human errand, and the fix under deadline is to bump the date without re-reading
-  // the vendor page — leaving the gate green and the date lying. Worse than no gate.
-  const step = code.slice(code.indexOf("media-price-age.ts"));
-  const nextStep = step.indexOf("\n      - name:");
-  const body = nextStep > 0 ? step.slice(0, nextStep) : step;
-  expect(body).not.toContain("exit 1");
-  expect(body).not.toContain("::error::");
-});
-
-test("a blocked PR creation FAILS the run — it may not be a notice", () => {
-  const fallback = code.slice(code.indexOf("gh pr create"));
-  expect(fallback).toContain("exit 1");
-  // ::notice:: is invisible in a green run. That is precisely how this went unseen for
-  // three months, so the string itself is banned from the failure path.
-  expect(fallback).not.toContain("::notice::");
-  expect(fallback).toContain("::error::");
-});
-
-test("no step silences its own failure with `|| true` after the report step", () => {
-  // The drift REPORT is allowed to fail (it is informational and its output is captured
-  // either way). Nothing after it may be.
-  const afterReport = code.slice(code.indexOf("Rebuild inventory"));
-  expect(afterReport).not.toContain("|| true");
+test("a run is not done until the filed report has been READ BACK", () => {
+  // The workflow's failure was three green months with zero PRs opened. The skill's
+  // equivalent is filing a report and never checking it landed.
+  expect(skill).toContain("Read it back");
+  expect(skill).toContain("byte_size");
 });
 
 test("the no-change path still records that the check HAPPENED", () => {
-  // The old version ran `git checkout inventory.json`, throwing the whole rebuild away
-  // including the timestamp — so "verified, unchanged" became indistinguishable from
-  // "abandoned". A run that verifies and finds nothing must still leave a trace.
-  expect(code).not.toContain("git checkout inventory.json");
-  expect(wf).toContain("checkedAt");
+  expect(skill).not.toContain("git checkout inventory.json");
+  expect(skill).toContain("checkedAt");
+  expect(skill).toContain("verified, no changes");
+});
+
+test("the monthly run never edits a price on its own", () => {
+  expect(skill).toMatch(/src\/cost\/pricing\.ts` is NEVER\s+edited/);
 });
 
 // ── F046.2: a release may not carry a stale price table ──────────────────────
