@@ -18,13 +18,14 @@ export function openaiAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
 ): ProviderAdapter {
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.openai;
-  const base = makeOpenAICompatibleAdapter({ name: "openai", baseUrl, apiKey: config.apiKey });
+  const base = makeOpenAICompatibleAdapter({ name: "openai", baseUrl, apiKey: config.apiKey, fetch: config.fetch });
 
   async function embedding(req: EmbeddingRequest): Promise<EmbeddingResult> {
     const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("openai adapter: API key not set (env OPENAI_API_KEY)");
     const res = await httpTransport({
       spec: req.spec,
+      fetch: config.fetch,
       http: {
         url: `${baseUrl}/embeddings`,
         headers: { "content-type": "application/json", Authorization: `Bearer ${apiKey}` },

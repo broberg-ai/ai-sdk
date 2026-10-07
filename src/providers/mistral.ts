@@ -29,7 +29,7 @@ export function mistralAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerPage?: number } = {},
 ): ProviderAdapter {
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.mistral;
-  const base = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl, apiKey: config.apiKey, supportsPromptCacheKey: true, supportsPrefix: true });
+  const base = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl, apiKey: config.apiKey, fetch: config.fetch, supportsPromptCacheKey: true, supportsPrefix: true });
 
   function key(): string {
     const k = config.apiKey ?? process.env.MISTRAL_API_KEY;

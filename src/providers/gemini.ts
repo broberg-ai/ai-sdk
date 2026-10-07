@@ -134,6 +134,7 @@ export function geminiAdapter(
 
     const res = await httpTransport({
       spec: req.spec,
+      fetch: config.fetch,
       http: {
         url: `${baseUrl}/models/${req.spec.model}:generateContent?key=${encodeURIComponent(apiKey)}`,
         headers: { "content-type": "application/json" },

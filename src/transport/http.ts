@@ -7,7 +7,7 @@ export async function httpTransport(req: TransportRequest): Promise<HttpResponse
     throw new Error("httpTransport: req.http is required for http transport");
   }
   const { url, method = "POST", headers, body } = req.http;
-  const res = await fetch(url, {
+  const res = await (req.fetch ?? fetch)(url, {
     method,
     headers,
     body:

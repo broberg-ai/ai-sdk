@@ -25,7 +25,7 @@ export interface OpenAICompatibleConfig {
   apiKey?: string;
   /** Extra headers (e.g. OpenRouter's HTTP-Referer / X-Title). */
   extraHeaders?: Record<string, string>;
-  /** Injectable fetch for the streaming path (tests). */
+  /** Injectable fetch — used by BOTH the streaming and the non-streaming path (F073). */
   fetch?: typeof fetch;
   /** F049 — the provider understands `prefix: true` on a trailing assistant message.
    *  Mistral only. A prefix sent anywhere else is REFUSED rather than dropped: a
@@ -239,10 +239,9 @@ export function assertPrefixUsage(
   }
 }
 
-/** Exported for tests. `httpTransport` takes no injectable fetch, so the non-streaming
- *  path cannot be exercised without a real network call — asserting on the body this
- *  builds is how we check what goes on the wire without one. (config.fetch is the
- *  STREAMING path only, as its own comment says.) */
+/** Exported for tests: asserting on the body this builds checks what goes on the wire.
+ *  (F073: config.fetch now reaches the non-streaming path too — it used to be the
+ *  streaming path only, so a test's fake fetch was bypassed and the real API called.) */
 export function buildChatBody(
   req: ChatRequest,
   config: Pick<OpenAICompatibleConfig, "name" | "supportsPrefix" | "supportsPromptCacheKey" | "costFromResponseField">,
@@ -282,6 +281,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
 
     const res = await httpTransport({
       spec: req.spec,
+      fetch: config.fetch,
       http: {
         url: `${config.baseUrl}/chat/completions`,
         headers: {

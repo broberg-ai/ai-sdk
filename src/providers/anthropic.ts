@@ -143,6 +143,7 @@ export function anthropicAdapter(
 
     const res = await httpTransport({
       spec: req.spec,
+      fetch: config.fetch,
       http: {
         url: `${baseUrl}/v1/messages`,
         headers: {

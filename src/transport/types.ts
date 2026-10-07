@@ -8,6 +8,10 @@ export interface TransportRequest {
   spec: TierSpec;
   /** HTTP details — required when spec.transport === "http". The adapter has
    *  already built the provider-specific URL/headers/body. */
+  /** F073 — the fetch to use. Absent → the global fetch. An adapter given `fetch` in its
+   *  config MUST pass it here, or a test's fake fetch is silently bypassed and the call
+   *  reaches the real provider with whatever key is in the environment. */
+  fetch?: typeof fetch;
   http?: {
     url: string;
     method?: string;
