@@ -655,6 +655,27 @@ try {
 `purpose` is a free-text label that rides into the sink (`agent_runs.purpose`)
 for per-feature cost attribution.
 
+### Failed calls and the model that answered — Model Watch signals (F071)
+
+From 0.53.0 the upmetrics sink also receives **failed** call attempts, so a provider
+that revokes a key, pulls a model or goes down overnight shows up in upmetrics instead
+of only in your app's logs (measured 2026-10-07: until then only successful calls were
+sent, with status hardcoded to `"success"`). One row per attempt: a primary that fails
+and a fallback that works give two rows.
+
+| field | value |
+|---|---|
+| `status` | `"success"` or `"error"` (always sent) |
+| `model` | the model you asked for |
+| `tags.served_model` | the model the provider says answered — omitted when it does not say |
+| `tags.error_code` | `"401"`, `"429"`, `"503"` … or `"timeout"` / `"network"` / `"unknown"` |
+| `tags.error_kind` | `auth` · `not_found` · `rate_limit` · `server` · `timeout` · `network` · `other` |
+
+`CostSink.recordFailure` is optional: your own sinks (sqlite, budget) never receive
+failure rows unless they implement it. **Measured limit:** Mistral returns the alias
+you asked for (`mistral-large-latest`) as the answering model, so `served_model` cannot
+show an alias move there; that is caught from Mistral's model list instead (F071.3).
+
 ### Cost delivery — Upmetrics is method #1 (F025)
 
 Cost telemetry can fan out to several **sinks**, but they are not peers:

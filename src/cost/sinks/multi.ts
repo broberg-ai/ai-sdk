@@ -1,4 +1,5 @@
 import type { CostSink, Usage } from "../../types.js";
+import type { CallFailure } from "../failure.js";
 
 /** Fan a Usage out to several sinks. Uses allSettled so one failing sink never
  *  prevents the others from recording (and never propagates to the caller). */
@@ -9,6 +10,9 @@ export function multiSink(sinks: CostSink[]): CostSink {
       // promise, so allSettled isolates it (a sync throw would otherwise escape
       // the .map before allSettled ran).
       await Promise.allSettled(sinks.map(async (s) => s.record(usage)));
+    },
+    async recordFailure(failure: CallFailure): Promise<void> {
+      await Promise.allSettled(sinks.map(async (s) => s.recordFailure?.(failure)));
     },
   };
 }

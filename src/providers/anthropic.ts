@@ -26,6 +26,7 @@ interface AnthropicBlock {
   input?: Record<string, unknown>;
 }
 interface AnthropicResponse {
+  model?: string;
   content?: AnthropicBlock[];
   usage?: {
     input_tokens?: number;
@@ -174,6 +175,7 @@ export function anthropicAdapter(
       cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
       cacheCreationTokens: data.usage?.cache_creation_input_tokens ?? 0,
     });
+    if (typeof data.model === "string" && data.model) usage.servedModel = data.model;
     const result: ChatResult = { text, usage };
     if (toolCalls.length > 0) result.toolCalls = toolCalls;
     return result;

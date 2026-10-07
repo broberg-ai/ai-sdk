@@ -137,7 +137,12 @@ export type ToolCallLike = {
  *  subprocess (Max plan); `subprocess:true` lets dashboards split free vs paid. */
 export interface Usage {
   provider: string;
+  /** The model we ASKED for — the pricing key and the stable grouping. */
   model: string;
+  /** F071.2 — the model that ANSWERED, as the provider reported it. Differs from `model`
+   *  when an alias like "mistral-large-latest" resolves to a dated model; that is how a
+   *  silent overnight move becomes visible. Unset when the provider does not say. */
+  servedModel?: string;
   tier?: Tier;
   /** Data-residency of the endpoint that ACTUALLY answered (F042). Derived from the
    *  host/region the request used, not from the provider's name — vertex, azure and
@@ -186,6 +191,9 @@ export interface Usage {
  *  Implementations must never throw into the caller (F3.3). */
 export interface CostSink {
   record(usage: Usage): void | Promise<void>;
+  /** F071.1 — optional: a FAILED call attempt (no cost). Sinks that sum spend (sqlite,
+   *  budget, your own) may ignore it; leaving it out means they never see failures. */
+  recordFailure?(failure: import("./cost/failure.js").CallFailure): void | Promise<void>;
 }
 
 /** Backing store for a BudgetGuard's rolling total. Default is in-memory

@@ -74,6 +74,7 @@ import type {
 } from "./types.js";
 import { upmetricsSink } from "./cost/sinks/upmetrics.js";
 import { assertByokProviders } from "./byok.js";
+import { classifyFailure, type CallFailure } from "./cost/failure.js";
 
 /** Built-in image route (no image tier in the tier map — fal owns its routing). */
 const DEFAULT_IMAGE_SPEC: TierSpec = {
@@ -302,6 +303,17 @@ export function createAI(config: AiConfig = {}): AiClient {
     return usage;
   }
 
+  /** F071.1 — report a FAILED attempt. Same invariant as report(): never throws into
+   *  the call, and a sink without recordFailure simply never hears of failures. */
+  async function reportFailure(f: Omit<CallFailure, "errorCode" | "errorKind" | "ts">, err: unknown): Promise<void> {
+    if (!costSink?.recordFailure) return;
+    try {
+      await costSink.recordFailure({ ...f, ...classifyFailure(err), ts: new Date().toISOString() });
+    } catch {
+      // A broken sink must never crash a real AI call (F3.3 invariant).
+    }
+  }
+
   async function report(usage: Usage): Promise<void> {
     if (!costSink) return;
     try {
@@ -364,8 +376,8 @@ export function createAI(config: AiConfig = {}): AiClient {
     for (let i = 0; i < routes.length; i++) {
       const spec = routes[i]!;
       await preflight(spec, opts.estIn, opts.estOut); // BudgetExceededError propagates
+      const t0 = performance.now();
       try {
-        const t0 = performance.now();
         const res = await opts.invoke(spec);
         enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0, opts.labels);
         await settle(res.usage);
@@ -373,6 +385,20 @@ export function createAI(config: AiConfig = {}): AiClient {
         return res;
       } catch (e) {
         lastErr = e; // try the next fallback route
+        const labels = { ...cfg.labels, ...opts.labels };
+        await reportFailure(
+          {
+            provider: spec.provider,
+            model: spec.model,
+            transport: spec.transport,
+            capability: opts.capability,
+            ...(i === 0 && opts.tier ? { tier: opts.tier } : {}),
+            ...(opts.purpose ? { purpose: opts.purpose } : {}),
+            ...(Object.keys(labels).length ? { labels } : {}),
+            latencyMs: Math.round(performance.now() - t0),
+          },
+          e,
+        );
       }
     }
     throw lastErr;
@@ -453,6 +479,19 @@ export function createAI(config: AiConfig = {}): AiClient {
         return; // stream completed cleanly
       } catch (e) {
         lastErr = e;
+        await reportFailure(
+          {
+            provider: spec.provider,
+            model: spec.model,
+            transport: spec.transport,
+            capability: "chat",
+            ...(i === 0 ? { tier } : {}),
+            ...(input.purpose ? { purpose: input.purpose } : {}),
+            ...(Object.keys({ ...cfg.labels, ...input.labels }).length ? { labels: { ...cfg.labels, ...input.labels } } : {}),
+            latencyMs: Math.round(performance.now() - t0),
+          },
+          e,
+        );
         if (emitted || !eligibleForFallback(e)) {
           yield errorEvent(e); // mid-stream or hard error → surface + stop
           return;

@@ -72,6 +72,8 @@ interface OAToolCall {
   function?: { name?: string; arguments?: string };
 }
 interface OAResponse {
+  /** F071.2 — the model that ANSWERED (may differ from the alias we asked for). */
+  model?: string;
   choices?: { message?: { content?: string | null; tool_calls?: OAToolCall[] } }[];
   usage?: {
     prompt_tokens?: number;
@@ -325,6 +327,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     if (config.costFromResponseField && typeof data.usage?.cost === "number") {
       usage.costUsd = data.usage.cost; // OpenRouter ground-truth beats the estimate
     }
+    if (typeof data.model === "string" && data.model) usage.servedModel = data.model;
     const result: ChatResult = { text, usage };
     if (toolCalls && toolCalls.length > 0) result.toolCalls = toolCalls;
     return result;
@@ -403,6 +406,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
         if (config.costFromResponseField && typeof chunk.usage.cost === "number") {
           usage.costUsd = chunk.usage.cost; // OpenRouter ground-truth
         }
+        if (typeof chunk.model === "string" && chunk.model) usage.servedModel = chunk.model;
         yield { type: "usage", costUsd: usage.costUsd, model: usage.model, usage };
       }
     }
@@ -431,6 +435,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
 
 /** OpenAI streaming chunk shape (only the fields we read). */
 interface OAStreamChunk {
+  model?: string;
   choices?: {
     delta?: {
       content?: string | null;

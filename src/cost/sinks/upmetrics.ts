@@ -8,6 +8,7 @@
 //   - latencyMs → duration_ms; ts → started_at; ended_at = ts + latency
 // Errors never propagate (CostSink invariant). Do NOT use @upmetrics/agent
 // wrapAnthropic here — the SDK already owns the provider call.
+import type { CallFailure } from "../failure.js";
 import { randomUUID } from "node:crypto";
 import { SDK_TAG } from "../../version.js";
 import type { CostSink, Usage } from "../../types.js";
@@ -137,6 +138,9 @@ export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
         // capability/transport — no ingest-schema change, and without it the one
         // field built for auditability existed only in memory.
         region: usage.region,
+        // F071.2 — the model that answered (contract with upmetrics F048). Omitted when
+        // the provider did not say, rather than echoing the requested model as a guess.
+        ...(usage.servedModel ? { served_model: usage.servedModel } : {}),
         // F050: HOW cost_usd was arrived at. upmetrics already distinguishes
         // reported / computed / unpriced — we were sending an assumed number in
         // the same field as a measured one, so their labels could not be right
@@ -162,6 +166,40 @@ export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
     }
     // complianceMode is a no-op today (we never send excerpts) but documents intent.
     void config.complianceMode;
+    return JSON.stringify(body);
+  }
+
+  /** F071.1 — a FAILED attempt as an agent_run: status "error", cost 0, and the failure
+   *  in tags (error_code, error_kind). Contract agreed with upmetrics (F048) 2026-10-07.
+   *  `status` is ALWAYS sent: their ingest defaults a missing status to "success". */
+  function buildFailureBody(f: CallFailure): string {
+    const endedAt = new Date(new Date(f.ts).getTime()).toISOString();
+    const startedAt = new Date(new Date(f.ts).getTime() - (f.latencyMs || 0)).toISOString();
+    const body: Record<string, unknown> = {
+      mode: "record",
+      agent_kind: config.agentKind ?? (f.capability === "embedding" ? "embedding" : "chatbot"),
+      agent_name: config.agentName,
+      provider: f.provider,
+      model: f.model,
+      status: "error",
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: 0,
+      duration_ms: f.latencyMs,
+      started_at: startedAt,
+      ended_at: endedAt,
+      tags: {
+        ...f.labels,
+        capability: f.capability,
+        transport: f.transport,
+        error_code: f.errorCode,
+        error_kind: f.errorKind,
+        sdk: SDK_TAG,
+        idempotencyKey: randomUUID(),
+      },
+    };
+    if (f.tier !== undefined) body.tier = f.tier;
+    if (f.purpose !== undefined) body.purpose = f.purpose;
     return JSON.stringify(body);
   }
 
@@ -253,6 +291,32 @@ export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
       // attempt now; everything after that happens in the background.
       try {
         const body = buildBody(usage);
+        const r = await send(body);
+        if (r.kind === "ok") {
+          counts.sent += 1;
+          return;
+        }
+        if (r.kind === "reject") {
+          counts.rejected += 1;
+          config.onError?.(r.err);
+          return;
+        }
+        if (!retry) {
+          lose(r.err);
+          return;
+        }
+        queue.push({ body, attempts: 1 });
+        enforceCap();
+        schedule();
+      } catch (err) {
+        config.onError?.(err);
+      }
+    },
+
+    async recordFailure(failure: CallFailure): Promise<void> {
+      // Same delivery path as record(): one attempt now, retries in the background.
+      try {
+        const body = buildFailureBody(failure);
         const r = await send(body);
         if (r.kind === "ok") {
           counts.sent += 1;
