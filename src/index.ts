@@ -36,6 +36,7 @@ export { bflAdapter, bflCredits } from "./providers/bfl.js";
 export type { BflAdapterConfig, BflCredits } from "./providers/bfl.js";
 export { makeOpenAICompatibleAdapter } from "./providers/openai-compatible.js";
 export { byokAdapter, isByokKeyed } from "./byok.js";
+export { checkPriceDrift, type PriceDriftResult, type PriceDriftRow } from "./catalogue/price-drift.js";
 export type { OpenAICompatibleConfig } from "./providers/openai-compatible.js";
 export { defaultProviders } from "./providers/registry.js";
 export {

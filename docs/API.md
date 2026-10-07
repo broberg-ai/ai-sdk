@@ -676,6 +676,24 @@ failure rows unless they implement it. **Measured limit:** Mistral returns the a
 you asked for (`mistral-large-latest`) as the answering model, so `served_model` cannot
 show an alias move there; that is caught from Mistral's model list instead (F071.3).
 
+### Nightly price check — `checkPriceDrift()` (F072, Model Watch phase 2)
+
+```ts
+import { checkPriceDrift } from "@broberg/ai-sdk";
+const r = await checkPriceDrift();
+// { ok: true, measuredAt, source: "openrouter", checked: 458, coverage, drift: [
+//   { key, provider, model, ours: {inputPer1M, outputPer1M}, upstream: {…},
+//     inputChangePct, outputChangePct } ] }
+// or { ok: false, measuredAt, error } — an outage is never an empty list.
+```
+
+Compares ai-sdk's price table with OpenRouter's public catalogue (no key). upmetrics'
+nightly worker calls it as a plain script — no LLM — and alerts only for models the
+fleet actually called. **Coverage is OpenRouter prices only**: direct-provider prices
+have no API and speech/image/video/OCR are hand-checked (F050); `coverage` says so on
+every result. First live run 2026-10-07: 458 prices checked, 1 drift
+(`openrouter:deepseek/deepseek-v4-flash` output +2186 %).
+
 ### Cost delivery — Upmetrics is method #1 (F025)
 
 Cost telemetry can fan out to several **sinks**, but they are not peers:
