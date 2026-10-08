@@ -203,7 +203,8 @@ export async function fetchFullCatalogue(
     { provider: "anthropic", run: () => fetchAnthropicCatalogue(opts) },
     { provider: "gemini", run: () => fetchGeminiCatalogue(opts) },
     { provider: "mistral", run: () => fetchMistralCatalogue(opts) },
-    { provider: "deepseek", run: () => fetchDeepSeekCatalogue(opts) },
+    // DeepSeek is NOT fetched directly: Christian 2026-10-08, no DeepSeek key — its models
+    // are seen through OpenRouter's catalogue. fetchDeepSeekCatalogue stays for a key later.
     { provider: "elevenlabs", run: () => fetchElevenLabsCatalogue(opts) },
   ];
 

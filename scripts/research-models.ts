@@ -12,6 +12,7 @@
 import { fetchFullCatalogue, NO_LIST_API } from "../src/catalogue/fetchers.js";
 import { diffCatalogue, type CatalogueDiff } from "../src/catalogue/diff.js";
 import { aliasMoves, aliasTargets, newSinceLastRun, nextAliasTargets, nextSeen, renderAliasMoves, type AliasTargets, type SeenLists } from "../src/catalogue/seen.js";
+import { comparePrices, fetchAnthropicPrices, fetchMistralPrices, renderPriceFindings, uncheckedRows, withAliases, type DirectPrice } from "../src/catalogue/direct-prices.js";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const json = process.argv.includes("--json");
@@ -25,6 +26,26 @@ const SEEN_FILE = "catalogue-seen.json";
 const seen: SeenLists = existsSync(SEEN_FILE) ? (JSON.parse(readFileSync(SEEN_FILE, "utf8")) as SeenLists) : {};
 const unknownTotal = diff.added.length;
 diff.added = newSinceLastRun(diff.added, seen);
+// F076.2 — the providers' OWN price pages (Anthropic, Mistral). Their APIs list no
+// prices, and OpenRouter only covers rows we already have, so this is the check that
+// finds an unpriced model or a price that moved.
+const directFailed: Record<string, string> = {};
+const directRows: DirectPrice[] = [];
+const direct = await Promise.allSettled([fetchAnthropicPrices(), fetchMistralPrices()]);
+direct.forEach((r, i) => {
+  const p = ["anthropic", "mistral"][i]!;
+  if (r.status === "fulfilled") directRows.push(...r.value);
+  else directFailed[p] = r.reason instanceof Error ? r.reason.message : String(r.reason);
+});
+const directPrices = withAliases(directRows, models);
+const listed = new Set(models.flatMap((m) => [m.model, ...(m.aliases ?? [])].map((id) => `${m.provider}:${id}`)));
+const priceFindings = comparePrices(directPrices, listed);
+const priceLines = renderPriceFindings(
+  priceFindings,
+  directFailed,
+  uncheckedRows(directPrices, ["anthropic", "mistral"].filter((p) => !directFailed[p])),
+);
+
 // F071.3 — which dated model each "-latest" alias meant last run, so a move shows.
 const ALIAS_FILE = "catalogue-aliases.json";
 const prevAliases: AliasTargets = existsSync(ALIAS_FILE) ? (JSON.parse(readFileSync(ALIAS_FILE, "utf8")) as AliasTargets) : {};
@@ -36,7 +57,7 @@ if (!process.argv.includes("--dry")) {
 }
 
 if (json) {
-  console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff, aliasMoves: moves }, null, 2));
+  console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff, aliasMoves: moves, priceFindings, directFailed }, null, 2));
 } else {
   // F014.5 — loud drift alert when a priced model has vanished upstream (we'd keep
   // pricing a model that no longer exists).
@@ -46,10 +67,11 @@ if (json) {
   // F071.3 — first in the report: a moved alias changes live traffic, everything else is a list.
   const moved = renderAliasMoves(moves);
   if (moved.length) console.log(moved.join("\n"));
+  if (priceLines.length) console.log(priceLines.join("\n"));
   console.log(renderReport(diff, { models: models.length, fetched, errors, missingKeys, unknownTotal }));
 }
 
-const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length + moves.length;
+const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length + moves.length + priceFindings.length + Object.keys(directFailed).length;
 process.exit(driftCount > 0 ? 1 : 0);
 
 function num(n: number | undefined): string {

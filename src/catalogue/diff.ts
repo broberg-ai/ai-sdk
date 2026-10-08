@@ -80,6 +80,13 @@ export function diffCatalogue(
       if (!fetchedByKey.has(k)) fetchedByKey.set(k, m);
     }
   }
+  // F076.2 — Anthropic lists only dated ids (claude-haiku-4-5-20251001) while we price
+  // the undated name. Measured 2026-10-08, the first run with an Anthropic key: three
+  // live models reported as GONE UPSTREAM. A dated id vouches for its undated name.
+  for (const m of fetched) {
+    const k = catalogueKey({ provider: m.provider, model: undatedBase(m.model) });
+    if (!fetchedByKey.has(k)) fetchedByKey.set(k, m);
+  }
   const known = knownKeys();
 
   // Brands we already track, per provider (derived from the priced table).

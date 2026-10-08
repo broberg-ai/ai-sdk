@@ -184,7 +184,9 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:mistral-large-4-0": { inputPer1M: 1.36, cacheReadPer1M: 0.136, outputPer1M: 4.18, version: "2026-10-08-docs.mistral.ai" },
   "mistral:mistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3.5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
-  "mistral:mistral-medium-3": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
+  // F076.2 — Mistral's model API now lists mistral-medium-3 as an alias of Medium 3.5
+  // (measured 2026-10-08), so it bills at 3.5's price, not Medium 3's $0.40/$2.00.
+  "mistral:mistral-medium-3": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
   // F076.1 — Small 4 (2603) is $0.15/$0.60, measured 2026-10-08 on
   // docs.mistral.ai/models/mistral-small-4-0-26-03 AND OpenRouter's mistral-small-2603.
   // This row said $0.10/$0.30 (Small 3's price, carried over when -latest moved to
@@ -194,8 +196,28 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:ministral-3b-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.1, version: MS },
   "mistral:ministral-8b-latest": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },
   "mistral:ministral-14b-latest": { inputPer1M: 0.2, cacheReadPer1M: 0.02, outputPer1M: 0.2, version: MS },
-  "mistral:magistral-medium-latest": { inputPer1M: 2.0, cacheReadPer1M: 0.2, outputPer1M: 5.0, version: MS },
-  "mistral:magistral-small-latest": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
+  // F076.2 — both Magistral aliases now point at the unified models (measured
+  // 2026-10-08 via /v1/models): magistral-medium-latest → Medium 3.5, magistral-small-
+  // latest → Small 4. They bill at those models' prices, not the old Magistral rates.
+  "mistral:magistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:magistral-small-latest": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.6, version: "2026-10-08-docs.mistral.ai" },
+  // F076.2 — ids Mistral's model API lists for our key that had no row (a call to any
+  // of them was booked at $0). Prices from docs.mistral.ai, 2026-10-08; cache-read at
+  // the measured 10% (F039).
+  "mistral:mistral-vibe-cli-fast": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.6, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-medium-3-5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-medium": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-medium-2604": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-vibe-cli-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-vibe-cli-with-tools": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:ministral-14b-2512": { inputPer1M: 0.2, cacheReadPer1M: 0.02, outputPer1M: 0.2, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:ministral-8b-2512": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:ministral-3b-2512": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.1, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:voxtral-small-2507": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:voxtral-small-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:codestral-2508": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-code-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-code-fim-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },
   "mistral:devstral-latest": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: MS },
   "mistral:codestral-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: MS },
   "mistral:open-mistral-nemo": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },

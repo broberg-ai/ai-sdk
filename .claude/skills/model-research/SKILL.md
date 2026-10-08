@@ -34,6 +34,12 @@ bun run scripts/research-models.ts > "$OUT" 2>&1; echo "research exit=$?"   # 1 
 bun run scripts/media-price-age.ts >> "$OUT" 2>&1
 ```
 
+The report now opens with the providers' OWN prices (F076.2): «Price changed at the
+provider» and «Listed by the provider, no price in our table». Those are the findings
+that mean calls are being booked wrong TODAY — card them (one card, the rows listed)
+so a session fixes `src/cost/pricing.ts` and releases. This skill still never edits
+prices itself.
+
 Exit 1 means drift or new models — a result, not a failure. Anything else (a stack
 trace, an empty file) IS a failure: stop and say so in one line.
 
