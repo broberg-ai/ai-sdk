@@ -11,7 +11,7 @@
 // Exit code: 0 = catalogue clean, 1 = drift found (so CI can branch on it).
 import { fetchFullCatalogue, NO_LIST_API } from "../src/catalogue/fetchers.js";
 import { diffCatalogue, type CatalogueDiff } from "../src/catalogue/diff.js";
-import { newSinceLastRun, nextSeen, type SeenLists } from "../src/catalogue/seen.js";
+import { aliasMoves, aliasTargets, newSinceLastRun, nextAliasTargets, nextSeen, renderAliasMoves, type AliasTargets, type SeenLists } from "../src/catalogue/seen.js";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const json = process.argv.includes("--json");
@@ -25,22 +25,31 @@ const SEEN_FILE = "catalogue-seen.json";
 const seen: SeenLists = existsSync(SEEN_FILE) ? (JSON.parse(readFileSync(SEEN_FILE, "utf8")) as SeenLists) : {};
 const unknownTotal = diff.added.length;
 diff.added = newSinceLastRun(diff.added, seen);
+// F071.3 — which dated model each "-latest" alias meant last run, so a move shows.
+const ALIAS_FILE = "catalogue-aliases.json";
+const prevAliases: AliasTargets = existsSync(ALIAS_FILE) ? (JSON.parse(readFileSync(ALIAS_FILE, "utf8")) as AliasTargets) : {};
+const nowAliases = aliasTargets(models);
+const moves = aliasMoves(prevAliases, nowAliases);
 if (!process.argv.includes("--dry")) {
   writeFileSync(SEEN_FILE, JSON.stringify(nextSeen(models, fetched, seen), null, 2) + "\n");
+  writeFileSync(ALIAS_FILE, JSON.stringify(nextAliasTargets(nowAliases, fetched, prevAliases), null, 2) + "\n");
 }
 
 if (json) {
-  console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff }, null, 2));
+  console.log(JSON.stringify({ fetched, errors, missingKeys, modelCount: models.length, diff, aliasMoves: moves }, null, 2));
 } else {
   // F014.5 — loud drift alert when a priced model has vanished upstream (we'd keep
   // pricing a model that no longer exists).
   if (diff.removedUpstream.length > 0) {
     console.log(`⚠️ DRIFT: ${diff.removedUpstream.length} priced model(s) GONE UPSTREAM — ${diff.removedUpstream.join(", ")}\n`);
   }
+  // F071.3 — first in the report: a moved alias changes live traffic, everything else is a list.
+  const moved = renderAliasMoves(moves);
+  if (moved.length) console.log(moved.join("\n"));
   console.log(renderReport(diff, { models: models.length, fetched, errors, missingKeys, unknownTotal }));
 }
 
-const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length;
+const driftCount = diff.added.length + diff.missingPrice.length + diff.priceChanged.length + diff.removedUpstream.length + moves.length;
 process.exit(driftCount > 0 ? 1 : 0);
 
 function num(n: number | undefined): string {

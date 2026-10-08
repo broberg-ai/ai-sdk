@@ -36,3 +36,73 @@ export function nextSeen(fetched: CatalogueModel[], fetchedProviders: string[], 
   }
   return next;
 }
+
+// F071.3 — "-latest" moves. Measured 2026-10-07: Mistral answers with the ALIAS in
+// the response's model field, so served_model cannot show mistral-large-latest
+// starting to mean a different model. Its /v1/models can: the -latest row lists the
+// dated model it currently is. Storing that pair each run turns a silent overnight
+// model swap — every `smart`/`powerful` call in the fleet — into a report line.
+
+/** provider → alias → the dated model it pointed at on the last run. */
+export type AliasTargets = Record<string, Record<string, string>>;
+
+export interface AliasMove {
+  provider: string;
+  alias: string;
+  from: string;
+  to: string;
+}
+
+/** For every "-latest" id, the other names it currently shares, sorted and joined —
+ *  the WHOLE set, not one pick: mistral-medium-latest also answers to a bare
+ *  "mistral-medium" (measured 2026-10-08), and keeping only the first name would
+ *  miss a move of the dated one behind it. A changed set reads as a move; an extra
+ *  name showing up is a false alarm we can see, a missed move is not. An alias with
+ *  no partner is left out rather than guessed. */
+export function aliasTargets(models: CatalogueModel[]): AliasTargets {
+  const out: AliasTargets = {};
+  for (const m of models) {
+    if (!m.model.endsWith("-latest") || !m.aliases?.length) continue;
+    const target = [...new Set(m.aliases.filter((a) => !a.endsWith("-latest")))].sort().join(", ");
+    if (!target) continue;
+    (out[m.provider] ??= {})[m.model] = target;
+  }
+  return out;
+}
+
+/** Aliases whose target changed since the last run. A NEW alias is not a move:
+ *  there was nothing for it to move from. */
+export function aliasMoves(previous: AliasTargets, current: AliasTargets): AliasMove[] {
+  const moves: AliasMove[] = [];
+  for (const [provider, aliases] of Object.entries(current)) {
+    for (const [alias, to] of Object.entries(aliases)) {
+      const from = previous[provider]?.[alias];
+      if (from !== undefined && from !== to) moves.push({ provider, alias, from, to });
+    }
+  }
+  return moves;
+}
+
+/** What to store: this run's pairs for each cleanly-fetched provider; the previous
+ *  pairs for a provider that was not fetched (a missing key must not erase them). */
+export function nextAliasTargets(current: AliasTargets, fetchedProviders: string[], previous: AliasTargets): AliasTargets {
+  const next: AliasTargets = { ...previous };
+  for (const provider of fetchedProviders) {
+    if (current[provider]) next[provider] = current[provider]!;
+    else delete next[provider];
+  }
+  return next;
+}
+
+/** Report lines for the research report. Empty when nothing moved. */
+export function renderAliasMoves(moves: AliasMove[]): string[] {
+  if (moves.length === 0) return [];
+  return [
+    `## Alias moved (${moves.length})`,
+    "",
+    "_A model name the fleet routes by now means a different model. Every call through it changed model, and likely price and behaviour, without a release of ours._",
+    "",
+    ...moves.map((m) => `- alias flyttet: ${m.provider} \`${m.alias}\` ${m.from} → ${m.to}`),
+    "",
+  ];
+}

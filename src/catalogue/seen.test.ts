@@ -37,10 +37,57 @@ test("a provider with no stored list reports everything unknown — eleven_v4 is
   expect(newSinceLastRun(unknown, seen).map((m) => m.model)).toEqual(["eleven_v4"]);
 });
 
+test("an alias sharing several names: a move of the DATED one behind a stable bare name is still caught", () => {
+  const before = aliasTargets([ms("mistral-medium-latest", ["mistral-medium", "mistral-medium-3.5", "magistral-medium-latest"])]);
+  const after = aliasTargets([ms("mistral-medium-latest", ["mistral-medium", "mistral-medium-3.6"])]);
+  expect(before).toEqual({ mistral: { "mistral-medium-latest": "mistral-medium, mistral-medium-3.5" } });
+  expect(aliasMoves(before, after)).toEqual([
+    { provider: "mistral", alias: "mistral-medium-latest", from: "mistral-medium, mistral-medium-3.5", to: "mistral-medium, mistral-medium-3.6" },
+  ]);
+});
+
 test("a provider not fetched this run keeps last run's list; openrouter is never stored", () => {
   const prev = { elevenlabs: ["eleven_v3"] };
   const next = nextSeen([oa("gpt-4"), { provider: "openrouter", model: "x/y" }], ["openai", "openrouter"], prev);
   expect(next.elevenlabs).toEqual(["eleven_v3"]);
   expect(next.openai).toEqual(["gpt-4"]);
   expect(next.openrouter).toBeUndefined();
+});
+
+// ── F071.3 — "-latest" moves ────────────────────────────────────────────────
+import { aliasMoves, aliasTargets, nextAliasTargets, renderAliasMoves } from "./seen.js";
+
+// The shape Mistral's /v1/models returns, measured 2026-10-08: the -latest row and
+// the dated row name each other.
+const ms = (model: string, aliases: string[]): CatalogueModel => ({ provider: "mistral", model, aliases });
+const run1 = [ms("mistral-large-latest", ["mistral-large-2512"]), ms("mistral-large-2512", ["mistral-large-latest"]), ms("mistral-large-4", ["mistral-large-4-0"])];
+const run2 = [ms("mistral-large-latest", ["mistral-large-2610"]), ms("mistral-large-2610", ["mistral-large-latest"]), ms("mistral-large-2512", [])];
+
+test("two runs where mistral-large-latest moves → the report says so, naming both models", () => {
+  const before = aliasTargets(run1);
+  expect(before).toEqual({ mistral: { "mistral-large-latest": "mistral-large-2512" } });
+  const moves = aliasMoves(before, aliasTargets(run2));
+  expect(moves).toEqual([{ provider: "mistral", alias: "mistral-large-latest", from: "mistral-large-2512", to: "mistral-large-2610" }]);
+  expect(renderAliasMoves(moves)).toContain("- alias flyttet: mistral `mistral-large-latest` mistral-large-2512 → mistral-large-2610");
+});
+
+test("negative control: the same pairing twice is not a move, and a NEW alias is not one either", () => {
+  expect(aliasMoves(aliasTargets(run1), aliasTargets(run1))).toEqual([]);
+  expect(aliasMoves({}, aliasTargets(run2))).toEqual([]);
+  expect(renderAliasMoves([])).toEqual([]);
+});
+
+test("an alias sharing several names: a move of the DATED one behind a stable bare name is still caught", () => {
+  const before = aliasTargets([ms("mistral-medium-latest", ["mistral-medium", "mistral-medium-3.5", "magistral-medium-latest"])]);
+  const after = aliasTargets([ms("mistral-medium-latest", ["mistral-medium", "mistral-medium-3.6"])]);
+  expect(before).toEqual({ mistral: { "mistral-medium-latest": "mistral-medium, mistral-medium-3.5" } });
+  expect(aliasMoves(before, after)).toEqual([
+    { provider: "mistral", alias: "mistral-medium-latest", from: "mistral-medium, mistral-medium-3.5", to: "mistral-medium, mistral-medium-3.6" },
+  ]);
+});
+
+test("a provider not fetched this run keeps its stored pairs (a missing key must not erase them)", () => {
+  const prev = aliasTargets(run1);
+  expect(nextAliasTargets({}, [], prev)).toEqual(prev);
+  expect(nextAliasTargets(aliasTargets(run2), ["mistral"], prev)).toEqual({ mistral: { "mistral-large-latest": "mistral-large-2610" } });
 });

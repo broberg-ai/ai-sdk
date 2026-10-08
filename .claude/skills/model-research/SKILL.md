@@ -48,6 +48,11 @@ Always add `catalogue-seen.json` to the same commit (F067.6): it holds the model
 this run saw, and next month's «New since last run» is measured against it. Leave it
 out and next month reports everything again.
 
+Add `catalogue-aliases.json` too (F071.3): it records which dated model each
+`-latest` alias meant this run. Next month's «Alias moved» section is measured
+against it; leave it out and a move of `mistral-large-latest` (the `smart` and
+`powerful` tiers) goes unreported.
+
 - `unchanged` → commit only the `checkedAt` stamp: `chore(inventory): verified, no changes`.
 - `changed` → commit it: `chore(inventory): monthly model-research refresh (<date>)`,
   and add one line to the report saying the inventory moved.
