@@ -185,8 +185,12 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:mistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3.5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
-  "mistral:mistral-small-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.3, version: MS },
-  "mistral:mistral-small-2603": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.3, version: MS },
+  // F076.1 — Small 4 (2603) is $0.15/$0.60, measured 2026-10-08 on
+  // docs.mistral.ai/models/mistral-small-4-0-26-03 AND OpenRouter's mistral-small-2603.
+  // This row said $0.10/$0.30 (Small 3's price, carried over when -latest moved to
+  // 2603), so the fleet's fast/cheap tiers were booked at about half their cost.
+  "mistral:mistral-small-latest": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.6, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-small-2603": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.6, version: "2026-10-08-docs.mistral.ai" },
   "mistral:ministral-3b-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.1, version: MS },
   "mistral:ministral-8b-latest": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },
   "mistral:ministral-14b-latest": { inputPer1M: 0.2, cacheReadPer1M: 0.02, outputPer1M: 0.2, version: MS },

@@ -112,3 +112,14 @@ test("Haiku 5.5 is priced by prompt length: 5x above 100k tokens (F075)", () => 
   // Exactly at the line is still the low tier ("over 100,000").
   expect(computeCost("anthropic", "claude-haiku-5-5", 100_000, 0)).toBeCloseTo(0.01, 12);
 });
+
+test("Mistral Small 4 (the fast/cheap tiers) is $0.15/$0.60, not Small 3's $0.10/$0.30 (F076.1)", () => {
+  for (const id of ["mistral-small-latest", "mistral-small-2603"]) {
+    const p = getPrice("mistral", id);
+    expect({ in: p?.inputPer1M, cache: p?.cacheReadPer1M, out: p?.outputPer1M }).toEqual({ in: 0.15, cache: 0.015, out: 0.6 });
+  }
+  for (const tier of ["fast", "cheap"] as const) {
+    const spec = DEFAULT_TIER_MAP[tier];
+    expect(computeCost(spec.provider, spec.model, 1_000_000, 1_000_000)).toBeCloseTo(0.75, 9);
+  }
+});
