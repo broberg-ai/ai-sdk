@@ -43,7 +43,19 @@ export interface OpenAICompatibleConfig {
    *  AUTOMATICALLY (openai, deepseek, gemini) need no key — they only need their
    *  cached counts read back, which happens for every provider below. */
   supportsPromptCacheKey?: boolean;
+  /** F074.3 — this provider accepts `reasoning_effort` (Mistral). Anywhere else a
+   *  reasoningEffort is REFUSED, like `prefix`: a dropped flag reads as obeyed. */
+  supportsReasoningEffort?: boolean;
 }
+
+/** Models that think before answering unless told not to (F074.3). Measured 2026-10-08
+ *  on mistral-large-4: by default ~27x the output tokens, ~10x the latency and ~40x the
+ *  price of Large 3 on simple tasks, with the same answers; reasoning_effort "none" put
+ *  it back at Large 3's latency. An exact list, not a "mistral-large-*" pattern: Large 3
+ *  REJECTS the field ("reasoning_effort is not enabled for this model"). When Mistral
+ *  moves an alias such as mistral-large-latest onto one of these, add the alias here —
+ *  catching that move is F071.3's job. */
+const REASONS_BY_DEFAULT = new Set(["mistral-large-4", "mistral-large-4-0"]);
 
 /** A stable cache key derived from the fixed part of the prompt (F039.2).
  *
@@ -244,7 +256,7 @@ export function assertPrefixUsage(
  *  streaming path only, so a test's fake fetch was bypassed and the real API called.) */
 export function buildChatBody(
   req: ChatRequest,
-  config: Pick<OpenAICompatibleConfig, "name" | "supportsPrefix" | "supportsPromptCacheKey" | "costFromResponseField">,
+  config: Pick<OpenAICompatibleConfig, "name" | "supportsPrefix" | "supportsPromptCacheKey" | "supportsReasoningEffort" | "costFromResponseField">,
 ): Record<string, unknown> {
   assertPrefixUsage(req.messages, config);
   const body: Record<string, unknown> = {
@@ -255,6 +267,12 @@ export function buildChatBody(
   if (req.maxTokens !== undefined) body.max_tokens = req.maxTokens;
   if (req.temperature !== undefined) body.temperature = req.temperature;
   if (req.responseFormat === "json") body.response_format = { type: "json_object" };
+  if (req.reasoningEffort !== undefined && !config.supportsReasoningEffort) {
+    throw new Error(`${config.name} adapter: reasoningEffort is a Mistral option and is not supported here`);
+  }
+  const effort =
+    req.reasoningEffort ?? (config.supportsReasoningEffort && REASONS_BY_DEFAULT.has(req.spec.model) ? "none" : undefined);
+  if (effort !== undefined) body.reasoning_effort = effort;
   // F039: Mistral caches a shared prefix at 10% of the input rate, but ONLY when the
   // request carries a cache key. Measured 2026-08-27: without it, an identical
   // 8,810-token prefix reported cached_tokens 0 at every size up to 57k; with it, the

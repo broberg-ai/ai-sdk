@@ -236,7 +236,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 
 | Method | Input (key fields) | Returns | Default tier |
 |---|---|---|---|
-| `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature?, responseFormat? }` | `{ text, toolCalls?, usage }` | `smart` |
+| `ai.chat` | `{ prompt? \| messages?, system?, tools?, maxTokens?, temperature?, reasoningEffort?, responseFormat? }` | `{ text, toolCalls?, usage }` | `smart` |
 | `ai.chatStream` | same input as `ai.chat` | `AsyncIterable<ChatStreamEvent>` | `smart` |
 | `ai.vision` | `{ image: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `vision` |
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
@@ -515,6 +515,27 @@ markdown-fence stripping at the call-site:
 const { text } = await ai.chat({ prompt: "…return JSON…", responseFormat: "json" });
 const data = JSON.parse(text);
 ```
+
+### Thinking before answering — `reasoningEffort` (F074.3, Mistral)
+
+**Mistral Large 4 (`mistral-large-4`) thinks before it answers unless told not to.**
+Measured 2026-10-08 on six everyday tasks (JSON extraction, classification, a Danish
+SMS, arithmetic): same answers as Large 3, but ~27x the output tokens, ~10x the
+latency and ~40x the price per call. So the SDK sends `reasoning_effort: "none"` for
+Large 4 by default. Ask for thinking explicitly when the task needs it:
+
+```ts
+ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4" } })                          // no thinking (default)
+ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4" }, reasoningEffort: "high" }) // thinks first
+```
+
+- Values are `"none"` and `"high"` — Large 4 refuses `"low"` (measured).
+- **Mistral only.** An OpenAI-compatible provider without the option REFUSES it rather
+  than dropping it silently. Large 3 (`mistral-large-latest` as of 2026-10-08) rejects
+  the field, so the default is applied only to the exact Large 4 ids.
+- **The tiers still point at Large 3.** If Mistral moves `mistral-large-latest` onto
+  Large 4, the default does NOT follow automatically — that alias must be added in a
+  release. Catching that move is F071.3.
 
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):

@@ -122,6 +122,9 @@ export const chatInputSchema = z.object({
   tools: z.array(toolSchema).optional(),
   maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
+  /** F074.3 — Mistral reasoning ("thinking") before the answer. Large 4 thinks by
+   *  default; the SDK sends "none" for it unless you ask for "high". Mistral only. */
+  reasoningEffort: z.enum(["none", "high"]).optional(),
   /** "json" requests JSON-object output (OpenAI-compatible response_format). */
   responseFormat: z.enum(["json", "text"]).optional(),
   ...callOptions,

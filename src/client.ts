@@ -460,6 +460,7 @@ export function createAI(config: AiConfig = {}): AiClient {
           tools: input.tools,
           maxTokens: input.maxTokens,
           temperature: input.temperature,
+          reasoningEffort: input.reasoningEffort,
           responseFormat: input.responseFormat,
           // F043: these two were dropped here, so a streamed call could not cache even
           // after the adapter learned how. A chat UI streams every turn and repeats the
@@ -523,7 +524,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
-          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey, promptCache: input.promptCache ?? cfg.promptCache });
+          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, reasoningEffort: input.reasoningEffort, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey, promptCache: input.promptCache ?? cfg.promptCache });
         },
       });
     },
