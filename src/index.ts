@@ -231,3 +231,5 @@ export type {
   BatchJob,
   BatchResultItem,
 } from "./types.js";
+
+export { describeTier, type TierDescription } from "./routing/describe-tier.js";

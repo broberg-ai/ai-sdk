@@ -80,6 +80,11 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-small-latest", aliases: ["mistral-small"], provider: "mistral", available: true, status: "available", source: "default" },
+  // F077 — the dated ids the tiers are pinned to. The -latest rows above stay: callers
+  // still pass them, and an unknown id would fail a requireKnown gate.
+  { id: "mistral-large-2512", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
+  { id: "mistral-medium-2604", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
+  { id: "mistral-small-2603", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
 ];
 
 /** Attach every tier name as an alias of the model that tier ACTUALLY calls.

@@ -13,11 +13,19 @@ import type { Tier, TierSpec } from "../types.js";
  *  model:"anthropic/claude-…"}`. DeepSeek (CN) is the opt-in non-PII secondary
  *  (`provider:"deepseek"`), never a default. Magistral (reasoning) / mistral-large
  *  for vision are per-call overrides, not defaults (don't pay the premium on all). */
+//
+//  F077 — PINNED, never "-latest" (Christian 2026-10-08: «vi skal ingen steder i flåden
+//  tilbyde -latest som default, for så ender vi med at bruge v4 om nogle dage, og
+//  regningen følger pludselig efter med en stor overraskelse»). Mistral moves its
+//  -latest names on its own schedule (three moved on 2026-10-08 alone), and echoes the
+//  alias back so the move is invisible in usage.model. A dated id changes only in a
+//  release of ours, with a changelog line and the price difference. The ids below are
+//  exactly what each -latest meant on 2026-10-08 — same model, same price.
 export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
-  fast: { provider: "mistral", model: "mistral-small-latest", transport: "http" },
-  smart: { provider: "mistral", model: "mistral-large-latest", transport: "http" },
-  powerful: { provider: "mistral", model: "mistral-large-latest", transport: "http" },
-  cheap: { provider: "mistral", model: "mistral-small-latest", transport: "http" },
+  fast: { provider: "mistral", model: "mistral-small-2603", transport: "http" }, // Small 4
+  smart: { provider: "mistral", model: "mistral-large-2512", transport: "http" }, // Large 3
+  powerful: { provider: "mistral", model: "mistral-large-2512", transport: "http" }, // Large 3
+  cheap: { provider: "mistral", model: "mistral-small-2603", transport: "http" }, // Small 4
   // Vision: small-latest (vision-capable, cheap EU) is the default; override to
   // mistral-large-latest for demanding image/spatial/composition work.
   // F041 — bumped from mistral-small on Christian's ask, and the choice is MEASURED,
@@ -29,7 +37,7 @@ export const DEFAULT_TIER_MAP: Record<Tier, TierSpec> = {
   // Large ties small on easy colour blocks (4/4 each) and collapses on subtle ones,
   // so "bigger is better at vision" does not hold in Mistral's lineup. Nobody is good
   // at this task; medium is simply the only one that sees anything.
-  vision: { provider: "mistral", model: "mistral-medium-latest", transport: "http" },
+  vision: { provider: "mistral", model: "mistral-medium-2604", transport: "http" }, // Medium 3.5 (was medium-latest, F077)
   // Native video understanding — Gemini leads; flash-lite is the cheap default (F019).
   // NOT Anthropic → out of the F030 phase-out (its own EU epic if/when needed).
   video: { provider: "gemini", model: "gemini-2.5-flash-lite", transport: "http" },

@@ -100,6 +100,8 @@ const callOptions = {
   override: tierSpecSchema.partial().optional(),
   fallback: z.array(z.union([tierSchema, tierSpecSchema])).optional(),
   purpose: z.string().optional(),
+  /** F077.3 — you MEAN to call a floating "-latest" id (no warning, no strictPinning error). */
+  allowFloating: z.boolean().optional(),
   /** Consumer-defined attribution dimensions (e.g. {tenantId}) ridden into the
    *  cost sink for per-tenant/per-customer cost breakdown (F011). */
   labels: z.record(z.string(), z.string()).optional(),
@@ -365,6 +367,8 @@ export const aiConfigSchema = z.object({
   /** F039.2 — client-wide opt-out from prompt caching (default: on where the
    *  provider supports it). A per-call `promptCache` wins over this. */
   promptCache: z.boolean().optional(),
+  /** F077.3 — refuse any "-latest" model id unless the call passes allowFloating: true. */
+  strictPinning: z.boolean().optional(),
   defaults: z.record(tierSchema, tierSpecSchema).optional(),
   // Functions can't be deeply validated — z.custom asserts the TS type and
   // passes the value through untouched.

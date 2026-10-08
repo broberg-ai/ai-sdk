@@ -8,7 +8,7 @@ test("DEFAULT_TIER_MAP covers all 6 tiers", () => {
 });
 
 test("cheap tier defaults to the cheapest GDPR-safe cloud model over HTTP (claude -p retired)", () => {
-  expect(DEFAULT_TIER_MAP.cheap).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.cheap).toEqual({ provider: "mistral", model: "mistral-small-2603", transport: "http" });
 });
 
 test("resolveTier returns the default when nothing overrides", () => {
@@ -42,11 +42,11 @@ test("F030: NO default tier resolves to Anthropic (ANTHROPIC_API_KEY removed)", 
 });
 
 test("F030: the former Anthropic tiers now default to Mistral EU", () => {
-  expect(DEFAULT_TIER_MAP.fast).toEqual({ provider: "mistral", model: "mistral-small-latest", transport: "http" });
-  expect(DEFAULT_TIER_MAP.smart).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
-  expect(DEFAULT_TIER_MAP.powerful).toEqual({ provider: "mistral", model: "mistral-large-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.fast).toEqual({ provider: "mistral", model: "mistral-small-2603", transport: "http" });
+  expect(DEFAULT_TIER_MAP.smart).toEqual({ provider: "mistral", model: "mistral-large-2512", transport: "http" });
+  expect(DEFAULT_TIER_MAP.powerful).toEqual({ provider: "mistral", model: "mistral-large-2512", transport: "http" });
   // F041: vision moved off small — measured, see the comment in tier-map.ts.
-  expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-medium-latest", transport: "http" });
+  expect(DEFAULT_TIER_MAP.vision).toEqual({ provider: "mistral", model: "mistral-medium-2604", transport: "http" });
 });
 
 // F043 — a provider-only override used to carry the TIER's model to the new provider.
@@ -99,4 +99,9 @@ test("assertOverrideProvider refuses a provider-only override at ANY spec merge"
   expect(() => assertOverrideProvider(bfl, undefined, "image", known)).not.toThrow();
   // An unregistered provider defers to the registry's own, more useful error.
   expect(() => assertOverrideProvider(bfl, { provider: "nope" }, "image", known)).not.toThrow();
+});
+
+test("no tier floats on a -latest alias (F077) — a model change must be a release of ours", () => {
+  const floating = Object.entries(DEFAULT_TIER_MAP).filter(([, s]) => s.model.endsWith("-latest")).map(([t, s]) => `${t}=${s.model}`);
+  expect(floating).toEqual([]);
 });

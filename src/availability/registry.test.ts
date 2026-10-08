@@ -45,7 +45,7 @@ test("canonicalId resolves id and alias; unknown → null", () => {
   // A TIER alias resolves to the model that tier actually calls. This line used
   // to assert "claude-opus-4-8" — the test ENCODED the drift, which is why three
   // months of it went unnoticed. A test that asserts the bug cannot report it.
-  expect(canonicalId("powerful")).toBe("mistral-large-latest");
+  expect(canonicalId("powerful")).toBe("mistral-large-2512"); // F077: pinned, not -latest
   expect(canonicalId("totally-made-up")).toBeNull();
 });
 

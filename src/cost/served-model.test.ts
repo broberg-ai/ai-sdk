@@ -40,7 +40,8 @@ test("the upmetrics row carries tags.served_model; model stays the requested one
   globalThis.fetch = stub({ model: "mistral-large-2512", choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
   const mistral = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl: "https://api.mistral.ai/v1", apiKey: "k" });
   const ai = createAI({ providers: { mistral }, costSink: sink });
-  await ai.chat({ prompt: "hej", tier: "smart" });
+  // An explicit -latest override: the case where requested and served differ (F077 pinned the tiers).
+  await ai.chat({ prompt: "hej", override: { provider: "mistral", model: "mistral-large-latest", transport: "http" } });
   expect(bodies[0]!.model).toBe("mistral-large-latest");
   expect((bodies[0]!.tags as Record<string, string>).served_model).toBe("mistral-large-2512");
 });

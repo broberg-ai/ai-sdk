@@ -351,6 +351,32 @@ export function createAI(config: AiConfig = {}): AiClient {
     return r.fellBack ? { ...spec, model: r.model } : spec;
   }
 
+  /** F077.3 — a "-latest" model id floats: the provider can move it to a different
+   *  (and dearer) model overnight, and Mistral echoes the alias back so the move is
+   *  invisible. The tiers are pinned; this catches a caller's own override, fallback or
+   *  defaults. Warn once per id (not per call — a chat loop must not flood the log),
+   *  unless the caller opted in with allowFloating; strictPinning makes it an error.
+   *  Returns whether the route floats, so the usage row can say so. */
+  const warnedFloating = new Set<string>();
+  function checkPinning(spec: TierSpec, allowFloating: boolean | undefined): boolean {
+    if (!spec.model?.endsWith("-latest") || allowFloating) return false;
+    const key = `${spec.provider}:${spec.model}`;
+    if (cfg.strictPinning) {
+      throw new Error(
+        `createAI: "${key}" is a floating -latest alias and strictPinning is on. Use a dated id ` +
+          `(describeTier() names the pinned ones) or pass allowFloating: true for this call.`,
+      );
+    }
+    if (!warnedFloating.has(key)) {
+      warnedFloating.add(key);
+      console.warn(
+        `[@broberg/ai-sdk] "${key}" floats: the provider can move it to another model and price without a release. ` +
+          `Pin a dated id, or pass allowFloating: true to say you mean it. (F077)`,
+      );
+    }
+    return true;
+  }
+
   /** Run a capability with an optional fallback chain. Tries the primary route,
    *  then each fallback (Tier or TierSpec) in order if the call errors. A budget
    *  breach propagates immediately (not a fallback trigger). On the first
@@ -362,6 +388,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     tier?: Tier;
     purpose?: string;
     labels?: Record<string, string>;
+    allowFloating?: boolean;
     estIn: number;
     estOut: number;
     invoke: (spec: TierSpec) => Promise<R>;
@@ -375,11 +402,13 @@ export function createAI(config: AiConfig = {}): AiClient {
     let lastErr: unknown;
     for (let i = 0; i < routes.length; i++) {
       const spec = routes[i]!;
+      const floating = checkPinning(spec, opts.allowFloating);
       await preflight(spec, opts.estIn, opts.estOut); // BudgetExceededError propagates
       const t0 = performance.now();
       try {
         const res = await opts.invoke(spec);
         enrich(res.usage, opts.capability, i === 0 ? opts.tier : undefined, opts.purpose, performance.now() - t0, opts.labels);
+        if (floating) res.usage.floating = true;
         await settle(res.usage);
         await report(res.usage);
         return res;
@@ -446,6 +475,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     let lastErr: unknown;
     for (let i = 0; i < routes.length; i++) {
       const spec = routes[i]!;
+      const floating = checkPinning(spec, input.allowFloating);
       await preflight(spec, estIn, estOut); // BudgetExceededError propagates
       const adapter = pickProvider(spec.provider);
       if (!adapter.chatStream) {
@@ -472,6 +502,7 @@ export function createAI(config: AiConfig = {}): AiClient {
           if (ev.type === "text" || ev.type === "tool_call") emitted = true;
           if (ev.type === "usage") {
             enrich(ev.usage, "chat", i === 0 ? tier : undefined, input.purpose, performance.now() - t0, input.labels);
+            if (floating) ev.usage.floating = true;
             await settle(ev.usage);
             await report(ev.usage);
           }
@@ -519,6 +550,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         tier,
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn,
         estOut: input.maxTokens ?? 512,
         invoke: async (spec) => {
@@ -542,6 +574,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         tier,
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: estTokens(input.prompt) + 1000, // prompt + ~1k image payload
         estOut: 512,
         invoke: async (spec) => {
@@ -563,6 +596,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         tier,
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: estTokens(input.prompt) + 4000, // prompt + video tokens (native video ≈ frames)
         estOut: 512,
         invoke: async (spec) => {
@@ -586,6 +620,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         tier,
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn,
         estOut: estIn,
         invoke: async (spec) => {
@@ -625,6 +660,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "image",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: 0, // image cost is not token-based
         estOut: 0,
         invoke: async (spec) => {
@@ -661,6 +697,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "animate",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: 0, // video cost is per-second, not token-based
         estOut: 0,
         invoke: async (spec) => {
@@ -688,6 +725,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "trainStyle",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: 0, // training is priced flat by fal, not token-based
         estOut: 0,
         invoke: async (spec) => {
@@ -714,6 +752,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "ocr",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: 0, // OCR cost is per-page, not token-based
         estOut: 0,
         invoke: async (spec) => {
@@ -733,6 +772,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "moderation",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: items.reduce((n, s) => n + estTokens(s), 0),
         estOut: 0,
         invoke: async (spec) => {
@@ -752,6 +792,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "judge",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: estTokens(stateText) + estTokens(JSON.stringify(input.questions)),
         estOut: 0, // output tokens are free on Jev
         invoke: async (spec) => {
@@ -782,6 +823,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "podcast",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: chars, // per-character cost (not token-based)
         estOut: 0,
         invoke: async (spec) => {
@@ -804,6 +846,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "tts",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: input.text.length, // per-character cost
         estOut: 0,
         invoke: async (spec) => {
@@ -828,6 +871,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         tier,
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: text.reduce((n, t) => n + estTokens(t), 0),
         estOut: 0,
         invoke: async (spec) => {
@@ -847,6 +891,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         capability: "transcribe",
         purpose: input.purpose,
         labels: input.labels,
+        allowFloating: input.allowFloating,
         estIn: 0,
         estOut: 0,
         invoke: async (spec) => {

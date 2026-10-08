@@ -139,6 +139,9 @@ export interface Usage {
   provider: string;
   /** The model we ASKED for — the pricing key and the stable grouping. */
   model: string;
+  /** F077.3 — true when `model` was a floating "-latest" alias the caller chose
+   *  without allowFloating: the provider can move it to another model and price. */
+  floating?: boolean;
   /** F071.2 — the model that ANSWERED, as the provider reported it. Differs from `model`
    *  when an alias like "mistral-large-latest" resolves to a dated model; that is how a
    *  silent overnight move becomes visible. Unset when the provider does not say. */

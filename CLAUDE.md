@@ -17,7 +17,7 @@
 Per Christian's 2026-06-04 Mistral assessment (CD report), **Mistral (Paris-hosted, full DPA, no Schrems II exposure) is the designated EU/GDPR-safe provider for any workload touching client or personal data** — across FysioDK Aalborg, LHD, and Web House SaaS. Reached via `override:{provider:"mistral", model, transport:"http"}` (F015). The `mistral:` entries in `src/cost/pricing.ts` are the **official** mistral.ai/pricing numbers (not estimates).
 
 - Because personal/health data flows through these paths, **Mistral routes must be tested thoroughly before production** (the application owns that; the SDK must keep the adapter + cost correct).
-- Model picking: **Mistral Large 3** (`mistral-large-latest`, $0.5/$1.5) is the cheap frontier general-purpose default; **medium-3.5** ($1.5/$7.5) is the premium coding tier (don't reach for it by default); **Small 4** (`mistral-small-latest`, $0.15/$0.60 — measured 2026-10-08; the table said $0.1/$0.3 until F076.1) is the volume workhorse; **Magistral** = reasoning-with-audit-trail for clinical modules.
+- Model picking: **Mistral Large 3** (`mistral-large-2512`, $0.5/$1.5) is the cheap frontier general-purpose default; **medium-3.5** ($1.5/$7.5) is the premium coding tier (don't reach for it by default); **Small 4** (`mistral-small-2603`, $0.15/$0.60 — measured 2026-10-08; the table said $0.1/$0.3 until F076.1) is the volume workhorse; **Magistral** = reasoning-with-audit-trail for clinical modules.
 - Capability gaps the "all-AI-through-the-SDK" rule implies for Mistral specialties (not yet built, candidate future F-numbers): batch API (50% discount), OCR (`mistral-ocr`), Voxtral audio (transcribe/TTS), moderation.
 
 ## Model Advisor — ai-sdk is the fleet's model-selection authority (F017)
@@ -276,7 +276,7 @@ const { text, usage } = await ai.chat({ prompt: "Hej", tier: "smart" });
 
 **Route by tier, not by model-string.** Tiers → current model (overridable per call):
 **Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
-`fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=mistral-small-latest · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
+`fast`=mistral-small-2603 · `smart`=mistral-large-2512 · `powerful`=mistral-large-2512 · `cheap`=mistral-small-2603 · `vision`=mistral-medium-2604 · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
 
 > This block named Claude for `smart`/`powerful`/`vision` for ~3 months after F030 moved them. Nobody was endangered — it UNDERSTATED how EU-safe the defaults are — but the same drift also lived in code (`resolveModel('smart')` answered claude-sonnet-4-6 while the call went to Mistral), and there it was dangerous: that lookup is what a reasonable person would use to show or decide where data goes. Fixed in v0.29 by deriving the registry's tier aliases from the router. **The `video` and `embedding` DEFAULTS still leave the EU** — do not send personal data through them without an override. But read the next paragraph before concluding there is no EU route: in September 2026 that same sentence, correct as written, was cited by another session as proof the fleet had no EU path for video. A default is not a capability.
 
@@ -322,7 +322,7 @@ createAI({ promptCache: false })                         // opt out client-wide
 shared-prefix identity, so derive it from (tenant, conversation), never the conversation
 alone. Only Mistral takes a key; openai/deepseek/gemini cache automatically.
 
-**GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-latest" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
+**GDPR:** for any client/personal/health data, use the EU tier — `override:{ provider:"mistral", model:"mistral-large-2512" }` (Mistral, Paris-hosted, no Schrems II). Never route personal data through US/CN models.
 
 **A TIER TABLE SAYS WHERE A CALL GOES BY DEFAULT. IT IS NOT A LIST OF THE ROUTES THAT EXIST.**
 A reader deciding whether personal data may leave the country needs the SECOND list,
@@ -389,7 +389,7 @@ bump deliberately.
 
 **Route by tier, not by model-string.** Tiers → current model (overridable per call):
 **Every text tier is Mistral EU** (F030, v0.21+) — Claude is override-only:
-`fast`=mistral-small-latest · `smart`=mistral-large-latest · `powerful`=mistral-large-latest · `cheap`=mistral-small-latest · `vision`=**mistral-medium-latest** · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
+`fast`=mistral-small-2603 · `smart`=mistral-large-2512 · `powerful`=mistral-large-2512 · `cheap`=mistral-small-2603 · `vision`=**mistral-medium-2604** · `video`=gemini-2.5-flash-lite (US) · `embedding`=text-embedding-3-small (US).
 
 **A tier fails CLOSED; a model id fails OPEN — and the difference was written nowhere.**
 Measured by coverletter (2026-08-30): `ai.chat({tier:"chaep"})` throws and lists the

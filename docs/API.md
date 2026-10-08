@@ -106,16 +106,36 @@ and report to the sink. Adapters never see budgets or sinks — that's the
 facade's job.
 
 ### 3.2 Routing — Tiers
-A **Tier** is a named intent, not a model. The six built-ins:
+A **Tier** is a named intent, not a model. The built-ins, **pinned to dated model ids**
+(F077, v0.56+):
 
-| Tier | Default route | Use for |
-|---|---|---|
-| `fast` | anthropic haiku (http) | quick, cheap text |
-| `smart` | anthropic sonnet (http) | the default for `chat` |
-| `powerful` | anthropic opus (http) | hardest reasoning |
-| `cheap` | anthropic haiku (**subprocess** `claude -p`) | Max-plan, **costUsd 0** |
-| `vision` | anthropic sonnet (http) | image understanding |
-| `embedding` | openai text-embedding-3-small (http) | vectors |
+| Tier | Default route (pinned) | is | $/1M in/out | Use for |
+|---|---|---|---|---|
+| `fast` | mistral `mistral-small-2603` | Small 4 | 0.15 / 0.60 | quick, cheap text |
+| `smart` | mistral `mistral-large-2512` | Large 3 | 0.50 / 1.50 | the default for `chat` |
+| `powerful` | mistral `mistral-large-2512` | Large 3 | 0.50 / 1.50 | hardest reasoning |
+| `cheap` | mistral `mistral-small-2603` | Small 4 | 0.15 / 0.60 | volume |
+| `vision` | mistral `mistral-medium-2604` | Medium 3.5 | 1.50 / 7.50 | image understanding |
+| `video` | gemini `gemini-2.5-flash-lite` (US) | | | video analysis |
+| `embedding` | openai `text-embedding-3-small` (US) | | 0.02 | vectors |
+
+**No tier floats on a `-latest` alias (F077, owner rule 2026-10-08).** Mistral moves its
+`-latest` names on its own schedule (three moved on 8 October alone) and echoes the alias
+back, so the move is invisible in `usage.model`. Had `mistral-large-latest` moved to
+Large 4, every `smart` call would have cost ~2.7x (~40x with thinking) with nobody
+deciding it. A tier's model now changes only in a release of ours, with a changelog line
+and the price difference.
+
+```ts
+import { describeTier } from "@broberg/ai-sdk";          // also from "@broberg/ai-sdk/registry"
+describeTier("smart");
+// → { tier:"smart", provider:"mistral", model:"mistral-large-2512", pinned:true,
+//     inputPer1M:0.5, outputPer1M:1.5, cacheReadPer1M:0.05 }
+```
+
+**A `-latest` id of your own** (override, fallback, `defaults`) still works, but warns
+once per id and marks `usage.floating: true`. Pass `allowFloating: true` on the call when
+you mean it; `createAI({ strictPinning: true })` refuses floating ids outright.
 
 `resolveTier(tier, override?, configMap?)` merges **per-call override > client
 config > built-in defaults**. So you can rename what `smart` means globally
