@@ -19,8 +19,11 @@ export function computeCost(
   cacheReadTokens = 0,
   cacheCreationTokens = 0,
 ): number {
-  const price = getPrice(provider, model);
-  if (!price) return 0;
+  const base = getPrice(provider, model);
+  if (!base) return 0;
+  // F075 — the whole prompt decides the tier, cached parts included.
+  const long = base.longPrompt;
+  const price = long && inputTokens + cacheReadTokens + cacheCreationTokens > long.aboveTokens ? long : base;
   const perToken = (per1M: number) => per1M / 1_000_000;
   const inRate = perToken(price.inputPer1M);
   const outRate = perToken(price.outputPer1M);

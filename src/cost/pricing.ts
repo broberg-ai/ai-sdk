@@ -12,6 +12,10 @@ export interface PricingEntry {
   cacheWritePer1M?: number;
   /** Pricing snapshot version (date or tag) so stale entries are detectable. */
   version: string;
+  /** F075 — a second set of rates for prompts LONGER than `aboveTokens` (input +
+   *  cache-read + cache-write). Claude Haiku 5.5 costs 5x above 100k tokens; one row
+   *  could only be right for one side of that line. */
+  longPrompt?: { aboveTokens: number; inputPer1M: number; outputPer1M: number; cacheReadPer1M?: number; cacheWritePer1M?: number };
 }
 
 // USD per 1M tokens. Anthropic cache multipliers follow the standard model:
@@ -22,6 +26,8 @@ export interface PricingEntry {
 const V = "2026-06-02";
 // Mistral prices come straight from mistral.ai/pricing (per Christian's CD report).
 const MS = "2026-06-04-mistral.ai";
+// Anthropic's own price page, read for F075.
+const AN = "2026-10-08-platform.claude.com";
 
 /** Keyed `${provider}:${model}`. Exported so the catalogue-research job (F014)
  *  can enumerate every priced entry and diff it against the live provider lists. */
@@ -59,6 +65,25 @@ export const PRICING: Record<string, PricingEntry> = {
     cacheReadPer1M: 0.5,
     cacheWritePer1M: 6.25,
     version: "2026-09-03",
+  },
+
+  // F075 — the rest of what Anthropic's /v1/models lists for our key, read 2026-10-08
+  // from platform.claude.com/docs/en/about-claude/pricing. Cache-read is NOT 0.1x
+  // everywhere: Opus/Sonnet 5.5 are 0.05x and Fable 5.1 is 0.025x. cacheWrite is the
+  // 5-minute rate (the only one the SDK writes).
+  "anthropic:claude-fable-5-1": { inputPer1M: 10, outputPer1M: 50, cacheReadPer1M: 0.25, cacheWritePer1M: 12.5, version: AN },
+  "anthropic:claude-fable-5": { inputPer1M: 10, outputPer1M: 50, cacheReadPer1M: 1, cacheWritePer1M: 12.5, version: AN },
+  "anthropic:claude-opus-5-5": { inputPer1M: 4, outputPer1M: 20, cacheReadPer1M: 0.2, cacheWritePer1M: 5, version: AN },
+  "anthropic:claude-opus-5": { inputPer1M: 5, outputPer1M: 25, cacheReadPer1M: 0.5, cacheWritePer1M: 6.25, version: AN },
+  "anthropic:claude-opus-4-7": { inputPer1M: 5, outputPer1M: 25, cacheReadPer1M: 0.5, cacheWritePer1M: 6.25, version: AN },
+  "anthropic:claude-opus-4-6": { inputPer1M: 5, outputPer1M: 25, cacheReadPer1M: 0.5, cacheWritePer1M: 6.25, version: AN },
+  "anthropic:claude-opus-4-5": { inputPer1M: 5, outputPer1M: 25, cacheReadPer1M: 0.5, cacheWritePer1M: 6.25, version: AN },
+  "anthropic:claude-sonnet-5-5": { inputPer1M: 2, outputPer1M: 10, cacheReadPer1M: 0.1, cacheWritePer1M: 2.5, version: AN },
+  "anthropic:claude-sonnet-5": { inputPer1M: 2, outputPer1M: 10, cacheReadPer1M: 0.2, cacheWritePer1M: 2.5, version: AN },
+  "anthropic:claude-sonnet-4-5": { inputPer1M: 3, outputPer1M: 15, cacheReadPer1M: 0.3, cacheWritePer1M: 3.75, version: AN },
+  "anthropic:claude-haiku-5-5": {
+    inputPer1M: 0.1, outputPer1M: 0.5, cacheReadPer1M: 0.01, cacheWritePer1M: 0.125, version: AN,
+    longPrompt: { aboveTokens: 100_000, inputPer1M: 0.5, outputPer1M: 2.5, cacheReadPer1M: 0.05, cacheWritePer1M: 0.625 },
   },
 
   // OpenAI. embedding default tier = text-embedding-3-small (no output tokens).

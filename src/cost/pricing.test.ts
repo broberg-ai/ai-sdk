@@ -86,3 +86,29 @@ test("Mistral Large 4 is priced at LIST price, Large 3 unchanged (F074.1)", () =
     expect(computeCost("mistral", id, 1_000_000, 1_000_000)).toBeCloseTo(2.0, 9);
   }
 });
+
+test("every model Anthropic lists for our key is priced (F075, list read 2026-10-08)", () => {
+  const listed = [
+    "claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1", "claude-opus-5",
+    "claude-sonnet-5", "claude-fable-5", "claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-4-6",
+    "claude-opus-4-6", "claude-opus-4-5-20251101", "claude-haiku-4-5-20251001", "claude-sonnet-4-5-20250929",
+  ];
+  expect(listed.filter((m) => !getPrice("anthropic", m))).toEqual([]);
+});
+
+test("cache-read is not 0.1x everywhere: Opus/Sonnet 5.5 at 0.05x, Fable 5.1 at 0.025x (F075)", () => {
+  expect(getPrice("anthropic", "claude-opus-5-5")?.cacheReadPer1M).toBe(0.2);
+  expect(getPrice("anthropic", "claude-sonnet-5-5")?.cacheReadPer1M).toBe(0.1);
+  expect(getPrice("anthropic", "claude-fable-5-1")?.cacheReadPer1M).toBe(0.25);
+});
+
+test("Haiku 5.5 is priced by prompt length: 5x above 100k tokens (F075)", () => {
+  // 50k in + 1k out at $0.10/$0.50 = 0.005 + 0.0005
+  expect(computeCost("anthropic", "claude-haiku-5-5", 50_000, 1_000)).toBeCloseTo(0.0055, 12);
+  // 150k in + 1k out at $0.50/$2.50 = 0.075 + 0.0025
+  expect(computeCost("anthropic", "claude-haiku-5-5", 150_000, 1_000)).toBeCloseTo(0.0775, 12);
+  // Cached parts count toward the prompt: 60k fresh + 60k cache-read crosses the line.
+  expect(computeCost("anthropic", "claude-haiku-5-5", 60_000, 0, 60_000)).toBeCloseTo(0.03 + 0.003, 12);
+  // Exactly at the line is still the low tier ("over 100,000").
+  expect(computeCost("anthropic", "claude-haiku-5-5", 100_000, 0)).toBeCloseTo(0.01, 12);
+});
