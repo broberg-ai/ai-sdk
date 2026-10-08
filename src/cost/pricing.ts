@@ -150,6 +150,13 @@ export const PRICING: Record<string, PricingEntry> = {
   // is the cheaper frontier general-purpose model despite the higher number.
   "mistral:mistral-large-latest": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
   "mistral:mistral-large-2512": { inputPer1M: 0.5, cacheReadPer1M: 0.05, outputPer1M: 1.5, version: MS },
+  // Large 4 (F074.1), measured 2026-10-08 on docs.mistral.ai/models/mistral-large-4:
+  // LIST price. The page also shows a 50% "Public Preview" sale ($0.68/$0.07/$2.09)
+  // with no end date; booking the sale would under-report the day it ends, unseen.
+  // Cached input shows as "$0.14": that is 10% of $1.36 rounded to cents (the sale's
+  // "$0.07" is 0.068 the same way), and 10% is the rate measured for Mistral (F039).
+  "mistral:mistral-large-4": { inputPer1M: 1.36, cacheReadPer1M: 0.136, outputPer1M: 4.18, version: "2026-10-08-docs.mistral.ai" },
+  "mistral:mistral-large-4-0": { inputPer1M: 1.36, cacheReadPer1M: 0.136, outputPer1M: 4.18, version: "2026-10-08-docs.mistral.ai" },
   "mistral:mistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3.5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3": { inputPer1M: 0.4, cacheReadPer1M: 0.04, outputPer1M: 2.0, version: "2026-06-04-or-xref" },
