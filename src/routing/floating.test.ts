@@ -47,3 +47,26 @@ test("streaming marks usage.floating too", async () => {
   for await (const ev of ai.chatStream({ prompt: "x", override: floating })) if (ev.type === "usage") floatingSeen = ev.usage.floating;
   expect(floatingSeen).toBe(true);
 });
+
+// F077.4 — found by trail 2026-10-08: the SDK's OWN built-in routes still floated, so
+// strictPinning refused ocr/moderate/judge/batch calls that passed no override at all.
+import { ROUTED_SPECS } from "../client.js";
+import { getPrice } from "../cost/pricing.js";
+
+test("no built-in route floats on a -latest alias", () => {
+  expect(ROUTED_SPECS.filter((s) => s.model?.endsWith("-latest")).map((s) => `${s.provider}:${s.model}`)).toEqual([]);
+});
+
+test("the pinned text routes are priced (moderation, judge, batch)", () => {
+  for (const [p, m] of [["mistral", "mistral-moderation-2603"], ["typesafe", "jev-1.13.0"], ["mistral", "mistral-small-2603"]] as const) {
+    expect({ m, priced: getPrice(p, m) !== undefined }).toEqual({ m, priced: true });
+  }
+});
+
+test("strictPinning does not refuse ai.moderate with no override", async () => {
+  const f = (async () => new Response(JSON.stringify({ model: "mistral-moderation-2603", results: [{ categories: { hate: false }, category_scores: { hate: 0.01 } }], usage: { prompt_tokens: 3, completion_tokens: 0 } }), { status: 200 })) as unknown as typeof fetch;
+  const { mistralAdapter } = await import("../providers/mistral.js");
+  const ai = createAI({ providers: { mistral: mistralAdapter({ apiKey: "k", fetch: f }) }, costSink: null, strictPinning: true });
+  const r = await ai.moderate({ input: "hej" } as never);
+  expect(r.usage.model).toBe("mistral-moderation-2603");
+});

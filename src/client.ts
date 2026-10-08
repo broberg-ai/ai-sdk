@@ -145,19 +145,23 @@ const DEFAULT_BFL_REFERENCE_SPEC: TierSpec = {
   transport: "http",
 };
 
-/** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default. */
-const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-latest", transport: "http" };
-const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-latest", transport: "http" };
-/** Judge route (F066) — TypeSafe Jev. "jev-latest" is a MOVING alias; pin
- *  override:{provider:"typesafe", model:"jev-1.13.0"} if you tuned thresholds on
- *  confidence. US-hosted — there is no EU route for this capability. */
-const DEFAULT_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-latest", transport: "http" };
+/** OCR + moderation are Mistral specialty endpoints (F016) — no tier, route by default.
+ *  F077.4 — pinned like the tiers. Found by trail 2026-10-08: with strictPinning on, the
+ *  SDK's OWN -latest defaults here refused calls that passed no override. Targets are
+ *  what each -latest meant that day (Mistral /v1/models; moderation measured live). */
+const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-4-1", transport: "http" };
+const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-2603", transport: "http" };
+/** Judge route (F066) — TypeSafe Jev, pinned to jev-1.13.0 (F077.4; the version
+ *  "jev-latest" answered with, and measured to accept a direct request 2026-10-08).
+ *  Thresholds tuned on confidence stay valid until we move it in a release.
+ *  US-hosted — there is no EU route for this capability. */
+const DEFAULT_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-1.13.0", transport: "http" };
 /** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
 const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_multilingual_v2", transport: "http" };
 /** Batch route (F016.1) — Mistral batch jobs (50% cost), cheap default model. */
-const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-latest", transport: "http" };
+const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-2603", transport: "http" }; // F077.4
 
 /** Every built-in route that is NOT in the tier map (F067.1). The model research reads
  *  this to know which provider ids the SDK already calls, so a model it routes by

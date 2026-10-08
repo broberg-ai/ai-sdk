@@ -223,6 +223,7 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:open-mistral-nemo": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0.15, version: MS },
   // Moderation (F016.4) — per input token; output 0. (OCR is per-page in the adapter.)
   "mistral:mistral-moderation-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
+  "mistral:mistral-moderation-2603": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS }, // F077.4 pinned default
   // Embeddings (F016.5) — per input token.
   "mistral:mistral-embed": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
   "mistral:codestral-embed": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0, version: MS },
