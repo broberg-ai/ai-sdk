@@ -10,7 +10,9 @@ import { memorySearchCache, SEARCH_CACHE_TTL_MS, searchCacheKey } from "./cache.
 import { classifyFailure } from "../cost/failure.js";
 import type { Usage } from "../types.js";
 import {
+  SearchBudgetExceededError,
   SearchKeyMissingError,
+  type SearchCapStore,
   type SearchItem,
   type SearchOptions,
   type SearchProviderId,
@@ -20,17 +22,27 @@ import {
 
 const sharedCache = memorySearchCache();
 
+const sharedCapStore: SearchCapStore = (() => {
+  const m = new Map<string, number>();
+  return { getSpent: (k) => m.get(k) ?? 0, addSpent: (k, usd) => { m.set(k, (m.get(k) ?? 0) + usd); } };
+})();
+
+/** Calendar day in Danish time — a "day" for the cap is the owner's day, not UTC's. */
+const copenhagenDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Copenhagen" }).format(d);
+
 async function callProvider(provider: SearchProviderId, req: SearchRequest, opts: SearchOptions) {
   const f = opts.fetch ?? fetch;
   const c = opts.credentials ?? {};
+  // byok: never the fleet's env keys — a missing customer key is a missing key.
+  const env = opts.byok ? {} : process.env;
   if (provider === "brave") {
-    const key = c.braveApiKey ?? process.env.BRAVE_API_KEY;
+    const key = c.braveApiKey ?? env.BRAVE_API_KEY;
     if (!key) throw new SearchKeyMissingError(provider, "BRAVE_API_KEY");
     return braveSearch({ ...req, provider }, key, f);
   }
   if (provider.startsWith("cloudflare:")) {
-    const accountId = c.cloudflareAccountId ?? process.env.CLOUDFLARE_ACCOUNT_ID;
-    const apiToken = c.cloudflareApiToken ?? process.env.CLOUDFLARE_API_TOKEN;
+    const accountId = c.cloudflareAccountId ?? env.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = c.cloudflareApiToken ?? env.CLOUDFLARE_API_TOKEN;
     if (!accountId) throw new SearchKeyMissingError(provider, "CLOUDFLARE_ACCOUNT_ID");
     if (!apiToken) throw new SearchKeyMissingError(provider, "CLOUDFLARE_API_TOKEN");
     return cloudflareSearch({ ...req, provider }, { accountId, apiToken }, f);
@@ -64,12 +76,23 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
   const cache = opts.cache === false ? undefined : (opts.cache ?? sharedCache);
   const ttl = SEARCH_CACHE_TTL_MS[req.purpose ?? "agent"];
   const sink = opts.costSink;
+  const capStore = opts.capStore ?? sharedCapStore;
+  const tenant = req.labels?.tenantId ?? "_";
+  const day = copenhagenDay((opts.now ?? (() => new Date()))());
+  const capKey = JSON.stringify([tenant, day]);
 
   let lastErr: unknown;
   for (const provider of chain) {
     const key = searchCacheKey(provider, req);
     const hit = cache?.get(key);
     if (hit) return { items: hit.items, meta: { ...hit.meta, cached: true, costUsd: 0, latencyMs: 0 } };
+
+    if (opts.dailyCapUsd !== undefined) {
+      const spent = await capStore.getSpent(capKey);
+      const price = SEARCH_PRICE_USD[provider];
+      // Not a provider failure, so it does not fall through: the cap stops the call.
+      if (spent + price > opts.dailyCapUsd) throw new SearchBudgetExceededError(tenant, day, opts.dailyCapUsd, spent, price);
+    }
 
     const t0 = performance.now();
     try {
@@ -80,6 +103,7 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
         meta: { provider, latencyMs, cached: false, costUsd: SEARCH_PRICE_USD[provider], ...(out.requestId ? { requestId: out.requestId } : {}) },
       };
       cache?.set(key, result, ttl);
+      await capStore.addSpent(capKey, result.meta.costUsd); // always, so a cap set later in the day sees the earlier spend
       try { await sink?.record(usageRow(provider, req, result.meta.costUsd, latencyMs)); } catch { /* a sink never breaks a call */ }
       return result;
     } catch (e) {
@@ -110,5 +134,5 @@ function dedupe(items: SearchItem[]): SearchItem[] {
 export { SEARCH_PRICE_USD } from "./prices.js";
 export { DEFAULT_SEARCH_ROUTES, ZDR_PROVIDERS, routeSearch, type SearchRoute } from "./router.js";
 export { memorySearchCache, SEARCH_CACHE_TTL_MS } from "./cache.js";
-export { SearchKeyMissingError } from "./types.js";
-export type { SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials, SearchCache, SearchPurpose } from "./types.js";
+export { SearchBudgetExceededError, SearchKeyMissingError } from "./types.js";
+export type { SearchCapStore, SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials, SearchCache, SearchPurpose } from "./types.js";

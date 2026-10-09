@@ -790,7 +790,7 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     async search(req, opts) {
       const labels = { ...cfg.labels, ...req.labels };
-      return webSearch({ ...req, ...(Object.keys(labels).length ? { labels } : {}) }, { ...opts, ...(costSink ? { costSink } : {}) });
+      return webSearch({ ...req, ...(Object.keys(labels).length ? { labels } : {}) }, { ...opts, ...(cfg.byok ? { byok: true } : {}), ...(costSink ? { costSink } : {}) });
     },
 
     async judge(input: JudgeInput): Promise<JudgeResult> {

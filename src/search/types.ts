@@ -58,13 +58,29 @@ export interface SearchCache {
   set(key: string, value: SearchResult, ttlMs: number): void;
 }
 
+/** Running spend per key (tenant + day). Async allowed, so it can live in a database. */
+export interface SearchCapStore {
+  getSpent(key: string): number | Promise<number>;
+  addSpent(key: string, usd: number): void | Promise<void>;
+}
+
 export interface SearchOptions {
   /** false = no cache. Default: one in-process memory cache shared by all calls. */
   cache?: SearchCache | false;
   /** Where each call (and each failed attempt) is recorded. ai.search() passes the client's sink. */
   costSink?: import("../types.js").CostSink;
-  /** Explicit keys (BYOK); missing fields fall back to env. */
+  /** Explicit keys (BYOK); missing fields fall back to env — unless `byok` is set. */
   credentials?: SearchCredentials;
+  /** F078.3 — customer-key mode: keys come ONLY from `credentials`, env is never read,
+   *  so a tenant whose key is missing cannot run on the fleet's account. */
+  byok?: boolean;
+  /** F078.3 — hard ceiling in USD per tenant (`labels.tenantId`) per calendar day in
+   *  Europe/Copenhagen. A call that would cross it throws before any request. */
+  dailyCapUsd?: number;
+  /** Where the day's spend is kept. Default: in-process memory shared by all calls. */
+  capStore?: SearchCapStore;
+  /** Clock for the day boundary (tests). */
+  now?: () => Date;
   /** Injectable fetch (tests, proxies) — same contract as the model adapters (F073). */
   fetch?: typeof fetch;
 }
@@ -74,5 +90,13 @@ export class SearchKeyMissingError extends Error {
   constructor(public readonly provider: SearchProviderId, public readonly envVar: string) {
     super(`search: ${provider} needs ${envVar} (env or options.credentials)`);
     this.name = "SearchKeyMissingError";
+  }
+}
+
+/** Thrown before any request when the tenant's daily ceiling would be crossed. */
+export class SearchBudgetExceededError extends Error {
+  constructor(public readonly tenant: string, public readonly day: string, public readonly capUsd: number, public readonly spentUsd: number, public readonly requestedUsd: number) {
+    super(`search: daily cap $${capUsd} for tenant "${tenant}" on ${day} reached ($${spentUsd.toFixed(5)} spent, this call $${requestedUsd})`);
+    this.name = "SearchBudgetExceededError";
   }
 }
