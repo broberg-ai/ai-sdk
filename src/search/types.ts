@@ -58,10 +58,15 @@ export interface SearchCache {
   set(key: string, value: SearchResult, ttlMs: number): void;
 }
 
-/** Running spend per key (tenant + day). Async allowed, so it can live in a database. */
+/** Running spend per key (tenant + day). Async allowed, so it can live in a database.
+ *  `reserve` must CHECK AND ADD in one atomic step (e.g. `UPDATE … SET spent = spent + ?
+ *  WHERE spent + ? <= cap`) and say whether it fitted — a separate read-then-write lets
+ *  parallel calls all pass a cap only one of them fits under. `release` gives a
+ *  reservation back when the call fails. */
 export interface SearchCapStore {
+  reserve(key: string, usd: number, capUsd: number): boolean | Promise<boolean>;
+  release(key: string, usd: number): void | Promise<void>;
   getSpent(key: string): number | Promise<number>;
-  addSpent(key: string, usd: number): void | Promise<void>;
 }
 
 export interface SearchOptions {

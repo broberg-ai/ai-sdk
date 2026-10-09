@@ -596,7 +596,7 @@ Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` 
 **Tenant keys + daily cap (0.59+, F078.3).**
 - `byok: true` — keys come ONLY from `credentials`; env is never read, so a tenant whose key is missing gets `SearchKeyMissingError` instead of running on our account. A client made with `createAI({ byok: true })` searches in this mode automatically.
 - `dailyCapUsd` — hard ceiling per tenant (`labels.tenantId`) per calendar day in **Danish time** (Europe/Copenhagen). The call that would cross it throws `SearchBudgetExceededError` before any request and does not fall through to the next provider. Cache hits are free and always allowed; failed calls cost nothing.
-- `capStore` — where the day's spend lives (`{ getSpent(key), addSpent(key, usd) }`, async allowed). Default is in-process memory: it resets on restart and is not shared between machines — pass your own store (e.g. a DB table) when that matters.
+- `capStore` — where the day's spend lives (`{ reserve(key, usd, cap), release(key, usd), getSpent(key) }`, async allowed). `reserve` must check and add in ONE atomic step (e.g. `UPDATE … SET spent = spent + ? WHERE spent + ? <= cap`) — otherwise parallel calls can all pass the same headroom. Measured: 10 parallel calls against a 2-call cap send exactly 2 (0.59.1+; 0.59.0 checked then added, and let them through). Default is in-process memory: it resets on restart and is not shared between machines — pass your own store (e.g. a DB table) when that matters.
 
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):

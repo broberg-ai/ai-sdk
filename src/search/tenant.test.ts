@@ -43,9 +43,15 @@ test("createAI({ byok: true }).search runs in byok mode — the fleet key is not
   expect(tokens).toEqual([]);
 });
 
+/** An async store, as a database-backed one would be; reserve is a single atomic step. */
 function memStore(): SearchCapStore & { m: Map<string, number> } {
   const m = new Map<string, number>();
-  return { m, async getSpent(k) { return m.get(k) ?? 0; }, async addSpent(k, usd) { m.set(k, (m.get(k) ?? 0) + usd); } };
+  return {
+    m,
+    async reserve(k, usd, cap) { await Promise.resolve(); const s = m.get(k) ?? 0; if (s + usd > cap) return false; m.set(k, s + usd); return true; },
+    async release(k, usd) { m.set(k, (m.get(k) ?? 0) - usd); },
+    async getSpent(k) { return m.get(k) ?? 0; },
+  };
 }
 const NOON = () => new Date("2026-10-09T10:00:00Z");
 
@@ -90,4 +96,14 @@ test("daily cap resets on a new calendar day in Europe/Copenhagen, not UTC", asy
   await expect(search(req, { ...base, now: () => new Date("2026-10-09T21:30:00Z") })).rejects.toBeInstanceOf(SearchBudgetExceededError);
   await search(req, { ...base, now: () => new Date("2026-10-09T23:30:00Z") });
   expect([...capStore.m.keys()]).toEqual([JSON.stringify(["fd", "2026-10-09"]), JSON.stringify(["fd", "2026-10-10"])]);
+});
+
+test("daily cap holds under concurrency: 10 parallel calls against a 2-call cap send exactly 2", async () => {
+  const { f, tokens } = braveSpy();
+  const capStore = memStore();
+  const opts = { fetch: f, credentials: { braveApiKey: "k" }, cache: false as const, dailyCapUsd: 0.01, capStore, now: NOON };
+  const results = await Promise.allSettled(Array.from({ length: 10 }, (_, i) => search({ query: `q${i}`, provider: "brave", labels: { tenantId: "fd" } }, opts)));
+  expect(results.filter((r) => r.status === "fulfilled").length).toBe(2);
+  expect(tokens.length).toBe(2);
+  expect(capStore.m.get(JSON.stringify(["fd", "2026-10-09"]))).toBeCloseTo(0.01, 10);
 });

@@ -24,7 +24,12 @@ const sharedCache = memorySearchCache();
 
 const sharedCapStore: SearchCapStore = (() => {
   const m = new Map<string, number>();
-  return { getSpent: (k) => m.get(k) ?? 0, addSpent: (k, usd) => { m.set(k, (m.get(k) ?? 0) + usd); } };
+  return {
+    // Synchronous, so check-and-add cannot interleave with another call.
+    reserve: (k, usd, cap) => { const s = m.get(k) ?? 0; if (s + usd > cap) return false; m.set(k, s + usd); return true; },
+    release: (k, usd) => { m.set(k, (m.get(k) ?? 0) - usd); },
+    getSpent: (k) => m.get(k) ?? 0,
+  };
 })();
 
 /** Calendar day in Danish time — a "day" for the cap is the owner's day, not UTC's. */
@@ -87,11 +92,13 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
     const hit = cache?.get(key);
     if (hit) return { items: hit.items, meta: { ...hit.meta, cached: true, costUsd: 0, latencyMs: 0 } };
 
-    if (opts.dailyCapUsd !== undefined) {
-      const spent = await capStore.getSpent(capKey);
-      const price = SEARCH_PRICE_USD[provider];
+    // Check and reserve in one step, so parallel calls cannot all pass the same headroom.
+    // Without a cap the reservation still books the spend, so a cap set later sees it.
+    const price = SEARCH_PRICE_USD[provider];
+    const cap = opts.dailyCapUsd ?? Infinity;
+    if (!(await capStore.reserve(capKey, price, cap))) {
       // Not a provider failure, so it does not fall through: the cap stops the call.
-      if (spent + price > opts.dailyCapUsd) throw new SearchBudgetExceededError(tenant, day, opts.dailyCapUsd, spent, price);
+      throw new SearchBudgetExceededError(tenant, day, cap, await capStore.getSpent(capKey), price);
     }
 
     const t0 = performance.now();
@@ -103,11 +110,11 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
         meta: { provider, latencyMs, cached: false, costUsd: SEARCH_PRICE_USD[provider], ...(out.requestId ? { requestId: out.requestId } : {}) },
       };
       cache?.set(key, result, ttl);
-      await capStore.addSpent(capKey, result.meta.costUsd); // always, so a cap set later in the day sees the earlier spend
       try { await sink?.record(usageRow(provider, req, result.meta.costUsd, latencyMs)); } catch { /* a sink never breaks a call */ }
       return result;
     } catch (e) {
       lastErr = e;
+      await capStore.release(capKey, price); // a failed call costs nothing
       if (sink?.recordFailure) {
         try {
           await sink.recordFailure({
