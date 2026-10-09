@@ -598,6 +598,25 @@ Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` 
 - `dailyCapUsd` — hard ceiling per tenant (`labels.tenantId`) per calendar day in **Danish time** (Europe/Copenhagen). The call that would cross it throws `SearchBudgetExceededError` before any request and does not fall through to the next provider. Cache hits are free and always allowed; failed calls cost nothing.
 - `capStore` — where the day's spend lives (`{ reserve(key, usd, cap), release(key, usd), getSpent(key) }`, async allowed). `reserve` must check and add in ONE atomic step (e.g. `UPDATE … SET spent = spent + ? WHERE spent + ? <= cap`) — otherwise parallel calls can all pass the same headroom. Measured: 10 parallel calls against a 2-call cap send exactly 2 (0.59.1+; 0.59.0 checked then added, and let them through). Default is in-process memory: it resets on restart and is not shared between machines — pass your own store (e.g. a DB table) when that matters.
 
+**A `web_search` tool for agents (0.60+, F078.4).** Hand `webSearchTool` to a model in
+`tools`, and run its calls with `runWebSearch(args, ctx)`. The model chooses only
+`query`, `lang`, `limit`, `purpose`, `fresh`; everything else comes from `ctx`, which the
+APP sets — keys (`credentials`, `byok`), `dailyCapUsd`, `costSink`, `labels` (tenant) and
+`zdr`. A `provider`, `zdr` or `labels` the model puts in its arguments is dropped, so a
+prompt cannot route customer data to a provider that keeps it. Bad arguments throw
+before any request. Returns `{ provider, results: [{ title, url, snippet }] }`.
+
+```ts
+import { webSearchTool, runWebSearch } from "@broberg/ai-sdk";
+const res = await ai.chat({ messages, tools: [webSearchTool] });
+for (const call of res.toolCalls ?? []) {
+  if (call.name === "web_search") {
+    const out = await runWebSearch(call.arguments, { zdr: true, labels: { tenantId }, byok: true, credentials, dailyCapUsd: 1 });
+    // → feed JSON.stringify(out) back as the tool result
+  }
+}
+```
+
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):
 

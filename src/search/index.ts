@@ -139,6 +139,7 @@ function dedupe(items: SearchItem[]): SearchItem[] {
 }
 
 export { SEARCH_PRICE_USD } from "./prices.js";
+export { webSearchTool, runWebSearch, type WebSearchContext, type WebSearchToolResult } from "./tool.js";
 export { DEFAULT_SEARCH_ROUTES, ZDR_PROVIDERS, routeSearch, type SearchRoute } from "./router.js";
 export { memorySearchCache, SEARCH_CACHE_TTL_MS } from "./cache.js";
 export { SearchBudgetExceededError, SearchKeyMissingError } from "./types.js";
