@@ -557,6 +557,28 @@ ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4" }, r
   Large 4, the default does NOT follow automatically — that alias must be added in a
   release. Catching that move is F071.3.
 
+### Web search — `search()` (F078, SEARCH-PLAN)
+
+**No app talks to a search provider directly.** One function, one result shape:
+
+```ts
+import { search } from "@broberg/ai-sdk";
+const { items, meta } = await search({ query: "fysioterapi Aalborg holdtræning", lang: "da", country: "DK", limit: 10, provider: "brave" });
+// items: [{ title, url, description, provider, lang?, publishedAt? }]
+// meta:  { provider, latencyMs, cached, costUsd, requestId? }
+```
+
+| provider | via | $ / search | ZDR | notes (measured 2026-10-09) |
+|---|---|---|---|---|
+| `cloudflare:ceramic` | Cloudflare AI Gateway | 0.00025 | yes | English only; max 10 results, 1–1024 chars, no filters |
+| `cloudflare:linkup` | Cloudflare AI Gateway | 0.005 | yes | multilingual |
+| `cloudflare:exa` | Cloudflare AI Gateway | 0.007 | **no** | opt-in only, never for customer data |
+| `brave` | direct | 0.005 | 90-day logs (standard account) | the only one with language/country filters and a date |
+
+Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` with *Workers AI Read* + *AI Gateway Read*) or per call via `{ credentials }` (BYOK). A missing key throws `SearchKeyMissingError` naming the variable, before any request.
+
+**In 0.57 `provider` is required.** The router (language/purpose/ZDR), fallback chain, cache and cost-sink reporting come in F078.2; tenant BYOK + daily caps in F078.3.
+
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):
 

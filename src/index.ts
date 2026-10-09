@@ -233,3 +233,6 @@ export type {
 } from "./types.js";
 
 export { describeTier, type TierDescription } from "./routing/describe-tier.js";
+// F078 — web search (SEARCH-PLAN).
+export { search, SEARCH_PRICE_USD, SearchKeyMissingError } from "./search/index.js";
+export type { SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials } from "./search/index.js";
