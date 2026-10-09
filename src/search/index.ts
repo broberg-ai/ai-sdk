@@ -56,7 +56,8 @@ async function callProvider(provider: SearchProviderId, req: SearchRequest, opts
     const apiToken = c.cloudflareApiToken ?? env.CLOUDFLARE_API_TOKEN;
     if (!accountId) throw new SearchKeyMissingError(provider, "CLOUDFLARE_ACCOUNT_ID");
     if (!apiToken) throw new SearchKeyMissingError(provider, "CLOUDFLARE_API_TOKEN");
-    return cloudflareSearch({ ...req, provider }, { accountId, apiToken }, f);
+    const gatewayId = c.cloudflareGatewayId ?? env.CLOUDFLARE_GATEWAY_ID ?? "default";
+    return cloudflareSearch({ ...req, provider }, { accountId, apiToken, gatewayId }, f);
   }
   throw new Error(`search: unknown provider "${String(provider)}"`);
 }

@@ -576,7 +576,7 @@ const { items, meta } = await search({ query: "fysioterapi Aalborg holdtræning"
 | `brave` | direct | 0.005 | 90-day logs (standard account) | the only one with language/country filters and a date |
 | `tavily` | direct | 0.0075 | not ZDR | **CMS-legacy only** (0.61+): explicit `provider: "tavily"`, never routed to; key `TAVILY_API_KEY` / `credentials.tavilyApiKey` |
 
-Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` with *Workers AI Read* + *AI Gateway Read*) or per call via `{ credentials }` (BYOK). A missing key throws `SearchKeyMissingError` naming the variable, before any request.
+Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` with *Workers AI Read* + *AI Gateway Read*, optional `CLOUDFLARE_GATEWAY_ID`, default `"default"`) or per call via `{ credentials }` (BYOK). A missing key throws `SearchKeyMissingError` naming the variable, before any request.
 
 **Routing (0.58+, F078.2).** Leave `provider` out and the router picks a chain from
 `lang`, `purpose` and `fresh` (rules are data: `DEFAULT_SEARCH_ROUTES`):
@@ -593,6 +593,8 @@ Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` 
 - A failing provider (HTTP error, missing key) hands over to the next; `meta.provider` says who answered.
 - **Cache:** the same normalized query + provider + language is served from memory at $0 for the purpose's lifetime (monitor 5 min, agent/grounding 1 h, discovery 7 days). `cache: false` opts out.
 - **Cost:** use `ai.search(...)` to book every call on the client's cost sink (capability `search`, with your labels, e.g. `{ tenantId }`), failed attempts included. Standalone `search()` takes `{ costSink }`.
+
+**Cloudflare needs 0.61.1+.** Measured live 2026-10-09: Cloudflare requires `options.gateway.id` in the request; up to 0.61.0 we left it out and every Ceramic/Linkup/Exa call answered 400. The account must also have web-search billing enabled — without it the answer is `402 web_search_payment_required`.
 
 **Tenant keys + daily cap (0.59+, F078.3).**
 - `byok: true` — keys come ONLY from `credentials`; env is never read, so a tenant whose key is missing gets `SearchKeyMissingError` instead of running on our account. A client made with `createAI({ byok: true })` searches in this mode automatically.

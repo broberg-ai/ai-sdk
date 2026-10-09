@@ -2,6 +2,8 @@
 // Measured from the docs 2026-10-09: POST .../ai/websearch/, query 1–1024 chars,
 // limit 1–10, response { items:[{url,title,description}], metadata:{requestId,latencyMs} }.
 // No date, no language, no filters — open beta.
+// MEASURED LIVE 2026-10-09: `options.gateway.id` is REQUIRED — without it Cloudflare
+// answers 400 "Invalid web search request body" (the docs' field list read as optional).
 import type { SearchItem, SearchProviderId, SearchRequest } from "./types.js";
 
 export const CLOUDFLARE_MAX_QUERY = 1024;
@@ -17,7 +19,7 @@ interface CfResponse {
 
 export async function cloudflareSearch(
   req: SearchRequest,
-  creds: { accountId: string; apiToken: string },
+  creds: { accountId: string; apiToken: string; gatewayId: string },
   f: typeof fetch,
 ): Promise<{ items: SearchItem[]; requestId?: string }> {
   if (req.query.length < 1 || req.query.length > CLOUDFLARE_MAX_QUERY) {
@@ -27,7 +29,7 @@ export async function cloudflareSearch(
   const res = await f(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(creds.accountId)}/ai/websearch/`, {
     method: "POST",
     headers: { authorization: `Bearer ${creds.apiToken}`, "content-type": "application/json" },
-    body: JSON.stringify({ query: req.query, provider, limit: Math.min(req.limit ?? CLOUDFLARE_MAX_LIMIT, CLOUDFLARE_MAX_LIMIT) }),
+    body: JSON.stringify({ query: req.query, provider, limit: Math.min(req.limit ?? CLOUDFLARE_MAX_LIMIT, CLOUDFLARE_MAX_LIMIT), options: { gateway: { id: creds.gatewayId } } }),
   });
   if (!res.ok) throw Object.assign(new Error(`cloudflare search (${provider}): HTTP ${res.status} ${(await res.text()).slice(0, 200)}`), { status: res.status });
   // The docs show the bare shape; Cloudflare's v4 API usually wraps in { result }. Accept both.

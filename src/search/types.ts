@@ -52,6 +52,8 @@ export interface SearchCredentials {
   braveApiKey?: string;
   cloudflareAccountId?: string;
   cloudflareApiToken?: string;
+  /** AI Gateway the search runs through. Default "default" (env CLOUDFLARE_GATEWAY_ID). */
+  cloudflareGatewayId?: string;
   tavilyApiKey?: string;
 }
 

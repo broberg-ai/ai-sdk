@@ -37,14 +37,18 @@ test("brave: request carries key, count, language and country; response maps to 
   expect(r.meta).toMatchObject({ provider: "brave", cached: false, costUsd: 0.005, requestId: "br-1" });
 });
 
-test("cloudflare: POST body {query, provider, limit} with Bearer; limit is capped at 10", async () => {
+test("cloudflare: POST body {query, provider, limit, options.gateway} with Bearer; limit is capped at 10", async () => {
   const { calls, f } = spy({ items: [{ url: "https://e.com", title: "T", description: "D" }], metadata: { requestId: "cf-9", latencyMs: 600 } });
   const r = await search({ query: "best rag eval", limit: 25, provider: "cloudflare:ceramic" }, { cache: false, fetch: f, credentials: { cloudflareAccountId: "acc", cloudflareApiToken: "tok" } });
   expect(calls[0]!.url).toBe("https://api.cloudflare.com/client/v4/accounts/acc/ai/websearch/");
   expect(calls[0]!.init!.method).toBe("POST");
   expect((calls[0]!.init!.headers as Record<string, string>).authorization).toBe("Bearer tok");
-  expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ query: "best rag eval", provider: "ceramic", limit: 10 });
+  // options.gateway.id is required by Cloudflare (measured live 2026-10-09: 400 without it).
+  expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ query: "best rag eval", provider: "ceramic", limit: 10, options: { gateway: { id: "default" } } });
   expect(r.items).toEqual([{ title: "T", url: "https://e.com", description: "D", provider: "cloudflare:ceramic" }]);
+  const g = spy({ items: [] });
+  await search({ query: "q", provider: "cloudflare:linkup" }, { cache: false, fetch: g.f, credentials: { cloudflareAccountId: "acc", cloudflareApiToken: "tok", cloudflareGatewayId: "fleet-gw" } });
+  expect(JSON.parse(String(g.calls[0]!.init!.body)).options).toEqual({ gateway: { id: "fleet-gw" } });
   expect(r.meta).toMatchObject({ provider: "cloudflare:ceramic", costUsd: 0.00025, requestId: "cf-9" });
 });
 
