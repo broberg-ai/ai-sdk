@@ -574,6 +574,7 @@ const { items, meta } = await search({ query: "fysioterapi Aalborg holdtræning"
 | `cloudflare:linkup` | Cloudflare AI Gateway | 0.005 | yes | multilingual |
 | `cloudflare:exa` | Cloudflare AI Gateway | 0.007 | **no** | opt-in only, never for customer data |
 | `brave` | direct | 0.005 | 90-day logs (standard account) | the only one with language/country filters and a date |
+| `tavily` | direct | 0.0075 | not ZDR | **CMS-legacy only** (0.61+): explicit `provider: "tavily"`, never routed to; key `TAVILY_API_KEY` / `credentials.tavilyApiKey` |
 
 Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` with *Workers AI Read* + *AI Gateway Read*) or per call via `{ credentials }` (BYOK). A missing key throws `SearchKeyMissingError` naming the variable, before any request.
 

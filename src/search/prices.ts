@@ -7,4 +7,7 @@ export const SEARCH_PRICE_USD: Record<SearchProviderId, number> = {
   "cloudflare:linkup": 0.005,
   "cloudflare:exa": 0.007,
   brave: 0.005,
+  // 1 credit per basic search; $0.0075/credit on the entry plan, less on bigger plans
+  // (docs.tavily.com/documentation/api-credits, 2026-10-09).
+  tavily: 0.0075,
 };

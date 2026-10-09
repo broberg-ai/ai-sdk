@@ -2,7 +2,8 @@
 // One request shape, one result shape, whichever provider answers. Apps import
 // `search` from @broberg/ai-sdk and never talk to a search provider directly.
 
-export type SearchProviderId = "brave" | "cloudflare:ceramic" | "cloudflare:linkup" | "cloudflare:exa";
+/** `tavily` is CMS-legacy only (F078.5): reachable by explicit provider, never routed to. */
+export type SearchProviderId = "brave" | "cloudflare:ceramic" | "cloudflare:linkup" | "cloudflare:exa" | "tavily";
 
 /** Why the search runs — picks the route and the cache lifetime (F078.2). */
 export type SearchPurpose = "agent" | "grounding" | "discovery" | "monitor";
@@ -51,6 +52,7 @@ export interface SearchCredentials {
   braveApiKey?: string;
   cloudflareAccountId?: string;
   cloudflareApiToken?: string;
+  tavilyApiKey?: string;
 }
 
 export interface SearchCache {

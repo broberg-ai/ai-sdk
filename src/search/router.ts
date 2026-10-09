@@ -39,8 +39,9 @@ export function routeSearch(req: SearchRequest, routes: SearchRoute[] = DEFAULT_
   ) ?? routes[routes.length - 1]!;
   // Ceramic is English-only: never route a non-English query to it, whatever a custom table says.
   let chain = route.chain.filter((p) => english || p !== "cloudflare:ceramic");
-  // Exa has no Zero Data Retention: never chosen by the router, only by explicit provider.
-  chain = chain.filter((p) => p !== "cloudflare:exa");
+  // Exa has no Zero Data Retention, and Tavily is CMS-legacy: neither is ever chosen by
+  // the router — only by an explicit provider — whatever a custom table says.
+  chain = chain.filter((p) => p !== "cloudflare:exa" && p !== "tavily");
   if (req.zdr) chain = chain.filter((p) => ZDR_PROVIDERS.has(p));
   return chain;
 }

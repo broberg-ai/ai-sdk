@@ -4,6 +4,7 @@
 // Tenant BYOK + daily caps arrive in F078.3.
 import { braveSearch } from "./brave.js";
 import { cloudflareSearch } from "./cloudflare.js";
+import { tavilySearch } from "./tavily.js";
 import { SEARCH_PRICE_USD } from "./prices.js";
 import { routeSearch } from "./router.js";
 import { memorySearchCache, SEARCH_CACHE_TTL_MS, searchCacheKey } from "./cache.js";
@@ -44,6 +45,11 @@ async function callProvider(provider: SearchProviderId, req: SearchRequest, opts
     const key = c.braveApiKey ?? env.BRAVE_API_KEY;
     if (!key) throw new SearchKeyMissingError(provider, "BRAVE_API_KEY");
     return braveSearch({ ...req, provider }, key, f);
+  }
+  if (provider === "tavily") {
+    const key = c.tavilyApiKey ?? env.TAVILY_API_KEY;
+    if (!key) throw new SearchKeyMissingError(provider, "TAVILY_API_KEY");
+    return tavilySearch({ ...req, provider }, key, f);
   }
   if (provider.startsWith("cloudflare:")) {
     const accountId = c.cloudflareAccountId ?? env.CLOUDFLARE_ACCOUNT_ID;

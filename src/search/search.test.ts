@@ -68,7 +68,8 @@ test("price per call is exact for every provider", async () => {
     prices[p] = (await search({ query: "q", provider: p }, { cache: false, fetch: spy({ items: [] }).f, credentials: cf })).meta.costUsd;
   }
   prices.brave = (await search({ query: "q", provider: "brave" }, { cache: false, fetch: spy({ web: { results: [] } }).f, credentials: { braveApiKey: "k" } })).meta.costUsd;
-  expect(prices).toEqual({ "cloudflare:ceramic": 0.00025, "cloudflare:linkup": 0.005, "cloudflare:exa": 0.007, brave: 0.005 });
+  prices.tavily = (await search({ query: "q", provider: "tavily" }, { cache: false, fetch: spy({ results: [] }).f, credentials: { tavilyApiKey: "k" } })).meta.costUsd;
+  expect(prices).toEqual({ "cloudflare:ceramic": 0.00025, "cloudflare:linkup": 0.005, "cloudflare:exa": 0.007, brave: 0.005, tavily: 0.0075 });
 });
 
 test("a missing key names the env var and sends nothing", async () => {
