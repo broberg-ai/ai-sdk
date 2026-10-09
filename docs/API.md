@@ -588,7 +588,7 @@ Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` 
 | any other language | linkup → brave |
 
 - Ceramic is English-only and never gets a non-English query. **Exa is never chosen by the router** (no ZDR) — only `provider: "cloudflare:exa"` reaches it.
-- `zdr: true` (customer data in the query) keeps only Ceramic and Linkup.
+- `zdr: true` (customer data in the query) keeps only Ceramic and Linkup. Combined with an explicit non-ZDR `provider` (`brave`, `cloudflare:exa`) it throws (0.58.1+) — up to 0.58.0 the explicit provider won and the query went out anyway.
 - A failing provider (HTTP error, missing key) hands over to the next; `meta.provider` says who answered.
 - **Cache:** the same normalized query + provider + language is served from memory at $0 for the purpose's lifetime (monitor 5 min, agent/grounding 1 h, discovery 7 days). `cache: false` opts out.
 - **Cost:** use `ai.search(...)` to book every call on the client's cost sink (capability `search`, with your labels, e.g. `{ tenantId }`), failed attempts included. Standalone `search()` takes `{ costSink }`.

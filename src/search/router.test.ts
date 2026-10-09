@@ -22,6 +22,10 @@ test("zdr:true keeps only Zero-Data-Retention providers (no Brave, no Exa)", () 
   expect(routeSearch({ query: "q", lang: "da", zdr: true })).toEqual(["cloudflare:linkup"]);
   expect(routeSearch({ query: "q", lang: "en", purpose: "agent", zdr: true })).toEqual(["cloudflare:ceramic", "cloudflare:linkup"]);
   expect(routeSearch({ query: "q", lang: "da", fresh: true, zdr: true })).toEqual(["cloudflare:linkup"]);
+  // An explicit non-ZDR provider cannot override zdr:true.
+  expect(() => routeSearch({ query: "q", provider: "brave", zdr: true })).toThrow(/zdr/);
+  expect(() => routeSearch({ query: "q", provider: "cloudflare:exa", zdr: true })).toThrow(/zdr/);
+  expect(routeSearch({ query: "q", provider: "cloudflare:linkup", zdr: true })).toEqual(["cloudflare:linkup"]);
 });
 
 // ── fallback + cost rows ────────────────────────────────────────────────────

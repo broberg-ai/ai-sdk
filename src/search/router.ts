@@ -23,7 +23,13 @@ export const ZDR_PROVIDERS = new Set<SearchProviderId>(["cloudflare:ceramic", "c
 const isEnglish = (lang?: string) => !lang || /^en\b/i.test(lang);
 
 export function routeSearch(req: SearchRequest, routes: SearchRoute[] = DEFAULT_SEARCH_ROUTES): SearchProviderId[] {
-  if (req.provider) return [req.provider]; // an explicit choice is honoured as-is, Exa included
+  if (req.provider) {
+    // zdr is a promise about customer data; an explicit provider must not quietly break it.
+    if (req.zdr && !ZDR_PROVIDERS.has(req.provider)) {
+      throw new Error(`search: zdr:true but provider "${req.provider}" keeps query data — use cloudflare:ceramic or cloudflare:linkup`);
+    }
+    return [req.provider]; // an explicit choice is honoured as-is, Exa included
+  }
   const fresh = Boolean(req.fresh || req.country);
   const english = isEnglish(req.lang);
   const route = routes.find((r) =>
