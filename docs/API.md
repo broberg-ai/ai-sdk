@@ -577,7 +577,23 @@ const { items, meta } = await search({ query: "fysioterapi Aalborg holdtræning"
 
 Keys from env (`BRAVE_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` with *Workers AI Read* + *AI Gateway Read*) or per call via `{ credentials }` (BYOK). A missing key throws `SearchKeyMissingError` naming the variable, before any request.
 
-**In 0.57 `provider` is required.** The router (language/purpose/ZDR), fallback chain, cache and cost-sink reporting come in F078.2; tenant BYOK + daily caps in F078.3.
+**Routing (0.58+, F078.2).** Leave `provider` out and the router picks a chain from
+`lang`, `purpose` and `fresh` (rules are data: `DEFAULT_SEARCH_ROUTES`):
+
+| request | chain |
+|---|---|
+| `fresh: true` or a `country` | brave → linkup |
+| English + `purpose` agent/grounding | ceramic → linkup → brave |
+| English, other purpose | linkup → ceramic → brave |
+| any other language | linkup → brave |
+
+- Ceramic is English-only and never gets a non-English query. **Exa is never chosen by the router** (no ZDR) — only `provider: "cloudflare:exa"` reaches it.
+- `zdr: true` (customer data in the query) keeps only Ceramic and Linkup.
+- A failing provider (HTTP error, missing key) hands over to the next; `meta.provider` says who answered.
+- **Cache:** the same normalized query + provider + language is served from memory at $0 for the purpose's lifetime (monitor 5 min, agent/grounding 1 h, discovery 7 days). `cache: false` opts out.
+- **Cost:** use `ai.search(...)` to book every call on the client's cost sink (capability `search`, with your labels, e.g. `{ tenantId }`), failed attempts included. Standalone `search()` takes `{ costSink }`.
+
+Tenant BYOK + daily caps come in F078.3.
 
 ### Prompt contracts — `ai.contracts.*`
 Structured calls layered on chat/vision (so budget + cost apply uniformly):

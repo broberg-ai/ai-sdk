@@ -23,7 +23,7 @@ export async function cloudflareSearch(
   if (req.query.length < 1 || req.query.length > CLOUDFLARE_MAX_QUERY) {
     throw new Error(`search: Cloudflare takes a query of 1–${CLOUDFLARE_MAX_QUERY} characters, got ${req.query.length}`);
   }
-  const provider = req.provider.split(":")[1] as "ceramic" | "linkup" | "exa";
+  const provider = req.provider!.split(":")[1] as "ceramic" | "linkup" | "exa";
   const res = await f(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(creds.accountId)}/ai/websearch/`, {
     method: "POST",
     headers: { authorization: `Bearer ${creds.apiToken}`, "content-type": "application/json" },

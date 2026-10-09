@@ -1,6 +1,7 @@
 // createAI() — the facade factory. Resolves routing, picks a provider adapter,
 // delegates the call, stamps call-context metadata onto Usage, and reports to the
 // cost sink. Provider specifics live in adapters; cost compute/budget land in F3.
+import { search as webSearch } from "./search/index.js";
 import { assertOverrideProvider, resolveTier } from "./routing/tier-map.js";
 import { resolveModel } from "./availability/resolve.js";
 import { defaultProviders } from "./providers/registry.js";
@@ -785,6 +786,11 @@ export function createAI(config: AiConfig = {}): AiClient {
           return adapter.moderate({ input: items, spec });
         },
       });
+    },
+
+    async search(req, opts) {
+      const labels = { ...cfg.labels, ...req.labels };
+      return webSearch({ ...req, ...(Object.keys(labels).length ? { labels } : {}) }, { ...opts, ...(costSink ? { costSink } : {}) });
     },
 
     async judge(input: JudgeInput): Promise<JudgeResult> {

@@ -1,40 +1,114 @@
-// F078 — `search()`: the one entry point. F078.1 needs an explicit provider; routing,
-// fallback, cache and cost-sink reporting arrive in F078.2, tenant BYOK + caps in F078.3.
+// F078 — `search()`: the one entry point.
+// F078.1: adapters + shared shape. F078.2: router (when no provider is given), fallback
+// chain, cache, and a cost-sink row for every call and every failed attempt.
+// Tenant BYOK + daily caps arrive in F078.3.
 import { braveSearch } from "./brave.js";
 import { cloudflareSearch } from "./cloudflare.js";
 import { SEARCH_PRICE_USD } from "./prices.js";
-import { SearchKeyMissingError, type SearchOptions, type SearchRequest, type SearchResult } from "./types.js";
+import { routeSearch } from "./router.js";
+import { memorySearchCache, SEARCH_CACHE_TTL_MS, searchCacheKey } from "./cache.js";
+import { classifyFailure } from "../cost/failure.js";
+import type { Usage } from "../types.js";
+import {
+  SearchKeyMissingError,
+  type SearchItem,
+  type SearchOptions,
+  type SearchProviderId,
+  type SearchRequest,
+  type SearchResult,
+} from "./types.js";
 
-export async function search(req: SearchRequest, opts: SearchOptions = {}): Promise<SearchResult> {
+const sharedCache = memorySearchCache();
+
+async function callProvider(provider: SearchProviderId, req: SearchRequest, opts: SearchOptions) {
   const f = opts.fetch ?? fetch;
   const c = opts.credentials ?? {};
-  const t0 = performance.now();
-  let out: { items: SearchResult["items"]; requestId?: string };
-  if (req.provider === "brave") {
+  if (provider === "brave") {
     const key = c.braveApiKey ?? process.env.BRAVE_API_KEY;
-    if (!key) throw new SearchKeyMissingError(req.provider, "BRAVE_API_KEY");
-    out = await braveSearch(req, key, f);
-  } else if (req.provider.startsWith("cloudflare:")) {
+    if (!key) throw new SearchKeyMissingError(provider, "BRAVE_API_KEY");
+    return braveSearch({ ...req, provider }, key, f);
+  }
+  if (provider.startsWith("cloudflare:")) {
     const accountId = c.cloudflareAccountId ?? process.env.CLOUDFLARE_ACCOUNT_ID;
     const apiToken = c.cloudflareApiToken ?? process.env.CLOUDFLARE_API_TOKEN;
-    if (!accountId) throw new SearchKeyMissingError(req.provider, "CLOUDFLARE_ACCOUNT_ID");
-    if (!apiToken) throw new SearchKeyMissingError(req.provider, "CLOUDFLARE_API_TOKEN");
-    out = await cloudflareSearch(req, { accountId, apiToken }, f);
-  } else {
-    throw new Error(`search: unknown provider "${String(req.provider)}"`);
+    if (!accountId) throw new SearchKeyMissingError(provider, "CLOUDFLARE_ACCOUNT_ID");
+    if (!apiToken) throw new SearchKeyMissingError(provider, "CLOUDFLARE_API_TOKEN");
+    return cloudflareSearch({ ...req, provider }, { accountId, apiToken }, f);
   }
+  throw new Error(`search: unknown provider "${String(provider)}"`);
+}
+
+function usageRow(provider: SearchProviderId, req: SearchRequest, costUsd: number, latencyMs: number): Usage {
   return {
-    items: out.items,
-    meta: {
-      provider: req.provider,
-      latencyMs: Math.round(performance.now() - t0),
-      cached: false,
-      costUsd: SEARCH_PRICE_USD[req.provider],
-      ...(out.requestId ? { requestId: out.requestId } : {}),
-    },
-  };
+    provider,
+    model: "web-search",
+    region: "unknown", // Brave and Cloudflare's gateway do not let us say where a query is served
+    transport: "http",
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    costUsd,
+    costBasis: "computed",
+    latencyMs,
+    capability: "search",
+    ...(req.purpose ? { purpose: req.purpose } : {}),
+    ...(req.labels ? { labels: req.labels } : {}),
+    ts: new Date().toISOString(),
+  } as Usage;
+}
+
+export async function search(req: SearchRequest, opts: SearchOptions = {}): Promise<SearchResult> {
+  const chain = routeSearch(req);
+  if (chain.length === 0) throw new Error("search: no provider fits this request (zdr excludes every candidate)");
+  const cache = opts.cache === false ? undefined : (opts.cache ?? sharedCache);
+  const ttl = SEARCH_CACHE_TTL_MS[req.purpose ?? "agent"];
+  const sink = opts.costSink;
+
+  let lastErr: unknown;
+  for (const provider of chain) {
+    const key = searchCacheKey(provider, req);
+    const hit = cache?.get(key);
+    if (hit) return { items: hit.items, meta: { ...hit.meta, cached: true, costUsd: 0, latencyMs: 0 } };
+
+    const t0 = performance.now();
+    try {
+      const out = await callProvider(provider, req, opts);
+      const latencyMs = Math.round(performance.now() - t0);
+      const result: SearchResult = {
+        items: dedupe(out.items),
+        meta: { provider, latencyMs, cached: false, costUsd: SEARCH_PRICE_USD[provider], ...(out.requestId ? { requestId: out.requestId } : {}) },
+      };
+      cache?.set(key, result, ttl);
+      try { await sink?.record(usageRow(provider, req, result.meta.costUsd, latencyMs)); } catch { /* a sink never breaks a call */ }
+      return result;
+    } catch (e) {
+      lastErr = e;
+      if (sink?.recordFailure) {
+        try {
+          await sink.recordFailure({
+            provider, model: "web-search", transport: "http", capability: "search",
+            ...(req.purpose ? { purpose: req.purpose } : {}),
+            ...(req.labels ? { labels: req.labels } : {}),
+            latencyMs: Math.round(performance.now() - t0),
+            ts: new Date().toISOString(),
+            ...classifyFailure(e),
+          });
+        } catch { /* never breaks the call */ }
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/** Same URL twice (a provider repeating itself) collapses to the first. */
+function dedupe(items: SearchItem[]): SearchItem[] {
+  const seen = new Set<string>();
+  return items.filter((i) => (seen.has(i.url) ? false : (seen.add(i.url), true)));
 }
 
 export { SEARCH_PRICE_USD } from "./prices.js";
+export { DEFAULT_SEARCH_ROUTES, ZDR_PROVIDERS, routeSearch, type SearchRoute } from "./router.js";
+export { memorySearchCache, SEARCH_CACHE_TTL_MS } from "./cache.js";
 export { SearchKeyMissingError } from "./types.js";
-export type { SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials } from "./types.js";
+export type { SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials, SearchCache, SearchPurpose } from "./types.js";

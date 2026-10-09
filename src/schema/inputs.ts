@@ -429,6 +429,9 @@ export interface AiClient {
   /** Judge (F066) — typed yes/no, choice and score decisions with calibrated
    *  probabilities. TypeSafe Jev. US-hosted: NOT for personal data. */
   judge(input: JudgeInput): Promise<JudgeResult>;
+  /** F078 — web search through ai-sdk; reports every call to this client's cost sink
+   *  with the client's labels. Same request/result as the standalone `search()`. */
+  search(req: import("../search/types.js").SearchRequest, opts?: Omit<import("../search/types.js").SearchOptions, "costSink">): Promise<import("../search/types.js").SearchResult>;
   /** Podcast (F020) — a finished manuscript → one multi-voice audio episode. ElevenLabs. */
   podcast(input: PodcastInput): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) — text → audio. `voice` = curated name or voiceId. ElevenLabs. */

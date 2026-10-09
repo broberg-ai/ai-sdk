@@ -54,7 +54,8 @@ export type Capability =
   | "extract"
   | "classify"
   | "rerank"
-  | "judge";
+  | "judge"
+  | "search";
 
 // ── Messages + tools ───────────────────────────────────────────────────────
 

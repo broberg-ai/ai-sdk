@@ -25,7 +25,7 @@ const BRAVE = {
 
 test("brave: request carries key, count, language and country; response maps to the shared shape", async () => {
   const { calls, f } = spy(BRAVE, 200, { "x-request-id": "br-1" });
-  const r = await search({ query: "fysioterapi Aalborg", lang: "da", country: "DK", limit: 5, provider: "brave" }, { fetch: f, credentials: { braveApiKey: "bk" } });
+  const r = await search({ query: "fysioterapi Aalborg", lang: "da", country: "DK", limit: 5, provider: "brave" }, { cache: false, fetch: f, credentials: { braveApiKey: "bk" } });
   const u = new URL(calls[0]!.url);
   expect({ host: u.host, path: u.pathname, q: u.searchParams.get("q"), count: u.searchParams.get("count"), lang: u.searchParams.get("search_lang"), country: u.searchParams.get("country") })
     .toEqual({ host: "api.search.brave.com", path: "/res/v1/web/search", q: "fysioterapi Aalborg", count: "5", lang: "da", country: "DK" });
@@ -39,7 +39,7 @@ test("brave: request carries key, count, language and country; response maps to 
 
 test("cloudflare: POST body {query, provider, limit} with Bearer; limit is capped at 10", async () => {
   const { calls, f } = spy({ items: [{ url: "https://e.com", title: "T", description: "D" }], metadata: { requestId: "cf-9", latencyMs: 600 } });
-  const r = await search({ query: "best rag eval", limit: 25, provider: "cloudflare:ceramic" }, { fetch: f, credentials: { cloudflareAccountId: "acc", cloudflareApiToken: "tok" } });
+  const r = await search({ query: "best rag eval", limit: 25, provider: "cloudflare:ceramic" }, { cache: false, fetch: f, credentials: { cloudflareAccountId: "acc", cloudflareApiToken: "tok" } });
   expect(calls[0]!.url).toBe("https://api.cloudflare.com/client/v4/accounts/acc/ai/websearch/");
   expect(calls[0]!.init!.method).toBe("POST");
   expect((calls[0]!.init!.headers as Record<string, string>).authorization).toBe("Bearer tok");
@@ -50,14 +50,14 @@ test("cloudflare: POST body {query, provider, limit} with Bearer; limit is cappe
 
 test("cloudflare: the v4 { result } wrapper is accepted too", async () => {
   const { f } = spy({ success: true, result: { items: [{ url: "u", title: "t", description: "d" }], metadata: { requestId: "w" } } });
-  const r = await search({ query: "q", provider: "cloudflare:linkup" }, { fetch: f, credentials: { cloudflareAccountId: "a", cloudflareApiToken: "t" } });
+  const r = await search({ query: "q", provider: "cloudflare:linkup" }, { cache: false, fetch: f, credentials: { cloudflareAccountId: "a", cloudflareApiToken: "t" } });
   expect(r.items[0]!.provider).toBe("cloudflare:linkup");
   expect(r.meta.requestId).toBe("w");
 });
 
 test("a query over 1024 characters is refused BEFORE any request", async () => {
   const { calls, f } = spy({});
-  await expect(search({ query: "x".repeat(1025), provider: "cloudflare:exa" }, { fetch: f, credentials: { cloudflareAccountId: "a", cloudflareApiToken: "t" } })).rejects.toThrow(/1–1024/);
+  await expect(search({ query: "x".repeat(1025), provider: "cloudflare:exa" }, { cache: false, fetch: f, credentials: { cloudflareAccountId: "a", cloudflareApiToken: "t" } })).rejects.toThrow(/1–1024/);
   expect(calls).toHaveLength(0);
 });
 
@@ -65,28 +65,28 @@ test("price per call is exact for every provider", async () => {
   const cf = { cloudflareAccountId: "a", cloudflareApiToken: "t" };
   const prices: Record<string, number> = {};
   for (const p of ["cloudflare:ceramic", "cloudflare:linkup", "cloudflare:exa"] as const) {
-    prices[p] = (await search({ query: "q", provider: p }, { fetch: spy({ items: [] }).f, credentials: cf })).meta.costUsd;
+    prices[p] = (await search({ query: "q", provider: p }, { cache: false, fetch: spy({ items: [] }).f, credentials: cf })).meta.costUsd;
   }
-  prices.brave = (await search({ query: "q", provider: "brave" }, { fetch: spy({ web: { results: [] } }).f, credentials: { braveApiKey: "k" } })).meta.costUsd;
+  prices.brave = (await search({ query: "q", provider: "brave" }, { cache: false, fetch: spy({ web: { results: [] } }).f, credentials: { braveApiKey: "k" } })).meta.costUsd;
   expect(prices).toEqual({ "cloudflare:ceramic": 0.00025, "cloudflare:linkup": 0.005, "cloudflare:exa": 0.007, brave: 0.005 });
 });
 
 test("a missing key names the env var and sends nothing", async () => {
   const { calls, f } = spy({});
-  await expect(search({ query: "q", provider: "brave" }, { fetch: f })).rejects.toThrow(/BRAVE_API_KEY/);
-  await expect(search({ query: "q", provider: "cloudflare:linkup" }, { fetch: f })).rejects.toThrow(/CLOUDFLARE_ACCOUNT_ID/);
-  await expect(search({ query: "q", provider: "cloudflare:linkup" }, { fetch: f, credentials: { cloudflareAccountId: "a" } })).rejects.toBeInstanceOf(SearchKeyMissingError);
+  await expect(search({ query: "q", provider: "brave" }, { cache: false, fetch: f })).rejects.toThrow(/BRAVE_API_KEY/);
+  await expect(search({ query: "q", provider: "cloudflare:linkup" }, { cache: false, fetch: f })).rejects.toThrow(/CLOUDFLARE_ACCOUNT_ID/);
+  await expect(search({ query: "q", provider: "cloudflare:linkup" }, { cache: false, fetch: f, credentials: { cloudflareAccountId: "a" } })).rejects.toBeInstanceOf(SearchKeyMissingError);
   expect(calls).toHaveLength(0);
 });
 
 test("env keys are used when no credentials are passed", async () => {
   process.env.BRAVE_API_KEY = "envkey";
   const { calls, f } = spy({ web: { results: [] } });
-  await search({ query: "q", provider: "brave" }, { fetch: f });
+  await search({ query: "q", provider: "brave" }, { cache: false, fetch: f });
   expect((calls[0]!.init!.headers as Record<string, string>)["X-Subscription-Token"]).toBe("envkey");
 });
 
 test("an HTTP error surfaces with its status", async () => {
   const { f } = spy({ error: "rate" }, 429);
-  await expect(search({ query: "q", provider: "brave" }, { fetch: f, credentials: { braveApiKey: "k" } })).rejects.toMatchObject({ status: 429 });
+  await expect(search({ query: "q", provider: "brave" }, { cache: false, fetch: f, credentials: { braveApiKey: "k" } })).rejects.toMatchObject({ status: 429 });
 });
