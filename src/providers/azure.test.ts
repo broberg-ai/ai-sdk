@@ -33,7 +33,7 @@ test("tts: SSML + EU host + key header + MP3 out + per-char cost", async () => {
   // cost-tracked: per-character, provider/capability stamped
   expect(usage.provider).toBe("azure");
   expect(usage.capability).toBe("tts");
-  expect(usage.costUsd).toBeCloseTo(("Hej fra planen".length / 1000) * 0.016, 9);
+  expect(usage.costUsd).toBeCloseTo(("Hej fra planen".length / 1000) * 0.015, 9);
 });
 
 test("region + format + explicit lang overrides; raw voice name passes through", async () => {
@@ -154,7 +154,7 @@ test("transcribe: forces da-DK locale, sends multipart + auth, parses combinedPh
   // cost from the API's real duration: 2 min × $0.0167
   expect(usage.provider).toBe("azure");
   expect(usage.capability).toBe("transcribe");
-  expect(usage.costUsd).toBeCloseTo(2 * 0.0167, 6);
+  expect(usage.costUsd).toBeCloseTo(2 * 0.006, 6);
 });
 
 test("transcribe: omitted language defaults to da-DK; full locale passes through", async () => {

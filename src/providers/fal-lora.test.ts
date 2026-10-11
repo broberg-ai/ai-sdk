@@ -139,7 +139,7 @@ test("ai.image retryOnBlack re-rolls once on an NSFW false-positive black image 
   expect(call).toBe(2); // re-rolled once
   expect(typeof seen[1]!.seed).toBe("number"); // retry carried a fresh seed
   expect(r.url).toBe("https://good.png"); // returns the clean re-roll
-  expect(r.usage.costUsd).toBeCloseTo(0.05, 6); // two billed generations (0.025 × 2)
+  expect(r.usage.costUsd).toBeCloseTo(0.07, 6); // two billed generations (0.035 × 2, F050.4)
 });
 
 test("ai.image without retryOnBlack returns the flagged image as-is, billed once (F021.4)", async () => {
@@ -152,7 +152,7 @@ test("ai.image without retryOnBlack returns the flagged image as-is, billed once
   const r = await ai.image({ prompt: "x", lora: "https://l.safetensors" });
   expect(call).toBe(1); // no re-roll
   expect(r.url).toBe("https://black.png");
-  expect(r.usage.costUsd).toBeCloseTo(0.025, 6);
+  expect(r.usage.costUsd).toBeCloseTo(0.035, 6);
 });
 
 test("extractTrainedFiles is defensive across fal output-shape variance (F021.2)", () => {

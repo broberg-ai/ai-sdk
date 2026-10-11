@@ -82,8 +82,8 @@ test("transcribe posts multipart to /audio/transcriptions, per-minute cost (F016
   expect(seen[0]!.url).toBe("https://api.mistral.ai/v1/audio/transcriptions");
   expect(text).toBe("hello world");
   expect(usage.capability).toBe("transcribe");
-  // 120s = 2 min × $0.002/min = $0.004
-  expect(usage.costUsd).toBeCloseTo(0.004, 9);
+  // 120s = 2 min × $0.003/min = $0.006
+  expect(usage.costUsd).toBeCloseTo(0.006, 9); // 2 min × $0.003 (F050.4, re-read 2026-10-11)
 });
 
 test("ai.ocr + ai.moderate route to mistral by default (no override)", async () => {

@@ -46,7 +46,7 @@ export interface MediaPrice {
  *  ONE date for the table rather than trusting every row's own: a row added later
  *  with a fresh date would otherwise pull the table's average forward while the
  *  older rows sat unrevised. Freshness reads the OLDEST answer, and this is it. */
-export const MEDIA_PRICING_CHECKED_AT = "2026-09-05";
+export const MEDIA_PRICING_CHECKED_AT = "2026-10-11";
 
 /** Veo per-second USD. Same model family and the same rates on the consumer
  *  Gemini API and on Vertex — one object, registered under both providers, so a
@@ -87,7 +87,7 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   // `costBasis: "estimated"`. Override per call with config.pricePerImage.
   "fal:fal-ai/flux/schnell": { unit: "per_image", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
   "fal:fal-ai/flux/dev": { unit: "per_image", usd: 0.025, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
-  "fal:fal-ai/flux-lora": { unit: "per_image", usd: 0.025, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
+  "fal:fal-ai/flux-lora": { unit: "per_image", usd: 0.035, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai/models/fal-ai/flux-lora — $0.035/MP (was 0.025 until 2026-10-11), billed by megapixel" },
   "fal:fal-ai/flux-pro": { unit: "per_image", usd: 0.05, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
   "fal:fal-ai/flux-pro/v1.1": { unit: "per_image", usd: 0.04, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
 
@@ -118,19 +118,19 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "openrouter:recraft/recraft-v4.1-pro": { unit: "per_image", usd: 0.21, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/api/v1/models, measured 2026-09-27 — image_token 5.030e-5 x 4175; fallback when usage.cost is omitted" },
 
   // Speech OUT — billed per 1000 characters of input text.
-  "azure:tts": { unit: "per_1k_chars", usd: 0.016, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "azure.microsoft.com/pricing — neural standard, $16/1M chars" },
-  "elevenlabs:tts": { unit: "per_1k_chars", usd: 0.15, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "elevenlabs.io/pricing — API overage approx $0.10-0.18/1k chars; ESTIMATE" },
+  "azure:tts": { unit: "per_1k_chars", usd: 0.015, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "prices.azure.com retail API, westeurope — S1 Neural TTS $15/1M chars (HD voices $22/1M)" },
+  "elevenlabs:tts": { unit: "per_1k_chars", usd: 0.08, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "elevenlabs.io/pricing/api — v3 Text to Speech $0.08/1k chars (the adapter uses eleven_v3)" },
 
   // Translation — per 1000 characters. Free tier (":fx" key, within quota) is truly $0;
   // this rate only bites past the Pro allowance.
   "deepl:translate": { unit: "per_1k_chars", usd: 0.0217, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "deepl.com/pro-api — ESTIMATE, conflicting tier reports; verify before a budget decision" },
 
   // Speech IN — billed per audio-minute.
-  "azure:stt": { unit: "per_min", usd: 0.0167, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "azure.microsoft.com/pricing — standard STT, $1/audio-hour" },
+  "azure:stt": { unit: "per_min", usd: 0.006, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "prices.azure.com retail API, westeurope — Fast Transcription $0.36/hour; the adapter calls transcriptions:transcribe (fast). $1/h was the real-time rate we do not use" },
   "openai:whisper-1": { unit: "per_min", usd: 0.006, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openai.com/api/pricing — Whisper" },
-  "mistral:voxtral-mini-latest": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral" },
-  "mistral:voxtral-mini-2507": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral" },
-  "mistral:voxtral-mini-2602": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral" },
+  "mistral:voxtral-mini-latest": { unit: "per_min", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-transcribe-26-02 — alias of voxtral-mini-2602, $0.003/min" },
+  "mistral:voxtral-mini-2507": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral; deprecated 2026-02-27, docs no longer show a price (NOT re-verifiable 2026-10-11)" },
+  "mistral:voxtral-mini-2602": { unit: "per_min", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-transcribe-26-02 — $0.003/min (was 0.002 until 2026-10-11)" },
 
   // OCR — per page.
   "mistral:ocr": { unit: "per_page", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "Mistral mail 2026-09-30 (OCR 4.1): $4/1000 pages direct; $2/1000 is the Batch-API price, which ai.ocr does not use" },

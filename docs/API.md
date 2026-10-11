@@ -759,6 +759,34 @@ try {
 `purpose` is a free-text label that rides into the sink (`agent_runs.purpose`)
 for per-feature cost attribution.
 
+### A model picker — `listModels()` (0.62+, F022.6)
+
+Build a "choose a model per provider" dropdown on the registry, not on a local list.
+Each row says what it is and which one to pre-select:
+
+```ts
+import { listModels } from "@broberg/ai-sdk/registry"; // browser-safe subpath
+const chat = listModels({ provider: "openai" }).filter((m) => m.kind === "chat" && m.available);
+const preselect = chat.find((m) => m.default);          // exactly one per anthropic / openai / mistral
+```
+
+| field | meaning |
+|---|---|
+| `kind` | `"chat"` \| `"embedding"` \| `"judge"` — show only `chat` in a chat dropdown |
+| `default` | `true` on ONE row per provider (anthropic, openai, mistral): always a pinned, priced id |
+| `grade` | `"cheap"` \| `"standard"` \| `"strong"` on the provider's three picks (Mistral has cheap + standard only — Large 3 is its strongest default, measured by trail F317) |
+| `floating` | `true` on `-latest` aliases — the provider can swap the model behind them. Never a default (D-385d97); hide or label them |
+
+Defaults as of 0.62.0 (measured 2026-10-11): anthropic `claude-sonnet-5-5`, openai
+`gpt-5.4-mini-2026-03-17`, mistral = whatever the `smart` tier calls (`mistral-large-2512`;
+a test keeps them identical).
+
+**OpenAI's newest models (`gpt-6-*`, `gpt-5.6-*`) are listed but never the default:**
+on 2026-10-11 OpenAI published no dated snapshot for them, so we cannot show the id
+will keep meaning the same model. Their `note` says so. Every Anthropic/OpenAI chat
+row is priced — a test fails if one is not, because an unpriced model bills `$0` and
+slips past every budget.
+
 ### Failed calls and the model that answered — Model Watch signals (F071)
 
 From 0.53.0 the upmetrics sink also receives **failed** call attempts, so a provider
