@@ -8,7 +8,7 @@
 // ids we want to assert status on; anything not here is fail-open (treated
 // available) so we never block a model we simply do not track.
 import { DEFAULT_TIER_MAP } from "../routing/tier-map.js";
-import type { AvailabilityStatus, AvailabilitySource, ModelStatus } from "./types.js";
+import type { AvailabilityStatus, AvailabilitySource, ModelGrade, ModelKind, ModelStatus } from "./types.js";
 
 /** Internal registry row. `aliases[0]` surfaces as ModelStatus.alias. */
 export interface RegistryEntry {
@@ -19,8 +19,17 @@ export interface RegistryEntry {
   status: AvailabilityStatus;
   note?: string;
   source: AvailabilitySource;
+  /** F022.6. Omitted = "chat" (most rows); set explicitly for anything else. */
+  kind?: ModelKind;
+  default?: true;
+  grade?: ModelGrade;
 }
 
+/** A `-latest` id is a moving alias — the provider can swap the model behind it.
+ *  Derived, not hand-written, so a new -latest row cannot forget the flag. */
+export const isFloatingId = (id: string): boolean => /-latest$/.test(id);
+
+const NO_OPENAI_SNAPSHOT = "no dated snapshot published (measured 2026-10-11) — the id may start pointing at a newer model";
 const SUSPENDED_FABLE_MYTHOS = "suspended — US export-control directive (2026-06-12)";
 
 /** Curated defaults. Aliases here are MODEL-IDENTITY names only (short names for
@@ -42,11 +51,35 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "claude-opus-4-8", aliases: ["opus"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-fable-5", aliases: ["fable"], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-mythos-5", aliases: ["mythos"], provider: "anthropic", available: false, status: "suspended", note: SUSPENDED_FABLE_MYTHOS, source: "default" },
+  // F022.6 — the live Claude 5 family, measured with GET /v1/models on 2026-10-11.
+  // These ids have no dated snapshot: the id IS the pin. The older rows above stay,
+  // because removing one would turn a passing requireKnown gate into a refusal.
+  { id: "claude-haiku-5-5", aliases: [], provider: "anthropic", available: true, status: "available", source: "default", grade: "cheap" },
+  { id: "claude-sonnet-5-5", aliases: [], provider: "anthropic", available: true, status: "available", source: "default", grade: "standard", default: true },
+  { id: "claude-opus-5-5", aliases: [], provider: "anthropic", available: true, status: "available", source: "default", grade: "strong" },
+  { id: "claude-fable-5-1", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-opus-5", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-sonnet-5", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-opus-4-7", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
+  { id: "claude-opus-4-6", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
   // ── Gemini ───────────────────────────────────────────────────────────────
   { id: "gemini-2.5-flash", aliases: ["gemini-flash"], provider: "gemini", available: true, status: "available", source: "default" },
   { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite"], provider: "gemini", available: true, status: "available", source: "default" },
   // ── OpenAI ───────────────────────────────────────────────────────────────
-  { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default" },
+  { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default", kind: "embedding" },
+  // F022.6 — chat models, measured with GET /v1/models on 2026-10-11 and priced from
+  // developers.openai.com/api/docs/pricing the same day. The cheap/standard/strong
+  // picks are DATED snapshots, so a picker's default cannot move under anyone
+  // (D-385d97).
+  { id: "gpt-5.4-nano-2026-03-17", aliases: [], provider: "openai", available: true, status: "available", source: "default", grade: "cheap" },
+  { id: "gpt-5.4-mini-2026-03-17", aliases: [], provider: "openai", available: true, status: "available", source: "default", grade: "standard", default: true },
+  { id: "gpt-5.5-2026-04-23", aliases: [], provider: "openai", available: true, status: "available", source: "default", grade: "strong" },
+  // OpenAI's newest families had NO dated snapshot in /v1/models on 2026-10-11. They
+  // are offered, but not as a default: we cannot show that the id will keep meaning
+  // the same model.
+  ...["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol", "gpt-6-astra", "gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"].map(
+    (id): RegistryEntry => ({ id, aliases: [], provider: "openai", available: true, status: "available", source: "default", note: NO_OPENAI_SNAPSHOT }),
+  ),
   // ── DeepSeek (CN-hosted — NOT GDPR-safe; non-PII workloads only) ─────────
   //
   // F057.2. These were missing while pricing.ts carried OFFICIAL rates for them
@@ -74,17 +107,18 @@ const DEFAULTS: RegistryEntry[] = [
   // moves on their next release; writing it here as an alias of 1.13.0 would make this
   // registry assert a mapping we would have to remember to undo. As separate rows, both
   // pass a requireKnown gate and neither claims to be the other.
-  { id: "jev-1.13.0", aliases: ["jev"], provider: "typesafe", available: true, status: "available", note: "TypeSafe Jev, pinned version. US-hosted — not for personal data. Decision model: use ai.judge, not ai.chat", source: "default" },
-  { id: "jev-latest", aliases: [], provider: "typesafe", available: true, status: "available", note: "MOVING alias (jev-1.13.0 as of 2026-10-01). Pin jev-1.13.0 if you tuned thresholds on confidence. US-hosted — not for personal data", source: "default" },
+  { id: "jev-1.13.0", aliases: ["jev"], provider: "typesafe", available: true, status: "available", note: "TypeSafe Jev, pinned version. US-hosted — not for personal data. Decision model: use ai.judge, not ai.chat", source: "default", kind: "judge" },
+  { id: "jev-latest", aliases: [], provider: "typesafe", available: true, status: "available", note: "MOVING alias (jev-1.13.0 as of 2026-10-01). Pin jev-1.13.0 if you tuned thresholds on confidence. US-hosted — not for personal data", source: "default", kind: "judge" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-small-latest", aliases: ["mistral-small"], provider: "mistral", available: true, status: "available", source: "default" },
   // F077 — the dated ids the tiers are pinned to. The -latest rows above stay: callers
   // still pass them, and an unknown id would fail a requireKnown gate.
-  { id: "mistral-large-2512", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
+  // F022.6 — default = what the `smart` tier calls (a test holds them together).
+  { id: "mistral-large-2512", aliases: [], provider: "mistral", available: true, status: "available", source: "default", grade: "standard", default: true },
   { id: "mistral-medium-2604", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
-  { id: "mistral-small-2603", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
+  { id: "mistral-small-2603", aliases: [], provider: "mistral", available: true, status: "available", source: "default", grade: "cheap" },
 ];
 
 /** Attach every tier name as an alias of the model that tier ACTUALLY calls.
@@ -158,6 +192,10 @@ export function allEntries(provider?: string): ModelStatus[] {
       status: e.status,
       note: e.note,
       source: e.source,
+      kind: e.kind ?? "chat",
+      ...(e.default ? { default: true as const } : {}),
+      ...(e.grade ? { grade: e.grade } : {}),
+      ...(isFloatingId(e.id) ? { floating: true as const } : {}),
     });
   }
   return rows;

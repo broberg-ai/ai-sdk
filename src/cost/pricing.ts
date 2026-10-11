@@ -31,6 +31,8 @@ const AN = "2026-10-08-platform.claude.com";
 
 /** Keyed `${provider}:${model}`. Exported so the catalogue-research job (F014)
  *  can enumerate every priced entry and diff it against the live provider lists. */
+const OAI = "2026-10-11-developers.openai.com";
+
 export const PRICING: Record<string, PricingEntry> = {
   // Anthropic (direct API). DEFAULT_TIER_MAP: fast/cheap=haiku, smart/vision=sonnet, powerful=opus.
   // $1.00/$5.00 — Anthropic's published Haiku 4.5 rate, confirmed against the
@@ -98,6 +100,44 @@ export const PRICING: Record<string, PricingEntry> = {
   "openai:text-embedding-3-large": { inputPer1M: 0.13, outputPer1M: 0, version: V },
   "openai:gpt-4o": { inputPer1M: 2.5, cacheReadPer1M: 1.25, outputPer1M: 10.0, version: "2026-08-27-developers.openai.com" },
   "openai:gpt-4o-mini": { inputPer1M: 0.15, cacheReadPer1M: 0.075, outputPer1M: 0.6, version: "2026-08-27-developers.openai.com" },
+  // F022.6 — chat models offered to pickers. Official standard (non-batch, non-flex)
+  // rates from developers.openai.com/api/docs/pricing, read 2026-10-11. Long context
+  // = >272K input tokens, as the page states for every model that has one. Dated ids
+  // (gpt-5.4-mini-2026-03-17) price through stripDatedSuffix.
+  "openai:gpt-5.4-nano": { inputPer1M: 0.2, cacheReadPer1M: 0.02, outputPer1M: 1.25, version: OAI },
+  "openai:gpt-5.4-mini": { inputPer1M: 0.75, cacheReadPer1M: 0.075, outputPer1M: 4.5, version: OAI },
+  "openai:gpt-5.5": {
+    inputPer1M: 5, cacheReadPer1M: 0.5, outputPer1M: 30, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 10, cacheReadPer1M: 1, outputPer1M: 45 },
+  },
+  "openai:gpt-6-luna": {
+    inputPer1M: 0.1, cacheReadPer1M: 0.01, cacheWritePer1M: 0.125, outputPer1M: 0.5, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 0.2, cacheReadPer1M: 0.02, cacheWritePer1M: 0.25, outputPer1M: 0.75 },
+  },
+  "openai:gpt-6-sol": {
+    inputPer1M: 2, cacheReadPer1M: 0.2, cacheWritePer1M: 2.5, outputPer1M: 10, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 4, cacheReadPer1M: 0.4, cacheWritePer1M: 5, outputPer1M: 15 },
+  },
+  "openai:gpt-6.1-sol": {
+    inputPer1M: 2, cacheReadPer1M: 0.1, cacheWritePer1M: 2.5, outputPer1M: 10, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 4, cacheReadPer1M: 0.2, cacheWritePer1M: 5, outputPer1M: 15 },
+  },
+  "openai:gpt-6-astra": {
+    inputPer1M: 10, cacheReadPer1M: 1, cacheWritePer1M: 12.5, outputPer1M: 50, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 20, cacheReadPer1M: 2, cacheWritePer1M: 25, outputPer1M: 75 },
+  },
+  "openai:gpt-5.6-luna": {
+    inputPer1M: 0.2, cacheReadPer1M: 0.02, cacheWritePer1M: 0.25, outputPer1M: 1.2, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 0.4, cacheReadPer1M: 0.04, cacheWritePer1M: 0.5, outputPer1M: 1.8 },
+  },
+  "openai:gpt-5.6-terra": {
+    inputPer1M: 2, cacheReadPer1M: 0.2, cacheWritePer1M: 2.5, outputPer1M: 12, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 4, cacheReadPer1M: 0.4, cacheWritePer1M: 5, outputPer1M: 18 },
+  },
+  "openai:gpt-5.6-sol": {
+    inputPer1M: 4, cacheReadPer1M: 0.4, cacheWritePer1M: 5, outputPer1M: 20, version: OAI,
+    longPrompt: { aboveTokens: 272_000, inputPer1M: 8, cacheReadPer1M: 0.8, cacheWritePer1M: 10, outputPer1M: 30 },
+  },
   // Whisper is priced per MINUTE — see MEDIA_PRICING in ./media-pricing.ts. It used to
   // sit here as 0/0 "so token-based compute never charges it", and inwardly that worked.
   // Outwardly it did not: getModelPrice("whisper-1") answered `{unit:"per_1m_tokens",
@@ -242,7 +282,8 @@ export const PRICING: Record<string, PricingEntry> = {
  *  instance and not the class is the shape; a copy of this regex in the other lookup
  *  would have been the same mistake a third time. */
 export function stripDatedSuffix(model: string): string {
-  return model.replace(/-\d{8}$/, "");
+  // Anthropic dates as -YYYYMMDD; OpenAI as -YYYY-MM-DD (F022.6).
+  return model.replace(/-(\d{8}|\d{4}-\d{2}-\d{2})$/, "");
 }
 
 export function getPrice(provider: string, model: string): PricingEntry | undefined {

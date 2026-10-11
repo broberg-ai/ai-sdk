@@ -9,6 +9,13 @@ export type AvailabilityStatus = "available" | "suspended" | "unknown";
  *  or a live provider refresh (Anthropic GET /v1/models). */
 export type AvailabilitySource = "default" | "refresh";
 
+/** What a model IS, so a picker can offer only chat models in a chat dropdown (F022.6). */
+export type ModelKind = "chat" | "embedding" | "judge";
+
+/** The provider's price/quality step, as a picker labels it (F022.6). Not a tier:
+ *  tiers route calls, grades only describe a row. */
+export type ModelGrade = "cheap" | "standard" | "strong";
+
 /** One row of the shared status read — what a UI model-picker renders. */
 export interface ModelStatus {
   /** Canonical provider model id, e.g. "claude-fable-5". */
@@ -22,6 +29,16 @@ export interface ModelStatus {
   /** Friendly reason, e.g. "suspended — US export-control directive (2026-06-12)". */
   note?: string;
   source: AvailabilitySource;
+  /** F022.6 — chat / embedding / judge. */
+  kind: ModelKind;
+  /** F022.6 — exactly one row per provider carries this: the model a picker
+   *  pre-selects. Always a pinned (non-floating), priced id. */
+  default?: true;
+  /** F022.6 — present on the cheap / standard / strong pick for a provider. */
+  grade?: ModelGrade;
+  /** F022.6 — the id is a moving alias (`-latest`): the provider can swap the
+   *  model behind it without a deploy. Never the default (D-385d97). */
+  floating?: true;
 }
 
 /** Result of resolveModel — the spawn / call path consumes this synchronously. */
