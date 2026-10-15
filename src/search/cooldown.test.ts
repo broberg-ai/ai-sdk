@@ -100,3 +100,13 @@ test("a success clears the cooldown", async () => {
   const routed = await search({ query: "c", country: "DK" }, opts);
   expect({ provider: routed.meta.provider, hits }).toEqual({ provider: "brave", hits: 3 });
 });
+
+test("a cached answer from a cooling provider is still served (free, no request)", async () => {
+  const c = clock(); const cache = (await import("./cache.js")).memorySearchCache();
+  const live = world(200);
+  await search({ query: "cached", country: "DK" }, { fetch: live.f, credentials: creds("k-cache"), cache, now: c.now });
+  const dead = world(402);
+  await search({ query: "other", country: "DK" }, { fetch: dead.f, credentials: creds("k-cache"), cache, now: c.now }); // brave now cooling
+  const r = await search({ query: "cached", country: "DK" }, { fetch: dead.f, credentials: creds("k-cache"), cache, now: c.now });
+  expect({ provider: r.meta.provider, cached: r.meta.cached, cost: r.meta.costUsd, braveHits: dead.braveHits() }).toEqual({ provider: "brave", cached: true, cost: 0, braveHits: 1 });
+});

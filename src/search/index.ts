@@ -115,13 +115,16 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
   const nowMs = () => (opts.now ?? (() => new Date()))().getTime();
   let lastErr: unknown;
   for (const [i, provider] of chain.entries()) {
-    // The last candidate is always tried, so a call never ends without a real error.
-    const coolKey = cooldownKey(provider, opts);
-    if (i < chain.length - 1 && (coolingUntil.get(coolKey) ?? 0) > nowMs()) continue;
-
     const key = searchCacheKey(provider, req);
     const hit = cache?.get(key);
     if (hit) return { items: hit.items, meta: { ...hit.meta, cached: true, costUsd: 0, latencyMs: 0 } };
+
+    // A cooling provider is skipped AFTER its cache: a stored answer costs nothing and sends nothing.
+    // The last candidate is always tried, so a call never ends without a real error.
+    const coolKey = cooldownKey(provider, opts);
+    const until = coolingUntil.get(coolKey);
+    if (until !== undefined && until <= nowMs()) coolingUntil.delete(coolKey);
+    else if (until !== undefined && i < chain.length - 1) continue;
 
     // Check and reserve in one step, so parallel calls cannot all pass the same headroom.
     // Without a cap the reservation still books the spend, so a cap set later sees it.
