@@ -10,6 +10,7 @@ import { routeSearch } from "./router.js";
 import { memorySearchCache, SEARCH_CACHE_TTL_MS, searchCacheKey } from "./cache.js";
 import { classifyFailure } from "../cost/failure.js";
 import type { Usage } from "../types.js";
+import { createHash } from "node:crypto";
 import {
   SearchBudgetExceededError,
   SearchKeyMissingError,
@@ -32,6 +33,24 @@ const sharedCapStore: SearchCapStore = (() => {
     getSpent: (k) => m.get(k) ?? 0,
   };
 })();
+
+// F078.7 — a provider that answered 401/402/403 (dead key, empty prepaid credit) is skipped
+// for COOLDOWN_MS for that key. Measured 14 Oct 2026: Brave's credit ran out for 12.5 hours and
+// every one of ~2,000 calls still tried Brave first — 2,029 failure rows and an hourly alarm.
+const COOLDOWN_MS = 10 * 60_000;
+const COOLDOWN_STATUS = new Set(["401", "402", "403"]);
+const coolingUntil = new Map<string, number>();
+
+/** One cooldown per key, not per provider: one BYOK tenant's empty credit must not
+ *  reroute another tenant or the house. Hashed so no key sits in the map in clear. */
+function cooldownKey(provider: SearchProviderId, opts: SearchOptions): string {
+  const c = opts.credentials ?? {};
+  const env = opts.byok ? {} : process.env;
+  const secret = provider === "brave" ? (c.braveApiKey ?? env.BRAVE_API_KEY)
+    : provider === "tavily" ? (c.tavilyApiKey ?? env.TAVILY_API_KEY)
+    : `${c.cloudflareAccountId ?? env.CLOUDFLARE_ACCOUNT_ID}:${c.cloudflareApiToken ?? env.CLOUDFLARE_API_TOKEN}`;
+  return `${provider}:${createHash("sha256").update(String(secret)).digest("hex").slice(0, 16)}`;
+}
 
 /** Calendar day in Danish time — a "day" for the cap is the owner's day, not UTC's. */
 const copenhagenDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Copenhagen" }).format(d);
@@ -93,8 +112,13 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
   const day = copenhagenDay((opts.now ?? (() => new Date()))());
   const capKey = JSON.stringify([tenant, day]);
 
+  const nowMs = () => (opts.now ?? (() => new Date()))().getTime();
   let lastErr: unknown;
-  for (const provider of chain) {
+  for (const [i, provider] of chain.entries()) {
+    // The last candidate is always tried, so a call never ends without a real error.
+    const coolKey = cooldownKey(provider, opts);
+    if (i < chain.length - 1 && (coolingUntil.get(coolKey) ?? 0) > nowMs()) continue;
+
     const key = searchCacheKey(provider, req);
     const hit = cache?.get(key);
     if (hit) return { items: hit.items, meta: { ...hit.meta, cached: true, costUsd: 0, latencyMs: 0 } };
@@ -116,12 +140,14 @@ export async function search(req: SearchRequest, opts: SearchOptions = {}): Prom
         items: dedupe(out.items),
         meta: { provider, latencyMs, cached: false, costUsd: SEARCH_PRICE_USD[provider], ...(out.requestId ? { requestId: out.requestId } : {}) },
       };
+      coolingUntil.delete(coolKey);
       cache?.set(key, result, ttl);
       try { await sink?.record(usageRow(provider, req, result.meta.costUsd, latencyMs)); } catch { /* a sink never breaks a call */ }
       return result;
     } catch (e) {
       lastErr = e;
       await capStore.release(capKey, price); // a failed call costs nothing
+      if (COOLDOWN_STATUS.has(classifyFailure(e).errorCode)) coolingUntil.set(coolKey, nowMs() + COOLDOWN_MS);
       if (sink?.recordFailure) {
         try {
           await sink.recordFailure({
