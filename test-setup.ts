@@ -15,3 +15,8 @@
 for (const key of Object.keys(process.env)) {
   if (key.startsWith("UPMETRICS_")) delete process.env[key];
 }
+
+// F034.4 — createAI() now refuses to start without an agent name. The name is harmless
+// (only the API key can make a test post), so the suite gets one here; tests that
+// exercise the missing-name refusal delete it and restore it themselves.
+process.env.UPMETRICS_AGENT_NAME = "ai-sdk-test";

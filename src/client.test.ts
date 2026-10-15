@@ -107,7 +107,8 @@ test("default cost-tracking is provider-agnostic: a NON-mistral (anthropic) call
 // ~26 suites that call createAI() would POST fake usage into PRODUCTION telemetry.
 test("test env is stripped of UPMETRICS_* so the suite can never post real telemetry", () => {
   // Assert the EFFECT (no UPMETRICS_* reaches a test), not a hand-listed set.
-  expect(Object.keys(process.env).filter((k) => k.startsWith("UPMETRICS_"))).toEqual([]);
+  // UPMETRICS_AGENT_NAME is the one exception (F034.4): a name cannot post anything.
+  expect(Object.keys(process.env).filter((k) => k.startsWith("UPMETRICS_") && k !== "UPMETRICS_AGENT_NAME")).toEqual([]);
 });
 
 // Control for the test above. On a machine whose .env never had the key, that
@@ -131,28 +132,43 @@ test("UPMETRICS_* strip is load-bearing: injected key dies with the preload, sur
   expect(run([])).toBe("uk_probe"); // probe can detect a failure
 });
 
-// Owner decision 2026-08-06: a MISSING agent name must never disable tracking —
-// silently-invisible spend is the failure this feature exists to kill. Only the
-// API key gates the sink; the name degrades to a fallback label.
-test("UPMETRICS_AGENT_NAME absent: still tracks, agent_name falls back (never silently untracked)", async () => {
-  const prev = { key: process.env.UPMETRICS_API_KEY, name: process.env.UPMETRICS_AGENT_NAME, fetch: globalThis.fetch };
-  const posts: any[] = [];
-  process.env.UPMETRICS_API_KEY = "uk_test";
-  delete process.env.UPMETRICS_AGENT_NAME;
-  globalThis.fetch = (async (_url: any, init: any) => {
-    posts.push(JSON.parse(init.body));
-    return new Response("{}", { status: 200 });
-  }) as unknown as typeof fetch;
-  try {
-    await createAI().chat({ prompt: "x" });
-    expect(posts).toHaveLength(1); // tracked despite the missing name
-    expect(typeof posts[0]?.agent_name).toBe("string");
-    expect(posts[0]?.agent_name.length).toBeGreaterThan(0);
-  } finally {
-    globalThis.fetch = prev.fetch;
-    prev.key === undefined ? delete process.env.UPMETRICS_API_KEY : (process.env.UPMETRICS_API_KEY = prev.key);
-    if (prev.name !== undefined) process.env.UPMETRICS_AGENT_NAME = prev.name;
+// F034.4 — «Ingen må være anonyme» (owner, 15 Oct 2026). Replaces the 2026-08-06 fallback
+// label: a missing name now refuses at construction — loud, never silently untracked, and
+// never "unknown". Not gated on UPMETRICS_API_KEY, so it fails in CI where the key is absent.
+function withEnv(vars: Record<string, string | undefined>, fn: () => unknown | Promise<unknown>) {
+  const prev = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+  for (const [k, v] of Object.entries(vars)) v === undefined ? delete process.env[k] : (process.env[k] = v);
+  const restore = () => { for (const [k, v] of Object.entries(prev)) v === undefined ? delete process.env[k] : (process.env[k] = v); };
+  try { const r = fn(); return r instanceof Promise ? r.finally(restore) : (restore(), r); } catch (e) { restore(); throw e; }
+}
+
+test("no agent name → createAI() throws at construction, with or without UPMETRICS_API_KEY", () => {
+  for (const key of [undefined, "uk_test"]) {
+    withEnv({ UPMETRICS_AGENT_NAME: undefined, UPMETRICS_API_KEY: key }, () => {
+      expect(() => createAI()).toThrow(/UPMETRICS_AGENT_NAME.*agentName/s);
+      expect(() => createAI({ agentName: "   " })).toThrow(/no agent name/);
+    });
   }
+  withEnv({ UPMETRICS_AGENT_NAME: "  " }, () => expect(() => createAI()).toThrow(/no agent name/));
+});
+
+test("agentName from config or from UPMETRICS_AGENT_NAME reaches the auto-wired sink's request", async () => {
+  const prevFetch = globalThis.fetch;
+  const names: string[] = [];
+  globalThis.fetch = (async (_url: any, init: any) => { names.push(JSON.parse(init.body).agent_name); return new Response("{}", { status: 200 }); }) as unknown as typeof fetch;
+  try {
+    await withEnv({ UPMETRICS_API_KEY: "uk_test", UPMETRICS_AGENT_NAME: undefined }, () => createAI({ agentName: "from-config" }).chat({ prompt: "x" }));
+    await withEnv({ UPMETRICS_API_KEY: "uk_test", UPMETRICS_AGENT_NAME: "from-env" }, () => createAI().chat({ prompt: "x" }));
+    await withEnv({ UPMETRICS_API_KEY: "uk_test", UPMETRICS_AGENT_NAME: "from-env" }, () => createAI({ agentName: "config-wins" }).chat({ prompt: "x" }));
+  } finally { globalThis.fetch = prevFetch; }
+  expect(names).toEqual(["from-config", "from-env", "config-wins"]);
+});
+
+test("costSink: null and an explicit costSink need no agent name", () => {
+  withEnv({ UPMETRICS_AGENT_NAME: undefined, UPMETRICS_API_KEY: "uk_test" }, () => {
+    expect(() => createAI({ costSink: null })).not.toThrow();
+    expect(() => createAI({ costSink: { async record() {} } })).not.toThrow();
+  });
 });
 
 test("UPMETRICS_BASE_URL overrides the default ingest host", async () => {

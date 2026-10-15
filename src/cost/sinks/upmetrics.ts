@@ -93,6 +93,8 @@ type Pending = { body: string; attempts: number };
 type SendResult = { kind: "ok" } | { kind: "retry" | "reject"; err: unknown };
 
 export function upmetricsSink(config: UpmetricsSinkConfig): UpmetricsSink {
+  // F034.4 — an empty name is an anonymous row; refuse it here, not in a dashboard later.
+  if (!config.agentName?.trim()) throw new Error("upmetricsSink(): agentName is required (e.g. your repo name) — anonymous cost rows are not allowed");
   const doFetch = config.fetch ?? fetch;
   const url = `${config.baseUrl.replace(/\/$/, "")}/api/agent`;
   const retry = config.retry ?? true;

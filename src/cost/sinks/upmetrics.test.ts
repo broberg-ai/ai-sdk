@@ -314,3 +314,10 @@ test("F061: under overflow during a concurrent flush, it is the OLDEST that is d
   expect(survivors.filter((s) => s.startsWith("OLD"))).toHaveLength(25); // the 5 oldest went
   expect(survivors).not.toContain("OLD-0");
 });
+
+// F034.4 — an empty or whitespace name is an anonymous row; the sink refuses it at construction.
+test("upmetricsSink refuses an empty or whitespace agentName", () => {
+  for (const agentName of ["", "   "]) {
+    expect(() => upmetricsSink({ baseUrl: "https://up.test", apiKey: "k", agentName })).toThrow(/agentName is required/);
+  }
+});

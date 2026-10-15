@@ -377,6 +377,9 @@ export const aiConfigSchema = z.object({
    *  to opt OUT explicitly — for a consumer that already reports its own costs
    *  and would otherwise be counted twice (F034.3). An object is used as-is. */
   costSink: z.custom<CostSink>().nullable().optional(),
+  /** F034.4 — who is calling, as Upmetrics groups it (e.g. "cms"). Required when
+   *  `costSink` is omitted, unless UPMETRICS_AGENT_NAME is set. */
+  agentName: z.string().optional(),
   budget: budgetSchema.optional(),
   availability: availabilitySchema.optional(),
 });

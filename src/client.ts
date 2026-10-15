@@ -191,15 +191,31 @@ export const ROUTED_SPECS: readonly TierSpec[] = [
  *  Server-entry only: createAI already pulls the provider adapters (which read
  *  process.env at call time), so this module is never in the browser build (the
  *  browser imports "@broberg/ai-sdk/registry"). */
-function defaultCostSink(): CostSink | undefined {
+function defaultCostSink(agentName: string): CostSink | undefined {
   const apiKey = process.env.UPMETRICS_API_KEY;
   if (!apiKey) return undefined;
   return upmetricsSink({
     baseUrl: process.env.UPMETRICS_BASE_URL ?? "https://upmetrics.org",
     apiKey,
-    agentName: process.env.UPMETRICS_AGENT_NAME ?? process.env.npm_package_name ?? "unknown",
+    agentName,
     complianceMode: process.env.UPMETRICS_COMPLIANCE === "1",
   });
+}
+
+/** F034.4 — «Ingen må være anonyme» (owner, 15 Oct 2026). Measured in Upmetrics over 30
+ *  days: 8 repos sent agent_name "unknown", 87 % of one day's fleet spend. The old fallback
+ *  (npm_package_name) exists only when a process is started via `npm/bun run`, so the same
+ *  app was named in dev and anonymous in prod. Checked at construction and NOT gated on
+ *  UPMETRICS_API_KEY: CI rarely has the key, and a check that only fires where it does
+ *  would fire first in production, at boot. */
+function requireAgentName(configured: string | undefined): string {
+  const name = (configured ?? process.env.UPMETRICS_AGENT_NAME ?? "").trim();
+  if (name) return name;
+  throw new Error(
+    "createAI(): no agent name — every AI call must say who made it (owner order 2026-10-15). " +
+    'Set UPMETRICS_AGENT_NAME=<your repo> (production AND test env), or pass createAI({ agentName: "<your repo>" }). ' +
+    "Not needed with an explicit costSink, or costSink: null.",
+  );
 }
 
 export function createAI(config: AiConfig = {}): AiClient {
@@ -213,7 +229,7 @@ export function createAI(config: AiConfig = {}): AiClient {
   // from env (F034); `null` is a deliberate opt-out for a consumer that already
   // reports its own costs and would otherwise be double-counted (F034.3); an
   // object is used as-is.
-  const costSink = cfg.costSink === undefined ? defaultCostSink() : (cfg.costSink ?? undefined);
+  const costSink = cfg.costSink === undefined ? defaultCostSink(requireAgentName(cfg.agentName)) : (cfg.costSink ?? undefined);
   const budget = cfg.budget ? new BudgetGuard(cfg.budget) : undefined;
 
   const estTokens = (s: string): number => Math.ceil(s.length / 4);

@@ -221,8 +221,15 @@ You don't have to wire a sink. If `UPMETRICS_API_KEY` is in the env, a bare
 call-sites passed no sink, leaving ~91% of Mistral spend invisible. No key in
 the env → no sink, no crash (ship-dark).
 
+**Every client needs a name (0.63+, F034.4).** `createAI()` throws at startup unless
+`UPMETRICS_AGENT_NAME` is set or you pass `agentName` — even when no key is present, so
+your tests catch it before production does. Owner order 2026-10-15: «Ingen må være
+anonyme» — measured over 30 days, 8 repos had sent their spend as `unknown`. Not needed
+with an explicit `costSink` or `costSink: null`.
+
 ```ts
-createAI();                      // key in env → tracked; no key → nothing happens
+createAI({ agentName: "my-app" }); // key in env → tracked; no key → nothing happens
+createAI();                      // same, if UPMETRICS_AGENT_NAME is set — else throws
 createAI({ costSink: mySink });  // explicit sink wins
 createAI({ costSink: null });    // explicit OPT-OUT — see below
 ```
@@ -230,7 +237,7 @@ createAI({ costSink: null });    // explicit OPT-OUT — see below
 | Env var | Effect |
 |---|---|
 | `UPMETRICS_API_KEY` | **The only switch.** Present → tracking on. |
-| `UPMETRICS_AGENT_NAME` | Row label. Set it — the fallback is `npm_package_name`, which is empty for a process not started via an npm/bun script (a `node dist/…` or Docker service logs as `unknown`). |
+| `UPMETRICS_AGENT_NAME` | Row label, **required** (or `agentName`) since 0.63.0 — set it in production AND in your test env. Up to 0.62 the fallback was `npm_package_name`, empty outside an npm/bun script, so `node dist/…` and Docker services logged as `unknown`. |
 | `UPMETRICS_BASE_URL` | Ingest host. Defaults to `https://upmetrics.org`. |
 | `UPMETRICS_COMPLIANCE` | `1` sets compliance mode. `Usage` carries no prompt/response text either way. |
 
