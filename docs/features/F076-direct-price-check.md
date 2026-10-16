@@ -31,4 +31,4 @@ Ingen ny pakke. Udvider `src/catalogue` og `scripts/research-models.ts`; jobbet 
 
 ## Åbent
 
-- Takt: jobbet kører månedligt. Hyppigere (14 dage) er en ændring hos buddy på M1.
+- Takt: hver 14. dag (Christian 16/10 2026; buddy-job 24cb5bbf på M1, før den 1. i måneden). Første kørsel med ny takt: 17/10 kl. 06:00 dansk tid.
