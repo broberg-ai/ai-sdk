@@ -174,11 +174,13 @@
     "gemini-3.8-flash",
     "gemini-3.8-flash-lite-tts",
     "gemini-3.8-flash-tts",
+    "gemini-4-argon",
     "gemini-embedding-001",
     "gemini-embedding-2",
     "gemini-embedding-2-preview",
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
+    "gemini-nano-banana-2.1",
     "gemini-omni-1.1-flash",
     "gemini-omni-flash-preview",
     "gemini-pro-latest",
@@ -188,9 +190,7 @@
     "lyria-3-clip-preview",
     "lyria-3-pro-preview",
     "lyria-3.5",
-    "nano-banana-pro-preview",
-    "veo-3.1-fast-generate-preview",
-    "veo-3.1-generate-preview"
+    "nano-banana-pro-preview"
   ],
   "mistral": [
     "codestral-2508",
@@ -213,6 +213,8 @@
     "mistral-embed",
     "mistral-embed-2312",
     "mistral-large-2512",
+    "mistral-large-4",
+    "mistral-large-4-0",
     "mistral-large-latest",
     "mistral-medium",
     "mistral-medium-2604",
@@ -225,7 +227,6 @@
     "mistral-ocr-3",
     "mistral-ocr-3-0",
     "mistral-ocr-4",
-    "mistral-ocr-4-0",
     "mistral-ocr-4-1",
     "mistral-ocr-latest",
     "mistral-small-2603",
@@ -259,5 +260,21 @@
     "eleven_v3_conversational",
     "eleven_v4",
     "eleven_v4_turbo"
+  ],
+  "anthropic": [
+    "claude-fable-5",
+    "claude-fable-5-1",
+    "claude-haiku-4-5-20251001",
+    "claude-haiku-5-5",
+    "claude-opus-4-5-20251101",
+    "claude-opus-4-6",
+    "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-opus-5",
+    "claude-opus-5-5",
+    "claude-sonnet-4-5-20250929",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
+    "claude-sonnet-5-5"
   ]
 }

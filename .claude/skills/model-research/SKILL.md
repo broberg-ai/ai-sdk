@@ -1,6 +1,6 @@
 ---
 name: model-research
-description: Monthly model research (F067) — ask every provider we have a key for which models exist, diff against what ai-sdk prices and routes, refresh inventory.json, and file the report in cardmem Assets/Reports. Fired by buddy job 24cb5bbf (primary session, cb-2) on the 1st at 06:00 Danish time; can be run by hand any time.
+description: Model research every 14 days (F067) — ask every provider we have a key for which models exist, diff against what ai-sdk prices and routes, refresh inventory.json, and file the report in cardmem Assets/Reports. Fired by buddy job 24cb5bbf (primary session, cb-2) every 14 days at 06:00 Danish time (monthly until 16 Oct 2026); can be run by hand any time.
 ---
 
 # /model-research
@@ -60,7 +60,7 @@ against it; leave it out and a move of `mistral-large-latest` (the `smart` and
 `powerful` tiers) goes unreported.
 
 - `unchanged` → commit only the `checkedAt` stamp: `chore(inventory): verified, no changes`.
-- `changed` → commit it: `chore(inventory): monthly model-research refresh (<date>)`,
+- `changed` → commit it: `chore(inventory): model-research refresh (<date>)`,
   and add one line to the report saying the inventory moved.
 
 Push to main. This is the advisor's data, not a price: `src/cost/pricing.ts` is NEVER
