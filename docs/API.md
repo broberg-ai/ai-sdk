@@ -262,7 +262,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` (chat prompt-contract, free-form `to`/`from` e.g. "Danish"); or **DeepL EU** dedicated MT via `override:{provider:"deepl"}` (F032) — `to`/`from` must be DeepL codes ("DA", not "Danish") |
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
-| `ai.animate` | `{ image: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override; **Vertex EU** (europe-west1) via `override:{provider:"vertex"}` (F031, needs a GCP service-account) |
+| `ai.animate` | `{ image?: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override; **Vertex EU** (europe-west1) via `override:{provider:"vertex"}` (F031, needs a GCP service-account); **EU image→video AND text→video (no `image`) with sound** via `override:{provider:"bfl", model:"flux-3-video"}` (F079, v0.64+, $0.15/s at hd — measured 2026-10-20) |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1; EU: Voxtral (mistral, auto-detect) or **Azure da-DK** via `override:{provider:"azure"}` (F029) |
@@ -437,6 +437,54 @@ const { url, bytes, mimeType, usage } = await ai.animate({
 - **Governance (F024)** — US-hosted: consent-gated. Generate a person's likeness only with their sign-off; other figures in the clip are fictional. EU-preferred when a managed route exists (deferred — none verified today).
 - **Audio default** — every `ai.animate` prompt is appended with a directive: **no generated speech** (it's the weak link, esp. non-English), but **ambient sounds matched to the scene** (Veo 3.1 generates audio by default; this steers it to environment sound, not dialogue). Just describe the scene; the SDK adds the audio guidance.
 - **Verified live** — bytesBase64Encoded image field + numeric `durationSeconds` (Google's own docs were wrong on both; the live smoke caught them).
+
+### EU video, from text or an image — FLUX 3 Video on BFL (F079, v0.64+)
+
+**Measured 2026-10-20:** the one route in this SDK that makes video **in the EU**, and
+the only one that makes it **from text alone**. Black Forest Labs' EU endpoint
+(`api.eu.bfl.ai`, the same `BFL_API_KEY` as the EU image route). Opt-in via override —
+the `animate` default is unchanged.
+
+```ts
+// text → video (no image)
+const t = await ai.animate({
+  prompt: "a physiotherapist rolls out an exercise mat in morning light, slow dolly shot",
+  durationSec: 5,          // 5–20 s
+  resolution: "hd",        // hd | fhd | qhd | uhd  (also 720p / 1080p / 1440p / 2160p / 4k)
+  allowFloating: true,     // BFL serves only "latest" — see below
+  override: { provider: "bfl", model: "flux-3-video" },
+});
+// image → video (the image becomes the first frame)
+const i = await ai.animate({ image: readFileSync("still.jpg"), prompt: "she nods and smiles",
+  override: { provider: "bfl", model: "flux-3-video" } });
+// t.bytes = the mp4 (downloaded for you), t.usage.region === "eu"
+```
+
+- **Prompting** — BFL's guide (docs.bfl.ai/guides/prompting_video_overview) names five
+  parts: subject + action, camera direction (static, slow push-in, handheld follow…),
+  scene + atmosphere, motion quality (pace/feel), and what must stay stable. For
+  image→video the image is the first frame, so describe the MOTION, not the picture.
+  Text→video (docs.bfl.ai/guides/prompting_video_text_to_video): one sentence as
+  `[camera] shot of [subject] [action] in [environment]. [details]`, style and light
+  last; two or three beats per 5 s; timed phases (`0.0–1.5s — …`) when timing matters;
+  concrete nouns and verbs over adjectives; don't over-stuff.
+- **Sound in the prompt** — BFL's audio guide: name the sound sources you WANT
+  (footsteps, rain, traffic) rather than asking for silence; their own exclusions read
+  "no other speech, no voiceover, no music, no on-screen text". The SDK's no-speech
+  directive is in that form.
+- **Cost** — BFL reports the settled price and the SDK books it (`costBasis: "reported"`).
+  Measured: a 5 s `hd` clip = 75 credits = **$0.75** ($0.15/s), both text→video and
+  image→video. Higher resolutions cost more and are **not measured yet**.
+- **Time** — 50–95 s for a 5 s `hd` clip (measured, three clips).
+- **Sound** — clips come WITH an audio track. The SDK's animate rule (ambient sound, no
+  speech) is added to the prompt as on every audio-capable route.
+- **Floating** — BFL publishes only a moving `latest` version (no dated tag yet), so the
+  call gets `usage.floating = true` and one warning; `allowFloating: true` silences it and
+  `strictPinning` refuses it. This will change when BFL publishes dated versions.
+- **Residency** — every API call goes to `api.eu.bfl.ai`; the result is fetched only from
+  an `eu<n>.bfl.ai` host and refused otherwise. Do not add a non-EU fallback on a PII path.
+- **Without an image on another route** — gemini (the default), fal and vertex refuse up
+  front and name this route.
 
 ### Podcast & speech — `ai.podcast` / `ai.tts` (F020)
 
