@@ -8,7 +8,7 @@ import { streamTransport } from "../transport/stream.js";
 import { toProviderTools, fromProviderToolCall } from "./tools.js";
 import { freshUsage } from "../cost/usage.js";
 import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
-import { toInlineImage } from "./media.js";
+import { toInlineImage, requireAnimateImage } from "./media.js";
 import type {
   ProviderAdapter,
   ChatRequest,
@@ -295,7 +295,7 @@ export function geminiAdapter(
     const deadline = Date.now() + (config.videoTimeoutMs ?? 300000);
 
     // Input image → inline base64 + mime (URL is fetched to bytes first).
-    const { data, mimeType } = await toInlineImage(req.image, fetchImpl);
+    const { data, mimeType } = await toInlineImage(requireAnimateImage("gemini", req.image), fetchImpl);
     const parameters: Record<string, unknown> = {};
     // durationSeconds must be a NUMBER (the API rejects a string, despite some docs).
     if (req.durationSec !== undefined) parameters.durationSeconds = req.durationSec;

@@ -30,3 +30,15 @@ export function sniffMime(b: Uint8Array): string {
   if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57) return "image/webp";
   return "image/jpeg";
 }
+
+/** F079.2 — ai.animate without an image is text→video, and only FLUX 3 Video on BFL's
+ *  EU endpoint does that in this SDK today. Every image→video adapter calls this first,
+ *  so the error names the route that CAN instead of failing deep inside a request. */
+export function requireAnimateImage(provider: string, image: string | Uint8Array | undefined): string | Uint8Array {
+  if (image === undefined || (typeof image === "string" && image.trim() === "") || (typeof image !== "string" && image.length === 0)) {
+    throw new Error(
+      `${provider} animate: needs an image (image→video). For text→video use override:{ provider:"bfl", model:"flux-3-video" }.`,
+    );
+  }
+  return image;
+}

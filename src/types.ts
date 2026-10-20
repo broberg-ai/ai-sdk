@@ -327,8 +327,9 @@ export interface ImageResult {
 export interface AnimateRequest {
   /** Input image: a URL (passed through) or raw bytes. Where bytes are uploaded is
    *  the ADAPTER's business — fal uses fal storage, the Gemini/Veo default inlines
-   *  them — so do not read a storage provider out of this field. */
-  image: string | Uint8Array;
+   *  them — so do not read a storage provider out of this field. Omit it for
+   *  text→video (F079.2) — only bfl/flux-3-video supports that. */
+  image?: string | Uint8Array;
   /** Motion/scene prompt, e.g. "the subject turns and smiles". */
   prompt?: string;
   /** Clip length in seconds (provider-dependent; Veo ≤ 8s). */

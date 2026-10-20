@@ -6,6 +6,7 @@
 import { deflateRawSync, crc32 } from "node:zlib";
 import { freshUsage } from "../cost/usage.js";
 import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
+import { requireAnimateImage } from "./media.js";
 import type {
   ProviderAdapter,
   ImageRequest,
@@ -119,15 +120,16 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
 
   async function animate(req: AnimateRequest): Promise<AnimateResult> {
     const apiKey = resolveKey();
+    const image = requireAnimateImage("fal", req.image);
     if (!apiKey) throw new Error("fal adapter: API key not set (env FAL_KEY or FAL_API_KEY)");
     const headers = authHeaders(apiKey);
 
     // Input image: a URL passes through; raw bytes are uploaded to fal storage
     // (fal needs a fetchable URL, not a data: URI — same gotcha as trainStyle).
     const imageUrl =
-      typeof req.image === "string" && /^https?:\/\//i.test(req.image)
-        ? req.image
-        : await uploadToFalStorage(toBytes(req.image), sniffImageType(req.image), "input", apiKey);
+      typeof image === "string" && /^https?:\/\//i.test(image)
+        ? image
+        : await uploadToFalStorage(toBytes(image), sniffImageType(image), "input", apiKey);
 
     const body: Record<string, unknown> = { image_url: imageUrl };
     if (req.prompt !== undefined) body.prompt = req.prompt;

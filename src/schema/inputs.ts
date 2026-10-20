@@ -195,8 +195,9 @@ export const imageInputSchema = z.object({
 // Image-to-video (F024) — animate a still into a short clip via a pluggable provider.
 export const animateInputSchema = z.object({
   /** Input image: a URL or raw bytes. Where bytes are uploaded is the ADAPTER's
-   *  business — fal uses fal storage, the Gemini/Veo default inlines them. */
-  image: z.union([z.string(), z.instanceof(Uint8Array)]),
+   *  business — fal uses fal storage, the Gemini/Veo default inlines them.
+   *  Omit for text→video (F079.2): only bfl/flux-3-video supports it. */
+  image: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
   /** Motion/scene prompt. */
   prompt: z.string().optional(),
   /** Clip length in seconds (provider-dependent; Veo ≤ 8s). */

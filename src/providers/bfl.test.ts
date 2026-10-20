@@ -301,3 +301,34 @@ test("flux-3-video floats (BFL serves only `latest`): usage.floating, and strict
   const ok = await mk(true).animate({ image: "u", prompt: "x", allowFloating: true, override: { provider: "bfl", model: "flux-3-video" } });
   expect(ok.usage.floating).toBeUndefined();
 });
+
+// ── F079.2 — text→video: ai.animate without an image ─────────────────────────────
+
+test("ai.animate({ prompt, override:{bfl, flux-3-video} }) without an image sends mode t2v and no keyframes", async () => {
+  const { createAI } = await import("../client.js");
+  let body: Record<string, unknown> = {};
+  const ai = createAI({
+    costSink: null,
+    providers: { bfl: bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls: [], body: (b) => (body = b) }) }) },
+  });
+  const r = await ai.animate({ prompt: "a fox runs through snow", allowFloating: true, override: { provider: "bfl", model: "flux-3-video" } });
+  expect(body.mode).toBe("t2v");
+  expect(body.keyframes).toBeUndefined();
+  expect(r.usage.region).toBe("eu");
+});
+
+test("image→video-only routes refuse a missing image and name the text→video route", async () => {
+  const { createAI } = await import("../client.js");
+  const { geminiAdapter } = await import("./gemini.js");
+  const { falAdapter } = await import("./fal.js");
+  const { vertexAdapter } = await import("./vertex.js");
+  const noFetch = (async () => { throw new Error("must not be called"); }) as unknown as typeof fetch;
+  const msg = (p: string) => `${p} animate: needs an image (image→video). For text→video use override:{ provider:"bfl", model:"flux-3-video" }.`;
+  const ai = createAI({ costSink: null, providers: { gemini: geminiAdapter({ apiKey: "k", fetch: noFetch }) } });
+  const seen = await ai.animate({ prompt: "x" }).then(() => "resolved", (e: Error) => e.message);
+  expect(seen).toBe(msg("gemini")); // the default animate route
+  for (const [name, adapter] of [["fal", falAdapter({ apiKey: "k", fetch: noFetch })], ["vertex", vertexAdapter({ fetch: noFetch } as never)]] as const) {
+    const m = await adapter.animate!({ prompt: "x", spec: { provider: name, model: "m", transport: "http" } }).then(() => "resolved", (e: Error) => e.message);
+    expect({ name, m }).toEqual({ name, m: msg(name) });
+  }
+});

@@ -11,7 +11,7 @@
 // than silently mis-parsing.
 import { createSign } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { toInlineImage } from "./media.js";
+import { toInlineImage, requireAnimateImage } from "./media.js";
 import { partsFrom, type GeminiPart, splitCached } from "./gemini.js";
 import { freshUsage, computeCost } from "../cost/usage.js";
 import { getMediaPrice, DEFAULT_CLIP_SEC } from "../cost/media-pricing.js";
@@ -146,6 +146,7 @@ export function vertexAdapter(
   }
 
   async function animate(req: AnimateRequest): Promise<AnimateResult> {
+    const image = requireAnimateImage("vertex", req.image); // before auth: a missing image is not a credentials problem
     const token = await accessToken();
     const proj = project();
     const reg = region();
@@ -153,7 +154,7 @@ export function vertexAdapter(
     const deadline = Date.now() + (config.videoTimeoutMs ?? 300000);
     const baseUrl = `https://${reg}-aiplatform.googleapis.com/v1`;
 
-    const { data, mimeType } = await toInlineImage(req.image, fetchImpl);
+    const { data, mimeType } = await toInlineImage(image, fetchImpl);
     const parameters: Record<string, unknown> = {};
     if (req.durationSec !== undefined) parameters.durationSeconds = req.durationSec;
     if (req.resolution !== undefined) parameters.resolution = req.resolution;
