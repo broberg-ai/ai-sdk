@@ -91,6 +91,16 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "fal:fal-ai/flux-pro": { unit: "per_image", usd: 0.05, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
   "fal:fal-ai/flux-pro/v1.1": { unit: "per_image", usd: 0.04, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "fal.ai pricing — estimate, billed by megapixel" },
 
+  // F079 — FLUX 3 Video on api.eu.bfl.ai. Fallback only: BFL reports the settled cost
+  // in get_result. MEASURED 20/10 2026: a 5 s hd i2v clip settled at 75 credits = $0.75.
+  // Higher resolutions (fhd/qhd/uhd) are not measured and cost more.
+  "bfl:flux-3-video": {
+    unit: "per_sec",
+    usd: 0.15,
+    checkedAt: MEDIA_PRICING_CHECKED_AT,
+    source: "measured 2026-10-20: get_result cost 75 credits for a 5 s hd clip (hd only)",
+  },
+
   // BFL — the fallback only. BFL RETURNS the real billed cost in credits, so a
   // normal call is `costBasis: "reported"` and never reads this row.
   "bfl:flux-pro-1.1-ultra-finetuned": {

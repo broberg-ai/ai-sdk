@@ -210,3 +210,94 @@ test("the finetuned model without a finetune id still refuses, and names the flu
   const adapter = bflAdapter({ apiKey: "k", fetch: scriptedFetch({ calls: [] }) });
   await expect(adapter.image!({ prompt: "x", spec })).rejects.toThrow(/flux-2-pro/);
 });
+
+// ── F079.1 — FLUX 3 Video, image→video on the EU endpoint ──────────────────────
+
+const videoSpec = { provider: "bfl", model: "flux-3-video", transport: "http" as const };
+
+/** Submit (cost null, as measured), poll Pending→Reasoning→Generating→Ready with the
+ *  settled cost, then the mp4 download. Shapes measured live 20/10 2026. */
+function videoFetch(opts: { calls: string[]; body?: (b: Record<string, unknown>) => void; sample?: string; cost?: number | null }) {
+  const statuses = ["Pending", "Reasoning", "Generating", "Ready"];
+  let polls = 0;
+  return (async (url: string, init?: RequestInit) => {
+    opts.calls.push(url);
+    const json = (p: unknown) => new Response(JSON.stringify(p), { status: 200, headers: { "content-type": "application/json" } });
+    if (url.includes("/v1/flux-3-video")) {
+      opts.body?.(JSON.parse(String(init?.body)));
+      return json({ id: "vid-1", polling_url: "https://api.eu2.bfl.ai/v1/get_result?id=vid-1", cost: null });
+    }
+    if (url.includes("/v1/get_result")) {
+      const status = statuses[Math.min(polls++, statuses.length - 1)];
+      return json(
+        status === "Ready"
+          ? { status, cost: opts.cost === undefined ? 75 : opts.cost, result: { sample: opts.sample ?? "https://delivery.eu2.bfl.ai/durable/x/video.mp4?se=1" } }
+          : { status, cost: null, result: null },
+      );
+    }
+    if (url.includes("video.mp4")) return new Response(new Uint8Array([0, 0, 0, 24, 102, 116]), { status: 200, headers: { "content-type": "video/mp4" } });
+    throw new Error(`unexpected fetch ${url}`);
+  }) as unknown as typeof fetch;
+}
+
+test("ai.animate({ image, override:{bfl, flux-3-video} }) → i2v on api.eu.bfl.ai, bytes back, region eu, reported cost", async () => {
+  const { createAI } = await import("../client.js");
+  const calls: string[] = [];
+  let body: Record<string, unknown> = {};
+  const ai = createAI({
+    costSink: null,
+    providers: { bfl: bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls, body: (b) => (body = b) }) }) },
+  });
+  const r = await ai.animate({
+    image: new Uint8Array([1, 2, 3]),
+    prompt: "they laugh",
+    durationSec: 5,
+    resolution: "720p",
+    override: { provider: "bfl", model: "flux-3-video" },
+  });
+  expect(body.mode).toBe("i2v");
+  expect(body.keyframes).toEqual([Buffer.from([1, 2, 3]).toString("base64")]);
+  expect(body.duration).toBe(5);
+  expect(body.resolution).toBe("hd");
+  expect(body.generate_audio).toBeUndefined(); // BFL default (true); the prompt directive says "no speech"
+  expect(String(body.prompt).startsWith("they laugh")).toBe(true);
+  expect(Array.from(r.bytes!)).toEqual([0, 0, 0, 24, 102, 116]);
+  expect(r.mimeType).toBe("video/mp4");
+  expect(r.usage).toMatchObject({ provider: "bfl", model: "flux-3-video", region: "eu", capability: "animate", costUsd: 0.75, costBasis: "reported" });
+  // every API call stayed on the EU API host; only the download went to the EU delivery host
+  expect(calls.filter((u) => !u.includes("video.mp4")).every((u) => u.startsWith("https://api.eu.bfl.ai/"))).toBe(true);
+});
+
+test("a result URL on a non-EU host is refused, never fetched", async () => {
+  const calls: string[] = [];
+  const adapter = bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls, sample: "https://delivery.bfl.ai/x/video.mp4" }) });
+  await expect(adapter.animate!({ image: "https://example.com/a.jpg", prompt: "x", spec: videoSpec })).rejects.toThrow(
+    "bfl animate: result URL is not on an EU host (delivery.bfl.ai) — refusing to fetch it",
+  );
+  expect(calls.some((u) => u.includes("video.mp4"))).toBe(false);
+});
+
+test("no settled cost → the measured hd per-second fallback, marked estimated", async () => {
+  const adapter = bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls: [], cost: null }) });
+  const r = await adapter.animate!({ image: "https://example.com/a.jpg", prompt: "x", durationSec: 6, spec: videoSpec });
+  expect(r.usage.costUsd).toBeCloseTo(0.9, 9); // 6 s × $0.15
+  expect(r.usage.costBasis).toBe("estimated");
+});
+
+test("FLUX 3 Video input guards: prompt required, 5–20 s, known resolution", async () => {
+  const adapter = bflAdapter({ apiKey: "k", fetch: videoFetch({ calls: [] }) });
+  await expect(adapter.animate!({ image: "u", spec: videoSpec })).rejects.toThrow("requires a prompt");
+  await expect(adapter.animate!({ image: "u", prompt: "x", durationSec: 3, spec: videoSpec })).rejects.toThrow("durationSec must be 5–20");
+  await expect(adapter.animate!({ image: "u", prompt: "x", resolution: "8k", spec: videoSpec })).rejects.toThrow('unknown resolution "8k"');
+});
+
+test("flux-3-video floats (BFL serves only `latest`): usage.floating, and strictPinning refuses it", async () => {
+  const { createAI } = await import("../client.js");
+  const mk = (strictPinning?: boolean) =>
+    createAI({ costSink: null, strictPinning, providers: { bfl: bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls: [] }) }) } });
+  const r = await mk().animate({ image: "u", prompt: "x", override: { provider: "bfl", model: "flux-3-video" } });
+  expect(r.usage.floating).toBe(true);
+  await expect(mk(true).animate({ image: "u", prompt: "x", override: { provider: "bfl", model: "flux-3-video" } })).rejects.toThrow("floats");
+  const ok = await mk(true).animate({ image: "u", prompt: "x", allowFloating: true, override: { provider: "bfl", model: "flux-3-video" } });
+  expect(ok.usage.floating).toBeUndefined();
+});

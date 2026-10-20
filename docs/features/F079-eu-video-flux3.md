@@ -9,6 +9,13 @@
 2. **Version-pin.** BFL's `version` defaulter til `latest` (flydende). Flådereglen (D-385d97, 0.56.0) er daterede id'er. Findes der en dateret tag? Hvis ikke: send intet `version`, markér ruten `floating` og kræv `allowFloating` — samme kontrakt som `-latest`.
 3. **API-form for tekst→video.** `ai.animate` tager i dag et påkrævet `image`. Forslag: gør `image` valgfri; uden billede → `mode:'t2v'`, med → `mode:'i2v'` (keyframes). Adaptere der kræver billede (fal, gemini, vertex) kaster en klar fejl. Alternativ: ny `ai.generateVideo`. Valg: den mindste ændring (valgfri `image`), medmindre testen viser at fejlbeskeden ikke kan gøres klar.
 
+## Svar på de åbne spørgsmål (F079.1, målt 20/10 2026)
+
+1. **Pris:** et 5 s `hd` billede→video-klip blev afregnet til **75 credits = $0.75** (get_result `cost`; submit svarer `cost: null` for video). Det giver $0.15/s ved hd. SDK'en bogfører BFL's afregnede cost (`costBasis: "reported"`); tabelrækken `bfl:flux-3-video` er kun reserven. fhd/qhd/uhd er ikke målt.
+2. **Version:** BFL's openapi.json har `version` som konstanten `"latest"` — der findes ingen dateret version endnu. Ruten står derfor i `LATEST_ONLY_ROUTES` (src/availability/registry.ts): kaldet får `usage.floating = true` + én advarsel, `strictPinning` afviser den, og `allowFloating: true` siger at man mener det. Fjern rækken den dag BFL udgiver daterede tags.
+3. **Lyd:** `generate_audio` lades på BFL's default (true). SDK'ens animate-regel er «baggrundslyd, ingen tale» og bæres af prompt-direktivet (F024/F045) — at slukke lyden ville bryde den regel. (Plan-teksten nedenfor sagde `false`; det var forkert.)
+4. **Statusser:** poll ser `Pending` → `Reasoning` → `Generating` → `Ready`. Klippet tog ~50 s. Polling- og leveringsværter er `api.eu2.bfl.ai` / `delivery.eu2.bfl.ai`; adapteren poller stadig `api.eu.bfl.ai` by id og afviser en resultat-URL der ikke er `eu<n>.bfl.ai`.
+
 ## Målt 20/10 2026 (api.eu.bfl.ai, tomme POST-kroppe → $0)
 
 | endpoint | svar |
@@ -33,6 +40,7 @@ FLUX 3 Video-felter (t2v/i2v): `prompt`, `mode`, `aspect_ratio` (auto), `duratio
 - **F079.2** — `ai.animate` uden `image` → tekst→video (kun på ruter der kan); klar fejl ellers.
 - **F079.3** — FLUX 3 Image + Klein på `ai.image({override:{provider:'bfl', model:'flux-3-image'|'flux-3-image-klein'}})`, priser målt.
 - **F079.4** — README/API.md + Discovery-note (dateret måling).
+- **F079.5** — model-research tjekker BFL's `openapi.json` for nye stier (BFL har intet nyhedsbrev, målt 20/10 2026), så en ny model/endpoint står i 14-dages-rapporten.
 
 **Non-goals:** default-ruten for `animate`/`image` ændres IKKE (EU er opt-in via override — ejeren har afvist stille default-skift); ingen OpenRouter-video (`/api/v1/videos`) — US/ukendt region; ingen v2v, draft_enhance, upscale eller video-edit i denne runde (næste F-nummer hvis efterspurgt).
 
@@ -46,7 +54,7 @@ await ai.animate({ image, prompt, override: { provider: "bfl", model: "flux-3-vi
 
 Adapteren: POST `/v1/flux-3-video` → `{id, polling_url}` → poll indtil `Ready` → download `result.sample` (kort-levet signeret URL → vi returnerer `bytes`). Polling-URL'en skal også være EU-vært; en ikke-EU polling-URL afvises (samme vagt som billedruten).
 
-`generate_audio`: SDK'ens animate-default er «ingen lyd» (F024, Christian). Vi sender `generate_audio:false` medmindre kalderen beder om lyd — én regel for alle animate-ruter.
+`generate_audio`: se svar 3 ovenfor — BFL's default bevares, prompt-direktivet styrer «ingen tale».
 
 ## Reuse
 

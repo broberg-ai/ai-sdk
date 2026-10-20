@@ -26,7 +26,7 @@
 import { freshUsage } from "../cost/usage.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
 import type { Region } from "../cost/region.js";
-import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
+import type { ProviderAdapter, ImageRequest, ImageResult, AnimateRequest, AnimateResult } from "../types.js";
 
 const EU_BASE = "https://api.eu.bfl.ai";
 /** BFL bills in credits; 1 credit = $0.01 USD (official, bfl.ai/pricing). */
@@ -44,6 +44,8 @@ interface BflResultResponse {
   status?: string;
   result?: { sample?: string } | null;
   progress?: number | null;
+  /** F079 — settled cost in credits. Video reports it HERE (submit's `cost` is null). */
+  cost?: number | null;
 }
 
 export interface BflAdapterConfig {
@@ -55,6 +57,27 @@ export interface BflAdapterConfig {
   fetch?: typeof fetch;
   /** Override the per-image USD price (else the built-in finetuned-inference estimate). */
   pricePerImage?: number;
+  /** F079 — video generation is slower; measured 20/10 2026: a 5 s hd clip took ~50 s. */
+  videoTimeoutMs?: number;
+}
+
+/** F079 — ai.animate's resolution words → FLUX 3 Video's resolution classes. */
+const FLUX3_RESOLUTION: Record<string, string> = {
+  hd: "hd", "720p": "hd",
+  fhd: "fhd", "1080p": "fhd",
+  qhd: "qhd", "1440p": "qhd",
+  uhd: "uhd", "2160p": "uhd", "4k": "uhd",
+};
+
+/** F079 — a BFL result URL must stay on an EU host. Measured 20/10 2026: polling and
+ *  delivery come back on api.eu2.bfl.ai / delivery.eu2.bfl.ai, so "eu" plus an
+ *  optional digit, never the global api.bfl.ai / delivery.bfl.ai. */
+export function isBflEuHost(url: string): boolean {
+  try {
+    return /(^|\.)eu\d*\.bfl\.ai$/.test(new URL(url).host.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -191,8 +214,15 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
 
   /** Poll the EU get_result by id until Ready (or a terminal/moderated status). */
   async function poll(id: string, apiKey: string): Promise<string> {
+    return (await pollResult(id, apiKey, timeoutMs)).sample;
+  }
+
+  /** Like poll, but also returns the settled credit cost (F079: video reports it here).
+   *  Any status that is not terminal — "Pending", "Reasoning", "Generating" (all three
+   *  measured on one video, 20/10 2026) — keeps polling. */
+  async function pollResult(id: string, apiKey: string, limitMs: number): Promise<{ sample: string; cost?: number }> {
     const headers = { "x-key": apiKey };
-    const deadline = Date.now() + timeoutMs;
+    const deadline = Date.now() + limitMs;
     for (;;) {
       const res = await doFetch(`${base}/v1/get_result?id=${encodeURIComponent(id)}`, { headers });
       if (!res.ok) throw new Error(`bfl get_result ${res.status}`);
@@ -201,7 +231,7 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       if (status === "Ready") {
         const sample = data.result?.sample;
         if (!sample) throw new Error("bfl: status Ready but no result.sample url");
-        return sample;
+        return { sample, ...(typeof data.cost === "number" ? { cost: data.cost } : {}) };
       }
       if (status === "Error" || status === "Failed" || status === "Task not found") {
         throw new Error(`bfl: generation ${status}`);
@@ -209,10 +239,79 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       if (status.includes("Moderated")) {
         throw new Error(`bfl: ${status} — prompt or output flagged by BFL safety`);
       }
-      if (Date.now() >= deadline) throw new Error(`bfl: timed out after ${timeoutMs}ms`);
+      if (Date.now() >= deadline) throw new Error(`bfl: timed out after ${limitMs}ms`);
       await sleep(pollIntervalMs);
     }
   }
 
-  return { name: "bfl", image };
+
+  /** F079 — FLUX 3 Video on the EU endpoint. With an image: image→video (`i2v`, the
+   *  image is the first keyframe). Without: text→video (`t2v`). */
+  async function animate(req: AnimateRequest): Promise<AnimateResult> {
+    const apiKey = resolveKey();
+    if (!apiKey) throw new Error("bfl adapter: BFL_API_KEY not set");
+    const prompt = req.prompt?.trim();
+    if (!prompt) throw new Error("bfl animate: FLUX 3 Video requires a prompt (BFL rejects a video request without one)");
+
+    const body: Record<string, unknown> = { prompt, mode: req.image ? "i2v" : "t2v" };
+    if (req.image) body.keyframes = [toBflImage(req.image)];
+    if (req.durationSec !== undefined) {
+      const d = Math.round(req.durationSec);
+      if (d < 5 || d > 20) throw new Error(`bfl animate: durationSec must be 5–20 for FLUX 3 Video (got ${req.durationSec})`);
+      body.duration = d;
+    }
+    if (req.resolution !== undefined) {
+      const r = FLUX3_RESOLUTION[req.resolution.toLowerCase()];
+      if (!r) {
+        throw new Error(
+          `bfl animate: unknown resolution "${req.resolution}" — use one of ${Object.keys(FLUX3_RESOLUTION).join(", ")}`,
+        );
+      }
+      body.resolution = r;
+    }
+    // generate_audio is left at BFL's default (true): the SDK's animate contract is
+    // "ambient sound, no speech", carried by the prompt directive client.ts appends.
+
+    const submitRes = await doFetch(`${base}/v1/${req.spec.model}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-key": apiKey },
+      body: JSON.stringify(body),
+    });
+    if (!submitRes.ok) {
+      throw new Error(`bfl ${submitRes.status}: ${(await submitRes.text().catch(() => "")).slice(0, 200)}`);
+    }
+    const submit = (await submitRes.json()) as BflSubmitResponse;
+    if (!submit.id) throw new Error("bfl: no task id in submit response");
+
+    const { sample, cost } = await pollResult(submit.id, apiKey, config.videoTimeoutMs ?? 600000);
+    if (!isBflEuHost(sample)) {
+      throw new Error(`bfl animate: result URL is not on an EU host (${new URL(sample).host}) — refusing to fetch it`);
+    }
+    const videoRes = await doFetch(sample);
+    if (!videoRes.ok) throw new Error(`bfl animate: download ${videoRes.status}`);
+    const bytes = new Uint8Array(await videoRes.arrayBuffer());
+
+    const usage = freshUsage({
+      provider: "bfl",
+      model: req.spec.model,
+      region: bflRegion(base),
+      transport: "http",
+      capability: "animate",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    const credits = cost ?? (typeof submit.cost === "number" ? submit.cost : undefined);
+    if (credits !== undefined) {
+      usage.costUsd = credits * BFL_CREDIT_USD;
+      usage.costBasis = "reported";
+    } else {
+      // Fallback only: the hd per-second rate measured 20/10 2026, times the clip length
+      // we asked for (or BFL's 5 s minimum when we left it to "auto").
+      usage.costUsd = (getMediaPrice("bfl", req.spec.model)?.usd ?? 0) * (body.duration as number | undefined ?? 5);
+      usage.costBasis = "estimated";
+    }
+    return { url: sample, bytes, mimeType: videoRes.headers.get("content-type") ?? "video/mp4", usage };
+  }
+
+  return { name: "bfl", image, animate };
 }

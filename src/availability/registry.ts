@@ -29,6 +29,16 @@ export interface RegistryEntry {
  *  Derived, not hand-written, so a new -latest row cannot forget the flag. */
 export const isFloatingId = (id: string): boolean => /-latest$/.test(id);
 
+/** F079 — routes that float without saying so in the id: the provider serves only a
+ *  moving `latest` and has no dated version to pin. Measured 20/10 2026 on BFL's
+ *  openapi.json: FLUX 3 Video's `version` is the const "latest" ("dated pinnable
+ *  release tags are added here as they are published"). Remove a row when it can pin. */
+export const LATEST_ONLY_ROUTES: ReadonlySet<string> = new Set(["bfl:flux-3-video"]);
+
+/** Does this route float — a `-latest` id, or a provider that only serves latest? */
+export const isFloatingRoute = (provider: string, model: string): boolean =>
+  isFloatingId(model) || LATEST_ONLY_ROUTES.has(`${provider}:${model}`);
+
 const NO_OPENAI_SNAPSHOT = "no dated snapshot published (measured 2026-10-11) — the id may start pointing at a newer model";
 const SUSPENDED_FABLE_MYTHOS = "suspended — US export-control directive (2026-06-12)";
 

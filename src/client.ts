@@ -4,6 +4,7 @@
 import { search as webSearch } from "./search/index.js";
 import { assertOverrideProvider, resolveTier } from "./routing/tier-map.js";
 import { resolveModel } from "./availability/resolve.js";
+import { isFloatingRoute } from "./availability/registry.js";
 import { defaultProviders } from "./providers/registry.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
@@ -380,11 +381,11 @@ export function createAI(config: AiConfig = {}): AiClient {
    *  Returns whether the route floats, so the usage row can say so. */
   const warnedFloating = new Set<string>();
   function checkPinning(spec: TierSpec, allowFloating: boolean | undefined): boolean {
-    if (!spec.model?.endsWith("-latest") || allowFloating) return false;
+    if (!spec.model || !isFloatingRoute(spec.provider, spec.model) || allowFloating) return false;
     const key = `${spec.provider}:${spec.model}`;
     if (cfg.strictPinning) {
       throw new Error(
-        `createAI: "${key}" is a floating -latest alias and strictPinning is on. Use a dated id ` +
+        `createAI: "${key}" floats (a -latest alias, or a provider that only serves latest) and strictPinning is on. Use a dated id ` +
           `(describeTier() names the pinned ones) or pass allowFloating: true for this call.`,
       );
     }
