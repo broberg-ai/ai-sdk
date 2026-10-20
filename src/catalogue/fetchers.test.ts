@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { fetchOpenRouterCatalogue, fetchFullCatalogue } from "./fetchers.js";
+import { fetchOpenRouterInventory } from "./inventory.js";
 
 function jsonFetch(payload: unknown, status = 200): typeof fetch {
   return (async () =>
@@ -29,6 +30,16 @@ test("fetchOpenRouterCatalogue normalizes per-token USD strings → per-1M numbe
   });
   expect(models[0]!.inputPer1M).toBeCloseTo(0.3, 9);
   expect(models[0]!.outputPer1M).toBeCloseTo(2.5, 9);
+});
+
+test("per-token → per-1M is exact, not floating-point noise (1e-7 → 0.1, not 0.09999…)", async () => {
+  // claude-haiku-5.5 landed in inventory.json as 0.09999999999999999 on 2026-10-17 and
+  // the price-contradiction guard read it as a different price from the curated 0.1.
+  const payload = { data: [{ id: "anthropic/claude-haiku-5.5", pricing: { prompt: "0.0000001", completion: "0.0000005" } }] };
+  const [cat] = await fetchOpenRouterCatalogue({ fetch: jsonFetch(payload) });
+  expect([cat!.inputPer1M, cat!.outputPer1M]).toEqual([0.1, 0.5]);
+  const [inv] = await fetchOpenRouterInventory({ fetch: jsonFetch(payload) });
+  expect(inv!.pricing).toMatchObject({ input: 0.1, output: 0.5 });
 });
 
 test("fetchOpenRouterCatalogue omits price when the field is absent", async () => {

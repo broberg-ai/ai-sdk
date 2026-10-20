@@ -1,8 +1,74 @@
 {
-  "generatedAt": "2026-10-17T04:02:04.987Z",
-  "checkedAt": "2026-10-17T04:02:04.987Z",
-  "modelCount": 469,
+  "generatedAt": "2026-10-20T11:06:01.218Z",
+  "checkedAt": "2026-10-20T11:06:01.218Z",
+  "modelCount": 470,
   "models": [
+    {
+      "provider": "minimax",
+      "model": "minimax/minimax-m3.1-flash:free",
+      "name": "MiniMax: MiniMax M3.1 Flash (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "MiniMax-M3.1-Flash is a multimodal model from MiniMax. Compared with M3, it delivers significant improvements across multiple benchmarks, particularly in complex agentic tasks, coding, and cybersecurity. It is built for complex,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek/deepseek-v4.1-flash-1017",
+      "name": "DeepSeek: DeepSeek V4.1 Flash 1017",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.15,
+        "output": 0.6,
+        "cacheReadPer1M": 0.003
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "DeepSeek V4.1 Flash 1017 is the October 17, 2026 snapshot of DeepSeek V4.1 Flash, served by DeepSeek under the `deepseek-flash` API model name. V4.1 Flash is a sparse mixture-of-experts model...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
     {
       "provider": "elorian",
       "model": "elorian/glimpse",
@@ -69,9 +135,9 @@
       "name": "Reflection: Beam 1.0 501B A23B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1,
-        "output": 3,
-        "cacheReadPer1M": 0.09999999999999999
+        "input": 0.3,
+        "output": 1,
+        "cacheReadPer1M": 0.04
       },
       "inputModalities": [
         "text"
@@ -89,6 +155,35 @@
         "edge"
       ],
       "description": "Beam 1.0 is Reflection's open-weight reasoning model for coding and long-horizon agentic workflows. It uses a sparse mixture-of-experts architecture with 501B total and 23B active parameters per token, and a...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "inception",
+      "model": "inception/mercury-3",
+      "name": "Inception: Mercury 3",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.1,
+        "output": 0.35,
+        "cacheReadPer1M": 0.01
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Mercury 3 is a diffusion-based language model from Inception, and the lab's most capable model to date. It is suited for agentic workflows and real-time applications where latency compounds, such...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -193,9 +288,9 @@
       "name": "NVIDIA: Nemotron 3.5 Super VL",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.39999999999999997,
-        "cacheReadPer1M": 0.08
+        "input": 0.15,
+        "output": 0.5,
+        "cacheReadPer1M": 0.02
       },
       "inputModalities": [
         "text",
@@ -251,14 +346,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "~unbiased",
-      "model": "~unbiased/pareto-latest",
-      "name": "Pareto Latest",
+      "provider": "unbiased",
+      "model": "unbiased/pareto-26.10",
+      "name": "Pareto 26.10",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 2.5,
-        "output": 7.5,
-        "cacheReadPer1M": 0.25
+        "input": 0.8,
+        "output": 3.2,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text",
@@ -267,9 +362,40 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 262144,
+      "contextLength": 1048576,
       "supportsTools": true,
-      "supportsStructuredOutput": true,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Pareto is a multimodal composite model built for research, coding, and agentic workflows, while delivering frontier-level performance across a broad range of general-purpose tasks.",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "~unbiased",
+      "model": "~unbiased/pareto-latest",
+      "name": "Pareto Latest",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.8,
+        "output": 3.2,
+        "cacheReadPer1M": 0.03
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": false,
       "categories": [],
       "goodFor": [
         "vision",
@@ -318,9 +444,9 @@
       "name": "LiquidAI: LFM2.5-24B-A2B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.7,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text"
@@ -349,7 +475,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "audio",
@@ -386,7 +512,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "audio",
@@ -483,7 +609,7 @@
         "unit": "per_1m_tokens",
         "input": 4,
         "output": 20,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -518,7 +644,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 2.7,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -548,7 +674,7 @@
       "name": "Anthropic: Claude Haiku 5.5",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.5,
         "cacheReadPer1M": 0.01
       },
@@ -582,7 +708,7 @@
       "name": "Anthropic: Claude Haiku 5.5 (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.25,
         "cacheReadPer1M": 0.005
       },
@@ -649,7 +775,7 @@
       "name": "Mistral: Mistral Large 4",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6799999999999999,
+        "input": 0.68,
         "output": 2.09,
         "cacheReadPer1M": 0.07
       },
@@ -682,7 +808,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.075,
-        "output": 0.22499999999999998,
+        "output": 0.225,
         "cacheReadPer1M": 0.015
       },
       "inputModalities": [
@@ -714,7 +840,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -747,7 +873,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "file",
@@ -780,7 +906,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -812,7 +938,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "file",
@@ -844,7 +970,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -877,7 +1003,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -1126,8 +1252,8 @@
       "name": "Upstage: Solar Mini 4",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.19999999999999998,
+        "input": 0.05,
+        "output": 0.2,
         "cacheReadPer1M": 0.005
       },
       "inputModalities": [
@@ -1188,7 +1314,7 @@
       "name": "OpenAI: GPT-6 Luna Pro",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.5,
         "cacheReadPer1M": 0.01
       },
@@ -1221,7 +1347,7 @@
       "name": "OpenAI: GPT-6 Luna Pro (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.25,
         "cacheReadPer1M": 0.005
       },
@@ -1254,7 +1380,7 @@
       "name": "OpenAI: GPT-6 Luna",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.5,
         "cacheReadPer1M": 0.01
       },
@@ -1286,7 +1412,7 @@
       "name": "OpenAI: GPT-6 Luna (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.25,
         "cacheReadPer1M": 0.005
       },
@@ -1320,7 +1446,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -1353,7 +1479,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -1386,7 +1512,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -1418,7 +1544,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -1450,7 +1576,7 @@
         "unit": "per_1m_tokens",
         "input": 4,
         "output": 20,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -1484,7 +1610,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -1779,9 +1905,9 @@
       "name": "DeepSeek: DeepSeek Pro Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.24947999999999998,
-        "output": 0.7484400000000001,
-        "cacheReadPer1M": 0.007937999999999999
+        "input": 0.225,
+        "output": 8,
+        "cacheReadPer1M": 0.23
       },
       "inputModalities": [
         "text"
@@ -1809,9 +1935,9 @@
       "name": "DeepSeek: DeepSeek Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.04,
-        "output": 0.7,
-        "cacheReadPer1M": 0.009
+        "input": 0.07,
+        "output": 0.5,
+        "cacheReadPer1M": 0.008
       },
       "inputModalities": [
         "text",
@@ -1869,9 +1995,9 @@
       "name": "Inference.net: Schematron V2 Small",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.22999999999999998,
-        "cacheReadPer1M": 0.049999999999999996
+        "input": 0.05,
+        "output": 0.23,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text"
@@ -1933,7 +2059,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -1965,7 +2091,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -1995,7 +2121,7 @@
       "name": "OpenAI: GPT Luna Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.5,
         "cacheReadPer1M": 0.01
       },
@@ -2126,9 +2252,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.04,
-        "output": 0.7,
-        "cacheReadPer1M": 0.009
+        "input": 0.056,
+        "output": 0.12,
+        "cacheReadPer1M": 0.0016
       },
       "inputModalities": [
         "text",
@@ -2159,7 +2285,7 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.15,
         "cacheReadPer1M": 0.004
       },
@@ -2221,8 +2347,8 @@
       "name": "Nex AGI: Nex-N2.5-Mini",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.024999999999999998,
-        "output": 0.09999999999999999,
+        "input": 0.025,
+        "output": 0.1,
         "cacheReadPer1M": 0.0025
       },
       "inputModalities": [
@@ -2371,7 +2497,7 @@
         "frontier"
       ],
       "description": "GPT-6 Astra Pro is the same underlying model as [GPT-6 Astra](https://openrouter.ai/openai/gpt-6-astra), served with `reasoning.mode` set to `pro` for higher-quality responses on complex tasks. **Cost note:** pro mode spends far more...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -2448,8 +2574,8 @@
       "name": "Meta: Muse Spark 1.3 Contributor",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.19999999999999998,
+        "input": 0.1,
+        "output": 0.2,
         "cacheReadPer1M": 0.002
       },
       "inputModalities": [
@@ -2514,7 +2640,7 @@
       "name": "Google: Gemini 3.8 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.8250000000000001,
+        "input": 0.825,
         "output": 4.125,
         "cacheReadPer1M": 0.0825
       },
@@ -2685,7 +2811,7 @@
         "unit": "per_1m_tokens",
         "input": 0.834,
         "output": 2.501,
-        "cacheReadPer1M": 0.041999999999999996
+        "cacheReadPer1M": 0.042
       },
       "inputModalities": [
         "text"
@@ -2712,9 +2838,9 @@
       "name": "Z.ai: GLM Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.055,
-        "output": 0.65,
-        "cacheReadPer1M": 0.02
+        "input": 0.037476,
+        "output": 0.16,
+        "cacheReadPer1M": 0.006
       },
       "inputModalities": [
         "text",
@@ -2780,9 +2906,9 @@
       "name": "Z.ai: GLM 5.3 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.5,
-        "cacheReadPer1M": 0.03
+        "input": 0.037476,
+        "output": 0.16,
+        "cacheReadPer1M": 0.006
       },
       "inputModalities": [
         "text",
@@ -2814,7 +2940,7 @@
       "name": "Z.ai: GLM 5.3 Flash (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.18,
         "cacheReadPer1M": 0.01
       },
@@ -2848,8 +2974,8 @@
       "name": "Meta: Muse Spark 1.2 Contributor",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.19999999999999998,
+        "input": 0.1,
+        "output": 0.2,
         "cacheReadPer1M": 0.002
       },
       "inputModalities": [
@@ -2881,7 +3007,7 @@
       "name": "DeepSeek: DeepSeek V4 Flash Vision Exp",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.21559999999999999,
+        "input": 0.2156,
         "output": 0.6468,
         "cacheReadPer1M": 0.00686
       },
@@ -2915,7 +3041,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.044,
-        "output": 0.17700000000000002
+        "output": 0.177
       },
       "inputModalities": [
         "text"
@@ -2973,7 +3099,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.079,
-        "output": 4.8,
+        "output": 1.4,
         "cacheReadPer1M": 0.078
       },
       "inputModalities": [
@@ -3028,7 +3154,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.079,
-        "output": 4.8,
+        "output": 1.4,
         "cacheReadPer1M": 0.078
       },
       "inputModalities": [
@@ -3056,9 +3182,9 @@
       "name": "Z.ai: GLM 5.3 (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.44999999999999996,
+        "input": 0.45,
         "output": 2,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text"
@@ -3085,9 +3211,9 @@
       "name": "Qwen: Qwen3.8 27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.24,
-        "output": 2.2,
-        "cacheReadPer1M": 0.049999999999999996
+        "input": 0.04,
+        "output": 1.35,
+        "cacheReadPer1M": 0.018
       },
       "inputModalities": [
         "text",
@@ -3314,7 +3440,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.66,
-        "output": 1.9800000000000002,
+        "output": 1.98,
         "cacheReadPer1M": 0.022
       },
       "inputModalities": [
@@ -3404,7 +3530,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.07,
-        "output": 0.19999999999999998,
+        "output": 0.2,
         "cacheReadPer1M": 0.04
       },
       "inputModalities": [
@@ -3492,9 +3618,9 @@
       "name": "Upstage: Solar Pro 4",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09,
-        "output": 0.36,
-        "cacheReadPer1M": 0.018
+        "input": 0.15,
+        "output": 0.6,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text"
@@ -3586,9 +3712,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.020999999999999998,
-        "output": 0.5279999999999999,
-        "cacheReadPer1M": 0.0056
+        "input": 0.00392,
+        "output": 0.12,
+        "cacheReadPer1M": 0.00336
       },
       "inputModalities": [
         "text"
@@ -3617,8 +3743,8 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0731",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.07,
-        "output": 0.14,
+        "input": 0.44,
+        "output": 1.32,
         "cacheReadPer1M": 0.014
       },
       "inputModalities": [
@@ -3648,9 +3774,9 @@
       "name": "Thinking Machines: Inkling Small",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.44999999999999996,
+        "input": 0.45,
         "output": 1.2,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -3821,9 +3947,9 @@
       "name": "inclusionAI: Ling 3.0 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.020999999999999998,
+        "input": 0.021,
         "output": 0.063,
-        "cacheReadPer1M": 0.004200000000000001
+        "cacheReadPer1M": 0.0042
       },
       "inputModalities": [
         "text"
@@ -4088,7 +4214,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 4.05,
-        "cacheReadPer1M": 0.16999999999999998
+        "cacheReadPer1M": 0.17
       },
       "inputModalities": [
         "text",
@@ -4186,7 +4312,7 @@
       "name": "MoonshotAI: Kimi K3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.30400000000000005,
+        "input": 0.239,
         "output": 11.936,
         "cacheReadPer1M": 0.21
       },
@@ -4218,8 +4344,8 @@
       "name": "MoonshotAI: Kimi K3 (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 2.2800000000000002,
-        "output": 11.399999999999999,
+        "input": 2.28,
+        "output": 11.4,
         "cacheReadPer1M": 0.228
       },
       "inputModalities": [
@@ -4283,7 +4409,7 @@
       "name": "OpenAI: GPT-5.6 Luna Pro",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1.2,
         "cacheReadPer1M": 0.02
       },
@@ -4316,7 +4442,7 @@
       "name": "OpenAI: GPT-5.6 Luna Pro (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.6,
         "cacheReadPer1M": 0.01
       },
@@ -4349,7 +4475,7 @@
       "name": "OpenAI: GPT-5.6 Luna",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1.2,
         "cacheReadPer1M": 0.02
       },
@@ -4382,7 +4508,7 @@
       "name": "OpenAI: GPT-5.6 Luna (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.6,
         "cacheReadPer1M": 0.01
       },
@@ -4417,7 +4543,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -4450,7 +4576,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 6,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -4483,7 +4609,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -4516,7 +4642,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 6,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "file",
@@ -4549,7 +4675,7 @@
         "unit": "per_1m_tokens",
         "input": 4,
         "output": 20,
-        "cacheReadPer1M": 0.39999999999999997
+        "cacheReadPer1M": 0.4
       },
       "inputModalities": [
         "file",
@@ -4582,7 +4708,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -4615,7 +4741,7 @@
         "unit": "per_1m_tokens",
         "input": 4,
         "output": 20,
-        "cacheReadPer1M": 0.39999999999999997
+        "cacheReadPer1M": 0.4
       },
       "inputModalities": [
         "file",
@@ -4648,7 +4774,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "file",
@@ -4803,9 +4929,9 @@
       "name": "Tencent: Hy3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.13199999999999998,
-        "output": 0.5279999999999999,
-        "cacheReadPer1M": 0.032999999999999995
+        "input": 0.132,
+        "output": 0.528,
+        "cacheReadPer1M": 0.033
       },
       "inputModalities": [
         "text"
@@ -4891,7 +5017,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -4924,7 +5050,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -5052,7 +5178,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "image",
@@ -5297,8 +5423,8 @@
       "name": "NVIDIA: Nemotron 3.5 Content Safety",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
-        "output": 0.19999999999999998
+        "input": 0.2,
+        "output": 0.2
       },
       "inputModalities": [
         "text",
@@ -5445,8 +5571,8 @@
       "name": "Qwen: Qwen3.7 Plus (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.22999999999999998,
-        "output": 0.9199999999999999
+        "input": 0.23,
+        "output": 0.92
       },
       "inputModalities": [
         "text",
@@ -5509,7 +5635,7 @@
       "name": "StepFun: Step 3.7 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1.15,
         "cacheReadPer1M": 0.04
       },
@@ -5643,7 +5769,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 2,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -5779,7 +5905,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 1.5,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -5816,7 +5942,7 @@
         "unit": "per_1m_tokens",
         "input": 0.125,
         "output": 0.75,
-        "cacheReadPer1M": 0.012499999999999999
+        "cacheReadPer1M": 0.0125
       },
       "inputModalities": [
         "text",
@@ -5885,7 +6011,7 @@
         "unit": "per_1m_tokens",
         "input": 1.25,
         "output": 2.5,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -6045,7 +6171,7 @@
       "name": "Anthropic: Claude Haiku Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.5,
         "cacheReadPer1M": 0.01
       },
@@ -6115,7 +6241,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "audio",
@@ -6151,9 +6277,9 @@
       "name": "MoonshotAI: Kimi Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.29400000000000004,
-        "output": 24,
-        "cacheReadPer1M": 0.284
+        "input": 0.238,
+        "output": 16,
+        "cacheReadPer1M": 0.228
       },
       "inputModalities": [
         "text",
@@ -6222,7 +6348,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 10,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -6254,7 +6380,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.3,
-        "output": 1.7999999999999998
+        "output": 1.8
       },
       "inputModalities": [
         "text",
@@ -6317,9 +6443,9 @@
       "name": "Qwen: Qwen3.6 35B A3B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 1,
-        "cacheReadPer1M": 0.049999999999999996
+        "input": 0.1,
+        "output": 0.95,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -6353,7 +6479,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 2,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -6513,9 +6639,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.20879999999999999,
-        "output": 0.41759999999999997,
-        "cacheReadPer1M": 0.0174
+        "input": 0.95526,
+        "output": 1.91052,
+        "cacheReadPer1M": 0.079605
       },
       "inputModalities": [
         "text"
@@ -6702,7 +6828,7 @@
         "unit": "per_1m_tokens",
         "input": 4,
         "output": 20,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -6889,9 +7015,9 @@
       "name": "Google: Gemma 4 26B A4B ",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0675,
-        "output": 0.22499999999999998,
-        "cacheReadPer1M": 0.0375
+        "input": 0.09,
+        "output": 0.3,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "image",
@@ -6952,8 +7078,8 @@
       "name": "Google: Gemma 4 31B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
-        "output": 0.39999999999999997
+        "input": 0.2,
+        "output": 0.4
       },
       "inputModalities": [
         "image",
@@ -7078,7 +7204,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.25,
-        "output": 0.7999999999999999,
+        "output": 0.8,
         "cacheReadPer1M": 0.06
       },
       "inputModalities": [
@@ -7110,7 +7236,7 @@
         "unit": "per_1m_tokens",
         "input": 1.25,
         "output": 2.5,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -7141,7 +7267,7 @@
         "unit": "per_1m_tokens",
         "input": 1.25,
         "output": 2.5,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -7232,8 +7358,8 @@
       "name": "Reka Edge",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.09999999999999999
+        "input": 0.1,
+        "output": 0.1
       },
       "inputModalities": [
         "image",
@@ -7294,7 +7420,7 @@
       "name": "OpenAI: GPT-5.4 Nano",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1.25,
         "cacheReadPer1M": 0.02
       },
@@ -7329,7 +7455,7 @@
       "name": "OpenAI: GPT-5.4 Nano (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.625,
         "cacheReadPer1M": 0.01
       },
@@ -7530,7 +7656,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.08,
-        "output": 0.44999999999999996
+        "output": 0.45
       },
       "inputModalities": [
         "text"
@@ -7618,7 +7744,7 @@
       "name": "Qwen: Qwen3.5-9B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.15
       },
       "inputModalities": [
@@ -7781,7 +7907,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 0.75,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text"
@@ -7810,7 +7936,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 1.5,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -7845,8 +7971,8 @@
       "name": "ByteDance Seed: Seed-2.0-Mini",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.39999999999999997
+        "input": 0.1,
+        "output": 0.4
       },
       "inputModalities": [
         "text",
@@ -7912,7 +8038,7 @@
         "unit": "per_1m_tokens",
         "input": 0.15,
         "output": 1,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -7944,8 +8070,9 @@
       "name": "Qwen: Qwen3.5-27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.26,
-        "output": 2.6
+        "input": 0.27,
+        "output": 2.16,
+        "cacheReadPer1M": 0.27
       },
       "inputModalities": [
         "text",
@@ -8041,7 +8168,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -8111,9 +8238,9 @@
       "name": "AionLabs: Aion-2.0",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.7999999999999999,
-        "output": 1.5999999999999999,
-        "cacheReadPer1M": 0.19999999999999998
+        "input": 0.8,
+        "output": 1.6,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text"
@@ -8142,7 +8269,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "audio",
@@ -8312,9 +8439,8 @@
       "name": "Qwen: Qwen3.5 397B A17B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.5,
-        "output": 3.5999999999999996,
-        "cacheReadPer1M": 0.3
+        "input": 0.39,
+        "output": 2.34
       },
       "inputModalities": [
         "text",
@@ -8375,9 +8501,9 @@
       "name": "Z.ai: GLM 5",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1,
-        "output": 3.1999999999999997,
-        "cacheReadPer1M": 0.19999999999999998
+        "input": 0.6,
+        "output": 1.92,
+        "cacheReadPer1M": 0.12
       },
       "inputModalities": [
         "text"
@@ -8473,7 +8599,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.12,
-        "output": 0.7999999999999999,
+        "output": 0.8,
         "cacheReadPer1M": 0.07
       },
       "inputModalities": [
@@ -8532,7 +8658,7 @@
       "name": "StepFun: Step 3.5 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.3
       },
       "inputModalities": [
@@ -8743,8 +8869,8 @@
       "name": "Z.ai: GLM 4.7 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.060500000000000005,
-        "output": 0.39999999999999997
+        "input": 0.0605,
+        "output": 0.4
       },
       "inputModalities": [
         "text"
@@ -8902,7 +9028,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.54,
-        "output": 1.9800000000000002,
+        "output": 1.98,
         "cacheReadPer1M": 0.099
       },
       "inputModalities": [
@@ -8932,7 +9058,7 @@
         "unit": "per_1m_tokens",
         "input": 0.5,
         "output": 3,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -9196,7 +9322,7 @@
       "name": "Mistral: Devstral 2 2512",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
+        "input": 0.4,
         "output": 2,
         "cacheReadPer1M": 0.04
       },
@@ -9256,7 +9382,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.3,
-        "output": 0.8999999999999999,
+        "output": 0.9,
         "cacheReadPer1M": 0.055
       },
       "inputModalities": [
@@ -9378,8 +9504,8 @@
       "name": "Mistral: Ministral 3 14B 2512",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
-        "output": 0.19999999999999998,
+        "input": 0.2,
+        "output": 0.2,
         "cacheReadPer1M": 0.02
       },
       "inputModalities": [
@@ -9477,8 +9603,8 @@
       "name": "Mistral: Ministral 3 3B 2512",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.09999999999999999,
+        "input": 0.1,
+        "output": 0.1,
         "cacheReadPer1M": 0.01
       },
       "inputModalities": [
@@ -9512,7 +9638,7 @@
         "unit": "per_1m_tokens",
         "input": 0.5,
         "output": 1.5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -9545,7 +9671,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 0.75,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -9675,7 +9801,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 12,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "image",
@@ -9932,7 +10058,7 @@
       "name": "Mistral: Voxtral Small 24B 2507",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.3,
         "cacheReadPer1M": 0.01
       },
@@ -10090,7 +10216,7 @@
         "unit": "per_1m_tokens",
         "input": 1,
         "output": 5,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -10124,7 +10250,7 @@
         "unit": "per_1m_tokens",
         "input": 0.5,
         "output": 2.5,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -10384,9 +10510,9 @@
       "name": "Z.ai: GLM 4.6",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.5,
-        "output": 2,
-        "cacheReadPer1M": 0.09999999999999999
+        "input": 0.55,
+        "output": 2.2,
+        "cacheReadPer1M": 0.11
       },
       "inputModalities": [
         "text"
@@ -10562,7 +10688,7 @@
         "unit": "per_1m_tokens",
         "input": 0.21,
         "output": 1.9,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text",
@@ -10797,7 +10923,7 @@
       "name": "Mistral: Mistral Medium 3.1",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
+        "input": 0.4,
         "output": 2,
         "cacheReadPer1M": 0.04
       },
@@ -10829,7 +10955,7 @@
       "name": "Mistral: Mistral Medium 3.1 (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1,
         "cacheReadPer1M": 0.02
       },
@@ -10862,7 +10988,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.6,
-        "output": 1.7999999999999998,
+        "output": 1.8,
         "cacheReadPer1M": 0.11
       },
       "inputModalities": [
@@ -10960,7 +11086,7 @@
         "unit": "per_1m_tokens",
         "input": 0.25,
         "output": 2,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -10995,7 +11121,7 @@
         "unit": "per_1m_tokens",
         "input": 0.125,
         "output": 1,
-        "cacheReadPer1M": 0.012499999999999999
+        "cacheReadPer1M": 0.0125
       },
       "inputModalities": [
         "text",
@@ -11028,8 +11154,8 @@
       "name": "OpenAI: GPT-5 Nano",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.39999999999999997,
+        "input": 0.05,
+        "output": 0.4,
         "cacheReadPer1M": 0.005
       },
       "inputModalities": [
@@ -11063,8 +11189,8 @@
       "name": "OpenAI: GPT-5 Nano (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.024999999999999998,
-        "output": 0.19999999999999998,
+        "input": 0.025,
+        "output": 0.2,
         "cacheReadPer1M": 0.0025
       },
       "inputModalities": [
@@ -11281,7 +11407,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.3,
-        "output": 0.8999999999999999,
+        "output": 0.9,
         "cacheReadPer1M": 0.03
       },
       "inputModalities": [
@@ -11312,7 +11438,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.15,
-        "output": 0.44999999999999996,
+        "output": 0.45,
         "cacheReadPer1M": 0.015
       },
       "inputModalities": [
@@ -11373,7 +11499,7 @@
       "name": "Qwen: Qwen3 30B A3B Instruct 2507",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.09,
         "output": 0.3
       },
       "inputModalities": [
@@ -11434,7 +11560,7 @@
         "unit": "per_1m_tokens",
         "input": 0.13,
         "output": 0.85,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text"
@@ -11461,7 +11587,7 @@
       "name": "Qwen: Qwen3 235B A22B Thinking 2507",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.44999999999999996,
+        "input": 0.45,
         "output": 3.5
       },
       "inputModalities": [
@@ -11492,7 +11618,7 @@
         "unit": "per_1m_tokens",
         "input": 0.3,
         "output": 1,
-        "cacheReadPer1M": 0.09999999999999999
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text"
@@ -11520,9 +11646,9 @@
       "name": "ByteDance: UI-TARS 7B ",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.19999999999999998,
-        "cacheReadPer1M": 0.09999999999999999
+        "input": 0.1,
+        "output": 0.2,
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "image",
@@ -11550,8 +11676,8 @@
       "name": "Google: Gemini 2.5 Flash Lite",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.39999999999999997,
+        "input": 0.1,
+        "output": 0.4,
         "cacheReadPer1M": 0.01
       },
       "inputModalities": [
@@ -11587,8 +11713,8 @@
       "name": "Google: Gemini 2.5 Flash Lite (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.19999999999999998,
+        "input": 0.05,
+        "output": 0.2,
         "cacheReadPer1M": 0.01
       },
       "inputModalities": [
@@ -11652,7 +11778,7 @@
       "name": "MoonshotAI: Kimi K2 0711",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.5700000000000001,
+        "input": 0.57,
         "output": 2.3
       },
       "inputModalities": [
@@ -11680,8 +11806,8 @@
       "name": "Venice: Uncensored",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
-        "output": 0.8999999999999999
+        "input": 0.2,
+        "output": 0.9
       },
       "inputModalities": [
         "text"
@@ -11707,7 +11833,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.14,
-        "output": 0.5700000000000001
+        "output": 0.57
       },
       "inputModalities": [
         "text"
@@ -11735,7 +11861,7 @@
       "name": "Morph: Morph V3 Large",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.8999999999999999,
+        "input": 0.9,
         "output": 1.9
       },
       "inputModalities": [
@@ -11763,7 +11889,7 @@
       "name": "Morph: Morph V3 Fast",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.7999999999999999,
+        "input": 0.8,
         "output": 1.2
       },
       "inputModalities": [
@@ -11772,9 +11898,9 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 81920,
+      "contextLength": 262144,
       "supportsTools": false,
-      "supportsStructuredOutput": false,
+      "supportsStructuredOutput": true,
       "categories": [],
       "goodFor": [],
       "description": "Morph's fastest apply model for code edits. ~10,500 tokens/sec with 96% accuracy for rapid code transformations. The model requires the prompt to be in the following format: <instruction>{instruction}</instruction> <code>{initial_code}</code> <update>{edit_snippet}</update>...",
@@ -12071,7 +12197,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.5,
-        "output": 2.1500000000000004,
+        "output": 2.15,
         "cacheReadPer1M": 0.35
       },
       "inputModalities": [
@@ -12100,7 +12226,7 @@
       "name": "Mistral: Mistral Medium 3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
+        "input": 0.4,
         "output": 2,
         "cacheReadPer1M": 0.04
       },
@@ -12478,9 +12604,9 @@
       "name": "OpenAI: GPT-4.1 Mini",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
-        "output": 1.5999999999999999,
-        "cacheReadPer1M": 0.09999999999999999
+        "input": 0.4,
+        "output": 1.6,
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "image",
@@ -12512,9 +12638,9 @@
       "name": "OpenAI: GPT-4.1 Mini (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
-        "output": 0.7999999999999999,
-        "cacheReadPer1M": 0.049999999999999996
+        "input": 0.2,
+        "output": 0.8,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "image",
@@ -12546,9 +12672,9 @@
       "name": "OpenAI: GPT-4.1 Nano",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.39999999999999997,
-        "cacheReadPer1M": 0.024999999999999998
+        "input": 0.1,
+        "output": 0.4,
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "image",
@@ -12580,9 +12706,9 @@
       "name": "OpenAI: GPT-4.1 Nano (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.19999999999999998,
-        "cacheReadPer1M": 0.012499999999999999
+        "input": 0.05,
+        "output": 0.2,
+        "cacheReadPer1M": 0.0125
       },
       "inputModalities": [
         "image",
@@ -12616,7 +12742,7 @@
         "unit": "per_1m_tokens",
         "input": 0.1875,
         "output": 0.6525,
-        "cacheReadPer1M": 0.049999999999999996
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text",
@@ -12625,7 +12751,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 524288,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -12645,7 +12771,7 @@
       "name": "Meta: Llama 4 Scout",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.3
       },
       "inputModalities": [
@@ -12676,7 +12802,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.29,
-        "output": 1.1400000000000001,
+        "output": 1.14,
         "cacheReadPer1M": 0.11
       },
       "inputModalities": [
@@ -12736,7 +12862,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.351,
-        "output": 0.5549999999999999
+        "output": 0.555
       },
       "inputModalities": [
         "text",
@@ -12767,8 +12893,9 @@
       "name": "Google: Gemma 3 4B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.09999999999999999
+        "input": 0.04,
+        "output": 0.05,
+        "cacheReadPer1M": 0.02
       },
       "inputModalities": [
         "text",
@@ -12796,7 +12923,7 @@
       "name": "Google: Gemma 3 12B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.15
       },
       "inputModalities": [
@@ -12852,8 +12979,8 @@
       "name": "Reka Flash 3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.19999999999999998
+        "input": 0.1,
+        "output": 0.2
       },
       "inputModalities": [
         "text"
@@ -12882,7 +13009,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.08,
-        "output": 0.44999999999999996,
+        "output": 0.35,
         "cacheReadPer1M": 0.04
       },
       "inputModalities": [
@@ -12913,7 +13040,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.55,
-        "output": 0.7999999999999999,
+        "output": 0.8,
         "cacheReadPer1M": 0.25
       },
       "inputModalities": [
@@ -13026,7 +13153,7 @@
       "name": "Mistral: Saba",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 0.6,
         "cacheReadPer1M": 0.02
       },
@@ -13088,8 +13215,8 @@
       "name": "AionLabs: Aion-RP 1.0 (8B)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.7999999999999999,
-        "output": 1.5999999999999999
+        "input": 0.8,
+        "output": 1.6
       },
       "inputModalities": [
         "text"
@@ -13117,9 +13244,9 @@
       "name": "Qwen: Qwen2.5 VL 72B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.7999999999999999,
+        "input": 0.8,
         "output": 1,
-        "cacheReadPer1M": 0.39999999999999997
+        "cacheReadPer1M": 0.4
       },
       "inputModalities": [
         "text",
@@ -13149,7 +13276,7 @@
         "unit": "per_1m_tokens",
         "input": 0.26,
         "output": 0.78,
-        "cacheReadPer1M": 0.052000000000000005
+        "cacheReadPer1M": 0.052
       },
       "inputModalities": [
         "text"
@@ -13240,7 +13367,7 @@
       "name": "Mistral: Mistral Small 3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.08
       },
       "inputModalities": [
@@ -13293,41 +13420,12 @@
       "gdprSafe": false
     },
     {
-      "provider": "deepseek",
-      "model": "deepseek/deepseek-r1",
-      "name": "DeepSeek: R1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.7,
-        "output": 2.5
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 64000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "reasoning"
-      ],
-      "description": "DeepSeek R1 is here: Performance on par with [OpenAI o1](/openai/o1), but open-sourced and with fully open reasoning tokens. It's 671B parameters in size, with 37B active in an inference pass....",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
       "provider": "minimax",
       "model": "minimax/minimax-01",
       "name": "MiniMax: MiniMax-01",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.19999999999999998,
+        "input": 0.2,
         "output": 1.1
       },
       "inputModalities": [
@@ -13384,8 +13482,8 @@
       "name": "DeepSeek: DeepSeek V3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.32,
-        "output": 0.8899999999999999
+        "input": 0.2574,
+        "output": 1.0287
       },
       "inputModalities": [
         "text"
@@ -13404,32 +13502,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "sao10k",
-      "model": "sao10k/l3.3-euryale-70b",
-      "name": "Sao10K: Llama 3.3 Euryale 70B",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.65,
-        "output": 0.75
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "Euryale L3.3 70B is a model focused on creative roleplay from [Sao10k](https://ko-fi.com/sao10k). It is the successor of [Euryale L3 70B v2.2](/models/sao10k/l3-euryale-70b).",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -13496,7 +13568,7 @@
       "name": "Meta: Llama 3.3 70B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
+        "input": 0.1,
         "output": 0.32
       },
       "inputModalities": [
@@ -13584,8 +13656,8 @@
       "name": "Amazon: Nova Pro 1.0",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.7999999999999999,
-        "output": 3.1999999999999997
+        "input": 0.8,
+        "output": 3.2
       },
       "inputModalities": [
         "text",
@@ -13649,7 +13721,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 6,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -13706,8 +13778,8 @@
       "name": "TheDrummer: UnslopNemo 12B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
-        "output": 0.39999999999999997
+        "input": 0.4,
+        "output": 0.4
       },
       "inputModalities": [
         "text"
@@ -13758,8 +13830,8 @@
       "name": "Qwen: Qwen2.5 7B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09999999999999999,
-        "output": 0.19999999999999998
+        "input": 0.1,
+        "output": 0.2
       },
       "inputModalities": [
         "text"
@@ -13812,8 +13884,8 @@
       "name": "Meta: Llama 3.2 3B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
-        "output": 0.33
+        "input": 0.0509,
+        "output": 0.335
       },
       "inputModalities": [
         "text"
@@ -13842,7 +13914,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.36,
-        "output": 0.39999999999999997
+        "output": 0.4
       },
       "inputModalities": [
         "text"
@@ -14006,7 +14078,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.04,
-        "output": 0.049999999999999996
+        "output": 0.05
       },
       "inputModalities": [
         "text"
@@ -14066,8 +14138,8 @@
       "name": "Meta: Llama 3.1 70B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
-        "output": 0.39999999999999997
+        "input": 0.4,
+        "output": 0.4
       },
       "inputModalities": [
         "text"
@@ -14094,9 +14166,9 @@
       "name": "Meta: Llama 3.1 8B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.049999999999999996,
+        "input": 0.05,
         "output": 0.08,
-        "cacheReadPer1M": 0.024999999999999998
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text"
@@ -14378,7 +14450,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 6,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -14399,32 +14471,6 @@
       "source": "openrouter",
       "region": "eu",
       "gdprSafe": true
-    },
-    {
-      "provider": "microsoft",
-      "model": "microsoft/wizardlm-2-8x22b",
-      "name": "WizardLM-2 8x22B",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.62,
-        "output": 0.62
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 65535,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "WizardLM-2 8x22B is Microsoft AI's most advanced Wizard model. It demonstrates highly competitive performance compared to leading proprietary models, and it consistently outperforms all existing state-of-the-art opensource models. It is...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
     },
     {
       "provider": "openai",
@@ -14494,7 +14540,7 @@
         "unit": "per_1m_tokens",
         "input": 2,
         "output": 6,
-        "cacheReadPer1M": 0.19999999999999998
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -14638,7 +14684,7 @@
       "name": "Mancer: Weaver (alpha)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39999999999999997,
+        "input": 0.4,
         "output": 0.75
       },
       "inputModalities": [

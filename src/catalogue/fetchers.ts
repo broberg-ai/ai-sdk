@@ -47,7 +47,9 @@ interface OpenRouterModel {
 /** Per-token USD string → USD per 1M tokens. Returns undefined for missing/NaN/negative. */
 function per1M(v: string | undefined): number | undefined {
   if (v == null) return undefined;
-  const n = Number(v) * 1_000_000;
+  // toPrecision(12): 1e-7 * 1e6 is 0.09999999999999999 in floating point, and the
+  // price-contradiction guard then reads it as a different price from a curated 0.1.
+  const n = Number((Number(v) * 1_000_000).toPrecision(12));
   return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 

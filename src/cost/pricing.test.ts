@@ -9,8 +9,9 @@ test("pricing covers every model in DEFAULT_TIER_MAP", () => {
   }
 });
 
-test("MiniMax M2.7 is priced via openrouter", () => {
-  expect(getPrice("openrouter", "minimax/minimax-m2.7")).toBeDefined();
+test("MiniMax M2.7 is priced via openrouter (live rate, re-read 2026-10-20)", () => {
+  // F067.7: rose from $0.21/$0.84 — found by /model-research 2026-10-17.
+  expect(getPrice("openrouter", "minimax/minimax-m2.7")).toMatchObject({ inputPer1M: 0.3, outputPer1M: 1.2 });
 });
 
 test("DeepSeek V4 is priced via openrouter (live rate, re-read 2026-10-02)", () => {
@@ -20,7 +21,8 @@ test("DeepSeek V4 is priced via openrouter (live rate, re-read 2026-10-02)", () 
     0.6264, // $0.2088 in + $0.4176 out
     6,
   );
-  expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toBeDefined();
+  // F067.7: flash rose from $0.028/$0.056 (re-read 2026-10-20).
+  expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toMatchObject({ inputPer1M: 0.091, outputPer1M: 0.182 });
 });
 
 test("gemini-direct is priced under provider 'gemini' (not 'google')", () => {

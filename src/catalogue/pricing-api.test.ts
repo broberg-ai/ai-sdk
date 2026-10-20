@@ -35,7 +35,7 @@ test("id normalisation: '/' and ':' and basename all resolve to the same entry",
   // DeepSeek V4 Flash is curated-authoritative
   expect(a!.source).toBe("curated");
   if (a?.unit !== "per_1m_tokens") throw new Error("expected a token-priced row");
-  expect(a.inputPer1M).toBeCloseTo(0.028, 4); // F067.5 — re-read 2026-10-02
+  expect(a.inputPer1M).toBeCloseTo(0.091, 4); // F067.7 — re-read 2026-10-20
 });
 
 test("listModelPrices covers the full inventory (>=300) and every row is well-formed", () => {
