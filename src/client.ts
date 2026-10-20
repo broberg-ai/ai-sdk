@@ -131,6 +131,10 @@ function routeHasAudio(spec: { provider: string; model: string }): boolean {
   if (m.includes("kling") || m.includes("seedance") || m.includes("wan-")) return false;
   return true;
 }
+/** F079.6 — routes whose adapter honours `audio: false` (sends the provider's switch). */
+function canSilenceAudio(spec: { provider: string; model: string }): boolean {
+  return spec.provider === "bfl" && spec.model === "flux-3-video";
+}
 /** EU-resident finetuned-portrait route (F023) — BFL, used by ai.image when a
  *  `finetune` id is supplied. Hard-pinned to api.eu.bfl.ai inside the adapter. */
 const DEFAULT_BFL_FINETUNE_SPEC: TierSpec = {
@@ -725,7 +729,16 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.animate) throw new Error(`createAI: provider "${spec.provider}" does not support animate`);
-          const prompt = routeHasAudio(spec)
+          const silent = input.audio === false;
+          // F079.6 — "no sound" must mean no audio track. A route that always makes sound
+          // and has no switch would ship one anyway, so it refuses instead.
+          if (silent && routeHasAudio(spec) && !canSilenceAudio(spec)) {
+            throw new Error(
+              `createAI: animate route "${spec.provider}:${spec.model}" cannot switch audio off. ` +
+                `For a silent clip use override:{ provider:"bfl", model:"flux-3-video" }.`,
+            );
+          }
+          const prompt = routeHasAudio(spec) && !silent
             ? `${basePrompt} ${ANIMATE_AUDIO_DIRECTIVE}`.trim()
             : basePrompt;
           return adapter.animate({
@@ -733,6 +746,7 @@ export function createAI(config: AiConfig = {}): AiClient {
             prompt: prompt || undefined,
             durationSec: input.durationSec,
             resolution: input.resolution,
+            ...(silent ? { audio: false } : {}),
             spec,
           });
         },

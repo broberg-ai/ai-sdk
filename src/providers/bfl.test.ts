@@ -332,3 +332,37 @@ test("image→video-only routes refuse a missing image and name the text→video
     expect({ name, m }).toEqual({ name, m: msg(name) });
   }
 });
+
+// ── F079.6 — audio:false = no audio track ───────────────────────────────────────
+
+test("audio:false on bfl/flux-3-video → generate_audio:false and the prompt carries NO audio directive", async () => {
+  const { createAI } = await import("../client.js");
+  let body: Record<string, unknown> = {};
+  const ai = createAI({
+    costSink: null,
+    providers: { bfl: bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls: [], body: (b) => (body = b) }) }) },
+  });
+  await ai.animate({ image: "u", prompt: "a man walks to the desk", audio: false, allowFloating: true, override: { provider: "bfl", model: "flux-3-video" } });
+  expect(body.generate_audio).toBe(false);
+  expect(body.prompt).toBe("a man walks to the desk");
+});
+
+test("audio:false on a route that always makes sound is refused; a known-silent route accepts it", async () => {
+  const { createAI } = await import("../client.js");
+  const { geminiAdapter } = await import("./gemini.js");
+  const noFetch = (async () => { throw new Error("must not be called"); }) as unknown as typeof fetch;
+  const ai = createAI({ costSink: null, providers: { gemini: geminiAdapter({ apiKey: "k", fetch: noFetch }) } });
+  const m = await ai.animate({ image: "u", prompt: "x", audio: false }).then(() => "resolved", (e: Error) => e.message);
+  expect(m).toBe(
+    'createAI: animate route "gemini:veo-3.1-generate-preview" cannot switch audio off. For a silent clip use override:{ provider:"bfl", model:"flux-3-video" }.',
+  );
+  // Kling makes no audio at all (ffprobe-measured, F045) — audio:false is already true of it.
+  let reached = false;
+  const kling = {
+    name: "fal",
+    animate: async () => { reached = true; return { url: "https://x/v.mp4", usage: (await import("../cost/usage.js")).freshUsage({ provider: "fal", model: "k", transport: "http", capability: "animate", inputTokens: 0, outputTokens: 0 }) }; },
+  };
+  const ai2 = createAI({ costSink: null, providers: { fal: kling as never } });
+  await ai2.animate({ image: "u", prompt: "x", audio: false, override: { provider: "fal", model: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" } });
+  expect(reached).toBe(true);
+});

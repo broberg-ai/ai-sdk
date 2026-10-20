@@ -476,8 +476,12 @@ const i = await ai.animate({ image: readFileSync("still.jpg"), prompt: "she nods
   Measured: a 5 s `hd` clip = 75 credits = **$0.75** ($0.15/s), both text→video and
   image→video. Higher resolutions cost more and are **not measured yet**.
 - **Time** — 50–95 s for a 5 s `hd` clip (measured, three clips).
-- **Sound** — clips come WITH an audio track. The SDK's animate rule (ambient sound, no
-  speech) is added to the prompt as on every audio-capable route.
+- **Sound** — clips come WITH an audio track by default. The SDK's animate rule (ambient
+  sound, no speech) is added to the prompt as on every audio-capable route.
+- **No sound at all** — `audio: false` (v0.64.1+, F079.6) sends `generate_audio:false` and
+  drops the sound directive: the mp4 has NO audio stream (ffprobe-measured 2026-10-20).
+  Only this route can switch sound off; gemini/vertex/fal-Veo refuse `audio:false` rather
+  than ship a clip with sound, and known-silent routes (Kling) accept it.
 - **Floating** — BFL publishes only a moving `latest` version (no dated tag yet), so the
   call gets `usage.floating = true` and one warning; `allowFloating: true` silences it and
   `strictPinning` refuses it. This will change when BFL publishes dated versions.

@@ -336,6 +336,9 @@ export interface AnimateRequest {
   durationSec?: number;
   /** e.g. "720p" / "1080p" (provider-dependent). */
   resolution?: string;
+  /** F079.6 — false = a clip with NO audio track. Only routes that can switch audio
+   *  off accept it (bfl/flux-3-video); the others refuse rather than ship sound. */
+  audio?: boolean;
   spec: TierSpec;
 }
 

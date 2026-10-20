@@ -204,6 +204,8 @@ export const animateInputSchema = z.object({
   durationSec: z.number().positive().optional(),
   /** e.g. "720p" / "1080p" (provider-dependent). */
   resolution: z.string().optional(),
+  /** F079.6 — false = no audio track at all (bfl/flux-3-video only; other routes refuse). */
+  audio: z.boolean().optional(),
   ...callOptions,
 });
 

@@ -269,8 +269,10 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       }
       body.resolution = r;
     }
-    // generate_audio is left at BFL's default (true): the SDK's animate contract is
-    // "ambient sound, no speech", carried by the prompt directive client.ts appends.
+    // generate_audio is left at BFL's default (true) — the SDK's animate contract is
+    // "ambient sound, no speech", carried by the prompt directive client.ts appends —
+    // unless the caller asked for a silent clip (F079.6).
+    if (req.audio === false) body.generate_audio = false;
 
     const submitRes = await doFetch(`${base}/v1/${req.spec.model}`, {
       method: "POST",
