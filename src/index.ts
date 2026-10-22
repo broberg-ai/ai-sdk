@@ -108,8 +108,11 @@ export {
   // F050 — the non-token half. `pricingFreshness().caveats` is the field that makes
   // `stale: false` an honest answer: it names every unit the table cannot price.
   listMediaPrices,
+  // F080 — "cheapest model from vendor X", with kind, route, source and caveats.
+  cheapestModels,
+  classifyKind,
 } from "./catalogue/pricing-api.js";
-export type { PricingFreshness, UnitFreshness } from "./catalogue/pricing-api.js";
+export type { PricingFreshness, UnitFreshness, CheapestQuery, CheapestRow, CheapestResult, PriceKind, UpstreamStatus } from "./catalogue/pricing-api.js";
 // F055 — word timings. alignWordTimings is exported because the mapping back to the
 // manuscript is the part a consumer might need to redo on boundary data of their own:
 // Azure reports audio time only, never a text offset, so the link is always derived.

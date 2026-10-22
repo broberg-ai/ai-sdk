@@ -158,6 +158,12 @@ export function classifyKind(id: string, out: "text" | "image" | "audio" = "text
   return "chat";
 }
 
+/** A curated row's `version` starts with the date it was checked ("2026-10-20-…"). */
+function versionDate(version: string | undefined): string | undefined {
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(version ?? "");
+  return m ? m[1] : undefined;
+}
+
 /** F080.1 — liveness of a DIRECT row against the provider's own last-seen list. */
 function upstreamDirect(provider: string, model: string): UpstreamStatus {
   const seen = SEEN_DIRECT[provider];
@@ -238,6 +244,7 @@ function ensure(): void {
       unit: "per_1m_tokens",
       region: (["eu", "us", "cn", "other"].includes(r.region) ? r.region : "other") as PriceRegion,
       source: "inventory",
+      checkedAt: PRICING_CHECKED_AT ? PRICING_CHECKED_AT.slice(0, 10) : undefined,
       // An inventory row IS the OpenRouter catalogue snapshot, so it is listed there and
       // reached through OpenRouter — until a curated direct price below claims it.
       kind: classifyKind(r.model, r.out),
@@ -263,6 +270,7 @@ function ensure(): void {
       existing.outputPer1M = p.outputPer1M;
       existing.unit = "per_1m_tokens";
       existing.source = "curated";
+      existing.checkedAt = versionDate(p.version);
       if (direct) {
         existing.route = "direct";
         existing.callAs = { provider, model: modelPart };
@@ -277,6 +285,7 @@ function ensure(): void {
         unit: "per_1m_tokens",
         region: regionForProvider(provider),
         source: "curated",
+        checkedAt: versionDate(p.version),
         kind: classifyKind(modelPart),
         route: direct ? "direct" : "openrouter",
         callAs: { provider, model: modelPart },
@@ -535,4 +544,122 @@ export function warnIfPricingStale(nowMs: number = Date.now()): void {
 /** Test-only: forget that we already warned. */
 export function resetPricingWarningForTests(): void {
   warned = false;
+}
+
+
+// ── F080.2 — "the cheapest model from vendor X", answered, not guessed ─────────────
+
+/** Vendor names a caller says, mapped to every provider prefix a row can carry. */
+const VENDOR_ALIASES: Record<string, string[]> = {
+  mistral: ["mistral", "mistralai"],
+  google: ["google", "gemini", "vertex"],
+  gemini: ["google", "gemini", "vertex"],
+  openai: ["openai"],
+  anthropic: ["anthropic"],
+  deepseek: ["deepseek"],
+  meta: ["meta-llama", "meta"],
+  xai: ["x-ai", "xai"],
+};
+
+export interface CheapestQuery {
+  /** The model maker: "mistral", "openai", "anthropic", "google", "deepseek", … */
+  vendor: string;
+  /** Default "chat". */
+  kind?: PriceKind;
+  /** Only rows we reach this way. Default: both. */
+  route?: "direct" | "openrouter";
+  region?: PriceRegion;
+  /** Deferred-batch prices. Default false — they are not interactive prices. */
+  includeBatch?: boolean;
+  /** Models the provider no longer lists. Default false. */
+  includeGone?: boolean;
+  /** OpenRouter ":free" promo ids (rate-limited, may vanish). Default false. */
+  includeFree?: boolean;
+  /** Default 3. */
+  limit?: number;
+  /** For tests: "now" for the staleness check. */
+  nowMs?: number;
+}
+
+export interface CheapestRow {
+  model: string;
+  /** The `override` that calls exactly this row. */
+  callAs: { provider: string; model: string };
+  route: "direct" | "openrouter";
+  kind: PriceKind;
+  region: PriceRegion;
+  inputPer1M: number;
+  outputPer1M: number;
+  /** (3 × input + output) / 4 — the ranking key, the same 3:1 blend OpenRouter uses. */
+  blendedPer1M: number;
+  source: "curated" | "inventory";
+  checkedAt?: string;
+  upstream: UpstreamStatus;
+  /** Everything a reader should know before trusting this row. Empty = none. */
+  caveats: string[];
+}
+
+export interface CheapestResult {
+  vendor: string;
+  kind: PriceKind;
+  /** Cheapest first. Empty when nothing matched — never a near-miss from another kind. */
+  results: CheapestRow[];
+  /** How many rows matched before `limit`. */
+  matched: number;
+  /** The token table is older than the freshness threshold (or has no check date). */
+  stale: boolean;
+  checkedAt: string;
+  /** Query-level reservations (e.g. staleness). */
+  caveats: string[];
+}
+
+/** The cheapest models a vendor offers for one kind of work — with where each price
+ *  came from, when it was checked, and how to call it. Measured on 22 Oct 2026 that
+ *  the obvious sort answered "cheapest from Mistral" with a moderation model that no
+ *  longer exists; this is the answer that does not. */
+export function cheapestModels(q: CheapestQuery): CheapestResult {
+  const vendor = q.vendor.trim().toLowerCase();
+  const kind = q.kind ?? "chat";
+  const prefixes = VENDOR_ALIASES[vendor] ?? [vendor];
+  const fresh = pricingFreshness(q.nowMs);
+  const matches = listModelPrices().filter((p) => {
+    const ofVendor = prefixes.includes(p.provider.toLowerCase()) || prefixes.some((v) => p.model.toLowerCase().startsWith(`${v}/`));
+    if (!ofVendor || p.kind !== kind) return false;
+    if (q.route && p.route !== q.route) return false;
+    if (q.region && p.region !== q.region) return false;
+    if (!q.includeBatch && p.batch) return false;
+    if (!q.includeGone && p.upstream === "gone") return false;
+    if (!q.includeFree && (p.model.endsWith(":free") || (p.inputPer1M === 0 && p.outputPer1M === 0))) return false;
+    return true;
+  });
+  const rows: CheapestRow[] = matches.map((p) => {
+    const caveats: string[] = [];
+    if (p.source === "inventory") caveats.push("price from the OpenRouter catalogue (OpenRouter's rate), not the vendor's own price page");
+    if (p.upstream === "unknown") caveats.push("not checked against the vendor's own model list");
+    if (/-latest$/.test(p.model)) caveats.push("floating -latest alias: the vendor can move it to another model and price");
+    if (p.region !== "eu") caveats.push(`region ${p.region}: not for personal data`);
+    if (p.source === "curated" && !p.checkedAt) caveats.push("curated price without a check date");
+    return {
+      model: p.model, callAs: p.callAs, route: p.route, kind: p.kind, region: p.region,
+      inputPer1M: p.inputPer1M, outputPer1M: p.outputPer1M,
+      blendedPer1M: Number(((3 * p.inputPer1M + p.outputPer1M) / 4).toPrecision(12)),
+      source: p.source, checkedAt: p.checkedAt, upstream: p.upstream, caveats,
+    };
+  });
+  // Cheapest first; on a tie prefer a pinned id over a floating one, then direct over
+  // OpenRouter (no markup, our own adapter), then a vendor-list-verified row.
+  rows.sort((a, b) =>
+    a.blendedPer1M - b.blendedPer1M ||
+    Number(/-latest$/.test(a.model)) - Number(/-latest$/.test(b.model)) ||
+    Number(a.route !== "direct") - Number(b.route !== "direct") ||
+    Number(a.upstream !== "listed") - Number(b.upstream !== "listed") ||
+    a.model.localeCompare(b.model),
+  );
+  const caveats: string[] = [];
+  if (fresh.stale) caveats.push(`price table is stale (checked ${fresh.checkedAt || "never"}, threshold ${fresh.thresholdDays} days)`);
+  if (rows.length === 0) caveats.push(`no ${kind} model priced for vendor "${q.vendor}" with these filters`);
+  return {
+    vendor: q.vendor, kind, results: rows.slice(0, q.limit ?? 3), matched: rows.length,
+    stale: fresh.stale, checkedAt: fresh.checkedAt, caveats,
+  };
 }

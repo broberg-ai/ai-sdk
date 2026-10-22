@@ -14,6 +14,9 @@ export {
   // F050 — the non-token half. This is the subpath super was measuring from, so the
   // media prices have to be reachable HERE, not only from the main entry.
   listMediaPrices,
+  // F080 — "cheapest model from vendor X", with kind, route, source and caveats.
+  cheapestModels,
+  classifyKind,
 } from "./catalogue/pricing-api.js";
 export type {
   ModelPrice,
@@ -21,6 +24,11 @@ export type {
   PriceRegion,
   PricingFreshness,
   UnitFreshness,
+  CheapestQuery,
+  CheapestRow,
+  CheapestResult,
+  PriceKind,
+  UpstreamStatus,
 } from "./catalogue/pricing-api.js";
 export { MEDIA_PRICING_CHECKED_AT, DEFAULT_CLIP_SEC, getMediaPrice } from "./cost/media-pricing.js";
 export type { MediaPrice, MediaUnit } from "./cost/media-pricing.js";
