@@ -2,7 +2,7 @@
 // installed npm package (no fs, no bun:sqlite → bundles on an edge/browser build).
 // Backed by the bundled PRICING_DATA (trimmed inventory.json projection) with the
 // curated PRICING table (authoritative routed-provider numbers) overlaid on top.
-import { PRICING_DATA, PRICING_GENERATED_AT, PRICING_CHECKED_AT } from "./pricing-data.js";
+import { PRICING_DATA, PRICING_GENERATED_AT, PRICING_CHECKED_AT, SEEN_DIRECT } from "./pricing-data.js";
 import { stripDatedSuffix } from "../cost/pricing.js";
 import { PRICING } from "../cost/pricing.js";
 import { MEDIA_PRICING, MEDIA_PRICING_CHECKED_AT, mediaUnitCounts, type MediaUnit } from "../cost/media-pricing.js";
@@ -30,9 +30,30 @@ export interface BasePrice {
   checkedAt?: string;
 }
 
+/** F080.1 — what a token-priced model is FOR. "Cheapest from Mistral" means the
+ *  cheapest CHAT model; without this a moderation endpoint won the question. */
+export type PriceKind =
+  | "chat" | "embedding" | "moderation" | "ocr" | "transcribe" | "tts" | "image" | "video" | "judge" | "audio";
+
+/** F080.1 — is the model known to exist upstream, as of the last measurement?
+ *  `listed`: in the provider's own model list (direct) or in the OpenRouter catalogue
+ *  snapshot. `gone`: we priced it, but the provider no longer lists it. `unknown`: we
+ *  never asked that provider — never read it as `listed`. */
+export type UpstreamStatus = "listed" | "gone" | "unknown";
+
 /** A model billed per token. */
 export interface TokenModelPrice extends BasePrice {
   unit: "per_1m_tokens";
+  /** F080.1 — chat, embedding, moderation … (see {@link PriceKind}). */
+  kind: PriceKind;
+  /** F080.1 — how WE reach it: our own provider adapter, or OpenRouter. */
+  route: "direct" | "openrouter";
+  /** F080.1 — the `override` that calls exactly this row. */
+  callAs: { provider: string; model: string };
+  /** F080.1 — a deferred-batch price (`…:batch`), not an interactive one. */
+  batch: boolean;
+  /** F080.1 — see {@link UpstreamStatus}. */
+  upstream: UpstreamStatus;
   /** USD per 1M input tokens. */
   inputPer1M: number;
   /** USD per 1M output tokens. */
@@ -121,6 +142,29 @@ function regionForProvider(provider: string): PriceRegion {
   }
 }
 
+/** F080.1 — classify a model by its id (and, for OpenRouter rows, what it outputs).
+ *  One place, so "cheapest chat model" and every future filter agree on what chat is. */
+export function classifyKind(id: string, out: "text" | "image" | "audio" = "text"): PriceKind {
+  const m = id.toLowerCase();
+  if (/embed/.test(m)) return "embedding";
+  if (/moderat/.test(m)) return "moderation";
+  if (/(^|[/:-])ocr\b|-ocr/.test(m)) return "ocr";
+  if (/whisper|transcri|voxtral|(^|[/-])stt\b/.test(m)) return "transcribe";
+  if (/(^|[/-])tts\b|text-to-speech/.test(m)) return "tts";
+  if (/(^|[/:])jev-/.test(m)) return "judge";
+  if (/(^|[/-])veo-|video|kling|seedance/.test(m)) return "video";
+  if (out === "image" || /dall-e|imagen|(^|[/-])flux|recraft|nano-banana|-image(-|$)/.test(m)) return "image";
+  if (out === "audio") return "audio";
+  return "chat";
+}
+
+/** F080.1 — liveness of a DIRECT row against the provider's own last-seen list. */
+function upstreamDirect(provider: string, model: string): UpstreamStatus {
+  const seen = SEEN_DIRECT[provider];
+  if (!seen) return "unknown";
+  return seen.includes(model) ? "listed" : "gone";
+}
+
 /** Media rows as ModelPrice, keyed by lowercased model id.
  *
  *  Deliberately NOT merged into `_list`: `listModelPrices()` / `findModelPrices()`
@@ -194,6 +238,13 @@ function ensure(): void {
       unit: "per_1m_tokens",
       region: (["eu", "us", "cn", "other"].includes(r.region) ? r.region : "other") as PriceRegion,
       source: "inventory",
+      // An inventory row IS the OpenRouter catalogue snapshot, so it is listed there and
+      // reached through OpenRouter — until a curated direct price below claims it.
+      kind: classifyKind(r.model, r.out),
+      route: "openrouter",
+      callAs: { provider: "openrouter", model: r.model },
+      batch: r.model.endsWith(":batch"),
+      upstream: "listed",
     };
     list.push(e);
     byBase.set(basename(r.model), e);
@@ -204,11 +255,19 @@ function ensure(): void {
     const provider = ci >= 0 ? key.slice(0, ci) : "";
     const modelPart = ci >= 0 ? key.slice(ci + 1) : key;
     const existing = byBase.get(basename(modelPart));
+    // F080.1 — a curated key names the adapter that bills it: "openrouter:…" is the
+    // aggregator, anything else is our own direct route.
+    const direct = provider !== "openrouter";
     if (existing) {
       existing.inputPer1M = p.inputPer1M;
       existing.outputPer1M = p.outputPer1M;
       existing.unit = "per_1m_tokens";
       existing.source = "curated";
+      if (direct) {
+        existing.route = "direct";
+        existing.callAs = { provider, model: modelPart };
+        existing.upstream = upstreamDirect(provider, modelPart);
+      }
     } else {
       const e: TokenModelPrice = {
         provider,
@@ -218,6 +277,12 @@ function ensure(): void {
         unit: "per_1m_tokens",
         region: regionForProvider(provider),
         source: "curated",
+        kind: classifyKind(modelPart),
+        route: direct ? "direct" : "openrouter",
+        callAs: { provider, model: modelPart },
+        batch: modelPart.endsWith(":batch"),
+        // A curated OpenRouter id that is NOT in the catalogue snapshot was not seen there.
+        upstream: direct ? upstreamDirect(provider, modelPart) : "unknown",
       };
       list.push(e);
       byBase.set(basename(modelPart), e);
