@@ -39,3 +39,15 @@ Bygger på eksisterende `src/catalogue/pricing-api.ts`, `inventory.json`, `catal
 ## Rollout
 
 Minor-release (ny eksport). Discovery får en dateret note. Model-advisor-skillen opdateres i samme release.
+
+## Live-tjek mod udbydernes egne prissider (F080.3, 22/10 2026)
+
+| udbyder | `cheapestModels` direkte | udbyderens egen side | dom |
+|---|---|---|---|
+| Mistral | `ministral-3b-2512` $0.10/$0.10 | Ministral 3 3B $0.1/$0.1 (docs.mistral.ai/inference/pricing) | ✓ |
+| Anthropic | `claude-haiku-5-5` $0.10/$0.50 | Haiku 5.5 $0.10/$0.50 (≤100K-token prompts; $0.50/$2.50 over) | ✓ — >100K-satsen er ikke i tabellen |
+| OpenAI | `gpt-6-luna` $0.10/$0.50 | gpt-5-nano $0.05/$0.40 og gpt-4.1-nano $0.10/$0.40 er billigere | **afvigelse**: de to står ikke i vores pristabel og kan ikke bogføres → udelukket med vilje. Svaret bærer nu forbeholdet «direct route covers only models in our curated price table …». gpt-5-nano vises under «billigst i alt» via OpenRouter. |
+
+Øvrige fund:
+- **Mistral Nemo** (billigst i alt, via OpenRouter) er udgået hos Mistral selv (retirement 31/7/2026, docs.mistral.ai models overview) — OpenRouter serverer den stadig fra andre værter. OpenRouter-rækker bærer nu forbeholdet om at regionen ikke er garanteret.
+- Opfølgning (ikke i dette kort): prissætte `gpt-5-nano` og `gpt-4.1-nano` i pristabellen, hvis nogen vil kalde dem direkte.

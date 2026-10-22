@@ -8,6 +8,27 @@ argument-hint: "<what you need to do> [+ constraints: GDPR / budget / modality /
 
 You are the fleet's model-selection authority. When Christian (or another repo via intercom) asks "which model for X?", answer from `inventory.json` — **never from memory**. The whole point is that the answer is reliable and cites real data (price, region, capability, freshness).
 
+## «Billigste model fra udbyder X» — særskilt, autoritativt spor (F080)
+
+When the question is **"what is the cheapest model from <vendor>"** (or "billigste fra X",
+"cheapest Mistral embedding", …), do NOT read inventory.json by hand and do NOT answer
+from memory. Run:
+
+```bash
+bun run scripts/cheapest.ts <vendor> [kind]     # kind: chat (default), embedding, moderation, ocr, transcribe, image, …
+```
+
+It prints two answers, because "from provider X" means two different things:
+**billigst i alt** (may be via OpenRouter) and **billigst direkte** (our own adapter, no
+markup). Give Christian BOTH, in this format, per model:
+
+- **model** · **pris** ind/ud pr. 1M (+ blandet 3:1) · **adgangsvej** (direkte / OpenRouter)
+  og den `override` der kalder den · **region** · **kilde + dato** · **forbehold** (ordret
+  fra outputtet — fx "pris fra OpenRouter-kataloget", "region us: ikke til persondata").
+
+If the output says the table is stale, say so first. If it prints "(ingen)", say there
+is no priced model of that kind — never substitute one of another kind.
+
 ## Steps
 
 1. **Read the inventory.** `inventory.json` at the repo root (`Read` it fresh every time — it's regenerated monthly). It's `{ generatedAt, modelCount, models: InventoryModel[] }`. If the file is missing, run `bun run scripts/build-inventory.ts` to generate it, then read it.

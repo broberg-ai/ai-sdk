@@ -637,7 +637,8 @@ export function cheapestModels(q: CheapestQuery): CheapestResult {
     if (p.source === "inventory") caveats.push("price from the OpenRouter catalogue (OpenRouter's rate), not the vendor's own price page");
     if (p.upstream === "unknown") caveats.push("not checked against the vendor's own model list");
     if (/-latest$/.test(p.model)) caveats.push("floating -latest alias: the vendor can move it to another model and price");
-    if (p.region !== "eu") caveats.push(`region ${p.region}: not for personal data`);
+    if (p.route === "openrouter") caveats.push("via OpenRouter: OpenRouter picks the upstream host, so the region is NOT guaranteed (usage.region reports 'unknown')");
+    else if (p.region !== "eu") caveats.push(`region ${p.region}: not for personal data`);
     if (p.source === "curated" && !p.checkedAt) caveats.push("curated price without a check date");
     return {
       model: p.model, callAs: p.callAs, route: p.route, kind: p.kind, region: p.region,
@@ -658,6 +659,10 @@ export function cheapestModels(q: CheapestQuery): CheapestResult {
   const caveats: string[] = [];
   if (fresh.stale) caveats.push(`price table is stale (checked ${fresh.checkedAt || "never"}, threshold ${fresh.thresholdDays} days)`);
   if (rows.length === 0) caveats.push(`no ${kind} model priced for vendor "${q.vendor}" with these filters`);
+  // Measured 22 Oct 2026: "cheapest direct from openai" answered gpt-6-luna while OpenAI's
+  // own page lists gpt-5-nano and gpt-4.1-nano cheaper — they are not in our price table,
+  // so we cannot bill them. The answer is right about what WE can call, and must say so.
+  if (q.route === "direct") caveats.push("direct route covers only models in our curated price table; the vendor may list cheaper ones we have not priced");
   return {
     vendor: q.vendor, kind, results: rows.slice(0, q.limit ?? 3), matched: rows.length,
     stale: fresh.stale, checkedAt: fresh.checkedAt, caveats,

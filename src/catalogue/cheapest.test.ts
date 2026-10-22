@@ -50,3 +50,18 @@ test("an unknown vendor returns nothing — not a near-miss from someone else", 
   expect(r.results).toEqual([]);
   expect(r.caveats).toEqual(['no chat model priced for vendor "nobody" with these filters']);
 });
+
+test("an OpenRouter row never reads as EU-safe: its region is flagged as not guaranteed", () => {
+  const nemo = cheapestModels({ vendor: "mistral", route: "openrouter", limit: 50 }).results;
+  expect(nemo.length).toBeGreaterThan(0);
+  for (const x of nemo) expect(x.caveats).toContain("via OpenRouter: OpenRouter picks the upstream host, so the region is NOT guaranteed (usage.region reports 'unknown')");
+});
+
+test("a direct-route answer says it is limited to our priced models", () => {
+  expect(cheapestModels({ vendor: "openai", route: "direct" }).caveats).toContain(
+    "direct route covers only models in our curated price table; the vendor may list cheaper ones we have not priced",
+  );
+  expect(cheapestModels({ vendor: "openai" }).caveats).not.toContain(
+    "direct route covers only models in our curated price table; the vendor may list cheaper ones we have not priced",
+  );
+});
