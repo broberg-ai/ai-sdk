@@ -8,7 +8,7 @@ import { getPrice } from "../cost/pricing.js";
 import { DEFAULT_TIER_MAP } from "../routing/tier-map.js";
 import { listModels } from "./resolve.js";
 
-const PICKER_PROVIDERS = ["anthropic", "openai", "mistral"];
+const PICKER_PROVIDERS = ["anthropic", "openai", "mistral", "gemini"];
 
 test("openai offers chat models — cheap, standard and strong — beside its embedding model", () => {
   const rows = listModels({ provider: "openai" });
@@ -74,4 +74,10 @@ test("an OpenAI dated snapshot prices like its base model", () => {
   expect(getPrice("openai", "gpt-5.4-mini-2026-03-17")?.inputPer1M).toBe(0.75);
   // The Anthropic form keeps working.
   expect(getPrice("anthropic", "claude-haiku-4-5-20251001")).toEqual(getPrice("anthropic", "claude-haiku-4-5"));
+});
+
+test("gemini rows carry grade and a default (F022.7, jam #3808)", () => {
+  const g = Object.fromEntries(listModels({ provider: "gemini" }).map((r) => [r.id, { grade: r.grade, default: r.default }]));
+  expect(g["gemini-2.5-flash-lite"]).toEqual({ grade: "cheap", default: undefined });
+  expect(g["gemini-2.5-flash"]).toEqual({ grade: "standard", default: true });
 });

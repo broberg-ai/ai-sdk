@@ -73,8 +73,8 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "claude-opus-4-7", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
   { id: "claude-opus-4-6", aliases: [], provider: "anthropic", available: true, status: "available", source: "default" },
   // ── Gemini ───────────────────────────────────────────────────────────────
-  { id: "gemini-2.5-flash", aliases: ["gemini-flash"], provider: "gemini", available: true, status: "available", source: "default" },
-  { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite"], provider: "gemini", available: true, status: "available", source: "default" },
+  { id: "gemini-2.5-flash", aliases: ["gemini-flash"], provider: "gemini", available: true, status: "available", source: "default", grade: "standard", default: true },
+  { id: "gemini-2.5-flash-lite", aliases: ["gemini-flash-lite"], provider: "gemini", available: true, status: "available", source: "default", grade: "cheap" },
   // ── OpenAI ───────────────────────────────────────────────────────────────
   { id: "text-embedding-3-small", aliases: [], provider: "openai", available: true, status: "available", source: "default", kind: "embedding" },
   // F022.6 — chat models, measured with GET /v1/models on 2026-10-11 and priced from
