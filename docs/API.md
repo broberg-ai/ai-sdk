@@ -739,6 +739,15 @@ input.** It is now a zod 4 `ZodError`. So `err instanceof ZodError` with `ZodErr
 imported from YOUR zod 3 is `false`, and zod 3's `err.errors` does not exist on it.
 Read `err.issues` (present in both majors) or check `err.name === "ZodError"`.
 
+**Every array input has an upper bound (v0.66.1+, F082.2).** zod 4.6.7 only stops at
+the first issue when an array HAS a `.max()`; without one, 200k bad chat messages
+still produced 400,000 issues in 11 s (measured on our own schema, 24 October 2026).
+The bounds are exported as `INPUT_LIMITS` and set far above real use — 10,000 chat
+messages, 1,000 content parts per message, 1,000 tools, 10,000 embedding / moderation
+texts, 32 fallback routes. One over the limit throws a `ZodError` naming the field.
+This bounds what the SDK spends on validation; your own request-body limit is still
+your app's job.
+
 ### Decisions with calibrated probabilities — `ai.judge` (Jev, F066)
 
 **Jev (TypeSafe) is not a chat model.** It does not write text; it answers typed

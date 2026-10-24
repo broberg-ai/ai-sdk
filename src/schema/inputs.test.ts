@@ -4,6 +4,8 @@ import {
   chatInputSchema,
   imageInputSchema,
   aiConfigSchema,
+  embeddingInputSchema,
+  INPUT_LIMITS,
 } from "./inputs.js";
 import { createAI as realCreateAI } from "../client.js";
 import { stubProviders } from "../providers/stub.js";
@@ -54,4 +56,24 @@ test("an oversized array is rejected on its length, not element by element (F082
   expect(r.success).toBe(false);
   if (!r.success) expect(r.error.issues.length).toBe(1);
   expect(ms).toBeLessThan(100);
+});
+
+// F082.2 — zod 4.6.7 only short-circuits an array that HAS a .max(). Messages had none.
+test("200k bad chat messages are rejected on the length bound, with one issue (F082.2)", () => {
+  const huge = Array.from({ length: 200_000 }, () => ({ role: "nope" }));
+  const t0 = performance.now();
+  const r = chatInputSchema.safeParse({ messages: huge });
+  const ms = performance.now() - t0;
+  expect(r.success).toBe(false);
+  if (!r.success) expect(r.error.issues.length).toBe(1);
+  expect(ms).toBeLessThan(100);
+});
+
+test("a call exactly AT the limits is accepted — the bounds are not tighter than real use (F082.2)", () => {
+  const msgs = Array.from({ length: INPUT_LIMITS.messages }, () => ({ role: "user" as const, content: "hej" }));
+  expect(chatInputSchema.safeParse({ messages: msgs }).success).toBe(true);
+  const texts = Array.from({ length: INPUT_LIMITS.texts }, () => "t");
+  expect(embeddingInputSchema.safeParse({ text: texts }).success).toBe(true);
+  // and one over is refused
+  expect(chatInputSchema.safeParse({ messages: [...msgs, msgs[0]] }).success).toBe(false);
 });

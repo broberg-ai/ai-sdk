@@ -25,6 +25,29 @@ import type {
 } from "../types.js";
 import type { Contracts } from "../capabilities/contracts/types.js";
 
+/** Upper bounds on every array the SDK accepts (F082.2, GHSA-mrhx-c7xc-m3w5). zod
+ *  4.6.7 stops at the first issue only when an array has a `.max()`; without one,
+ *  200k bad elements still produce 200k issues (buddy + cms measured, 24 Oct 2026).
+ *  Set far above real use on purpose — the owner asked for cautious limits, so a
+ *  bound that rejects a legitimate call is the failure to avoid, not a loose one. */
+export const INPUT_LIMITS = {
+  messages: 10_000,
+  contentParts: 1_000,
+  toolCalls: 1_000,
+  tools: 1_000,
+  fallback: 32,
+  loras: 32,
+  trainImages: 1_000,
+  texts: 10_000,
+  phrases: 10_000,
+  granularities: 10,
+  judgeEntryItems: 1_000,
+  stateItems: 10_000,
+  scriptLines: 10_000,
+  pronunciations: 10_000,
+} as const;
+const L = INPUT_LIMITS;
+
 // ── Reusable sub-schemas ───────────────────────────────────────────────────
 
 export const transportSchema = z.enum(["http", "subprocess"]);
@@ -85,8 +108,8 @@ export const contentPartSchema = z.union([
 
 export const messageSchema = z.object({
   role: z.enum(["system", "user", "assistant", "tool"]),
-  content: z.union([z.string(), z.array(contentPartSchema)]),
-  toolCalls: z.array(toolCallSchema).optional(),
+  content: z.union([z.string(), z.array(contentPartSchema).max(L.contentParts)]),
+  toolCalls: z.array(toolCallSchema).max(L.toolCalls).optional(),
   toolCallId: z.string().optional(),
   /** F049 — see Message.prefix. Position/role validity is enforced in the adapter,
    *  not here: the rule is about a message's place in the ARRAY, which a per-message
@@ -98,7 +121,7 @@ export const messageSchema = z.object({
 const callOptions = {
   tier: tierSchema.optional(),
   override: tierSpecSchema.partial().optional(),
-  fallback: z.array(z.union([tierSchema, tierSpecSchema])).optional(),
+  fallback: z.array(z.union([tierSchema, tierSpecSchema])).max(L.fallback).optional(),
   purpose: z.string().optional(),
   /** F077.3 — you MEAN to call a floating "-latest" id (no warning, no strictPinning error). */
   allowFloating: z.boolean().optional(),
@@ -119,9 +142,9 @@ export const chatInputSchema = z.object({
    *  false opts out; an explicit promptCacheKey always wins. */
   promptCache: z.boolean().optional(),
   prompt: z.string().optional(),
-  messages: z.array(messageSchema).optional(),
+  messages: z.array(messageSchema).max(L.messages).optional(),
   system: z.string().optional(),
-  tools: z.array(toolSchema).optional(),
+  tools: z.array(toolSchema).max(L.tools).optional(),
   maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
   /** F074.3 — Mistral reasoning ("thinking") before the answer. Large 4 thinks by
@@ -170,7 +193,7 @@ export const imageInputSchema = z.object({
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
   /** LoRAs to merge at inference (F021). */
-  loras: z.array(loraWeightSchema).optional(),
+  loras: z.array(loraWeightSchema).max(L.loras).optional(),
   /** Shorthand for a single LoRA — normalized to loras:[{path, scale:1}]. */
   lora: z.string().optional(),
   /** F023 — a BFL finetune id (subject trained in the BFL dashboard). Routes to the
@@ -211,7 +234,7 @@ export const animateInputSchema = z.object({
 
 export const trainStyleInputSchema = z.object({
   /** A hosted archive URL, or an array of image URLs the SDK zips in-memory. */
-  images: z.union([z.string(), z.array(z.string())]),
+  images: z.union([z.string(), z.array(z.string()).max(L.trainImages)]),
   /** Style LoRA (disables captioning/masks). Default true. */
   isStyle: z.boolean().optional(),
   triggerWord: z.string().optional(),
@@ -221,7 +244,7 @@ export const trainStyleInputSchema = z.object({
 });
 
 export const embeddingInputSchema = z.object({
-  text: z.union([z.string(), z.array(z.string())]),
+  text: z.union([z.string(), z.array(z.string()).max(L.texts)]),
   ...callOptions,
 });
 
@@ -232,13 +255,13 @@ export const transcribeInputSchema = z.object({
   /** Audio length in seconds — enables Whisper per-minute cost. */
   durationSec: z.number().positive().optional(),
   /** Bias toward brand/jargon terms (Azure phraseList, F029.3); others ignore it. */
-  phrases: z.array(z.string()).optional(),
+  phrases: z.array(z.string()).max(L.phrases).optional(),
   /** Opt-in timestamps (F036) — a single granularity or an array. Omit → the
    *  current { text, usage } shape, unchanged. Pass ["word","segment"] for both.
    *  Supported by Whisper (openai) + Azure fast-transcription (F036.1); other
    *  adapters (Voxtral/mistral) ignore it and return text only. */
   timestamps: z
-    .union([z.enum(["word", "segment"]), z.array(z.enum(["word", "segment"]))])
+    .union([z.enum(["word", "segment"]), z.array(z.enum(["word", "segment"])).max(L.granularities)])
     .optional(),
   ...callOptions,
 });
@@ -254,7 +277,7 @@ export const ocrInputSchema = z.object({
 
 // Moderation (F016.4) — classify text against safety categories, billed per token.
 export const moderationInputSchema = z.object({
-  input: z.union([z.string(), z.array(z.string())]),
+  input: z.union([z.string(), z.array(z.string()).max(L.texts)]),
   ...callOptions,
 });
 
@@ -263,7 +286,7 @@ export const moderationInputSchema = z.object({
 // TypeSafe's EntryType: text, or JSON structure (object / array / null). Typed against
 // their spec (docs.typesafe.ai/primitives/advanced.md), NOT a summary of it — the first
 // version was typed from a summary and accepted the shape the server 422s.
-const judgeEntrySchema = z.union([z.string().min(1), z.null(), z.array(z.unknown()), z.record(z.string(), z.unknown())]);
+const judgeEntrySchema = z.union([z.string().min(1), z.null(), z.array(z.unknown()).max(L.judgeEntryItems), z.record(z.string(), z.unknown())]);
 const judgeQuestionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("noul"),
@@ -288,7 +311,7 @@ const judgeQuestionSchema = z.discriminatedUnion("type", [
   }),
 ]);
 export const judgeInputSchema = z.object({
-  state: z.union([z.string().min(1), z.array(z.string()), z.record(z.string(), z.unknown())]),
+  state: z.union([z.string().min(1), z.array(z.string()).max(L.stateItems), z.record(z.string(), z.unknown())]),
   questions: z.record(z.string(), judgeQuestionSchema).refine((q) => Object.keys(q).length > 0, {
     message: "judge needs at least one question",
   }),
@@ -307,13 +330,13 @@ const pronunciationSchema = z.object({
 });
 
 export const podcastInputSchema = z.object({
-  script: z.array(z.object({ speaker: z.string(), text: z.string() })).min(1),
+  script: z.array(z.object({ speaker: z.string(), text: z.string() })).min(1).max(L.scriptLines),
   voices: z.record(z.string(), z.string()),
   format: z.string().optional(),
   /** F051.4 — same field, same semantics as tts. Applied PER LINE: ElevenLabs'
    *  /text-to-dialogue takes inputs[].text separately, so there is no composed string
    *  a replacement could run across a speaker boundary in. */
-  pronunciations: z.array(pronunciationSchema).optional(),
+  pronunciations: z.array(pronunciationSchema).max(L.pronunciations).optional(),
   ...callOptions,
 });
 
@@ -325,7 +348,7 @@ export const ttsInputSchema = z.object({
   voice: z.string(),
   /** F051 — see TtsRequest.pronunciations. The alias/ipa exclusivity is enforced in
    *  the adapter, not here: the message must name the provider that cannot do it. */
-  pronunciations: z.array(pronunciationSchema).optional(),
+  pronunciations: z.array(pronunciationSchema).max(L.pronunciations).optional(),
   /** F055 — per-word timings (Azure only). Changes the route to batch synthesis. */
   wordTimings: z.boolean().optional(),
   /** F037: voice to use if `voice` is one we know the provider has retired. Without
@@ -357,7 +380,7 @@ export const budgetSchema = z.object({
  *  is transparently swapped to `fallback` before dispatch (synchronous, no I/O). */
 export const availabilitySchema = z.object({
   autoResolve: z.boolean().optional(),
-  fallback: z.union([z.string(), z.array(z.string())]).optional(),
+  fallback: z.union([z.string(), z.array(z.string()).max(L.fallback)]).optional(),
 });
 
 export const aiConfigSchema = z.object({

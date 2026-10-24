@@ -193,6 +193,7 @@ export {
   messageSchema,
   toolSchema,
   tierSpecSchema,
+  INPUT_LIMITS,
 } from "./schema/inputs.js";
 export type {
   AiConfig,
