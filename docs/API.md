@@ -734,6 +734,11 @@ only call `.parse`, and the parameter is typed for exactly that. Your OWN zod is
 yours to upgrade — this release fixes the copy the SDK pulls in, not the one you
 validate your request bodies with.
 
+**One thing that DID change for a caller on zod 3: the error the SDK throws on bad
+input.** It is now a zod 4 `ZodError`. So `err instanceof ZodError` with `ZodError`
+imported from YOUR zod 3 is `false`, and zod 3's `err.errors` does not exist on it.
+Read `err.issues` (present in both majors) or check `err.name === "ZodError"`.
+
 ### Decisions with calibrated probabilities — `ai.judge` (Jev, F066)
 
 **Jev (TypeSafe) is not a chat model.** It does not write text; it answers typed
