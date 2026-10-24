@@ -48,7 +48,7 @@ export const tierSpecSchema = z.object({
 export const toolSchema = z.object({
   name: z.string(),
   description: z.string(),
-  parameters: z.record(z.unknown()),
+  parameters: z.record(z.string(), z.unknown()),
 });
 
 // F043.4. `arguments` is ours and canonical; `args` is what @broberg/chat emits.
@@ -66,8 +66,8 @@ export const toolCallSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    arguments: z.record(z.unknown()).optional(),
-    args: z.record(z.unknown()).optional(),
+    arguments: z.record(z.string(), z.unknown()).optional(),
+    args: z.record(z.string(), z.unknown()).optional(),
   })
   .refine((tc) => tc.arguments !== undefined || tc.args !== undefined, {
     message: "tool call needs `arguments` (canonical) or `args` (@broberg/chat's spelling)",
@@ -263,7 +263,7 @@ export const moderationInputSchema = z.object({
 // TypeSafe's EntryType: text, or JSON structure (object / array / null). Typed against
 // their spec (docs.typesafe.ai/primitives/advanced.md), NOT a summary of it — the first
 // version was typed from a summary and accepted the shape the server 422s.
-const judgeEntrySchema = z.union([z.string().min(1), z.null(), z.array(z.unknown()), z.record(z.unknown())]);
+const judgeEntrySchema = z.union([z.string().min(1), z.null(), z.array(z.unknown()), z.record(z.string(), z.unknown())]);
 const judgeQuestionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("noul"),
@@ -288,7 +288,7 @@ const judgeQuestionSchema = z.discriminatedUnion("type", [
   }),
 ]);
 export const judgeInputSchema = z.object({
-  state: z.union([z.string().min(1), z.array(z.string()), z.record(z.unknown())]),
+  state: z.union([z.string().min(1), z.array(z.string()), z.record(z.string(), z.unknown())]),
   questions: z.record(z.string(), judgeQuestionSchema).refine((q) => Object.keys(q).length > 0, {
     message: "judge needs at least one question",
   }),
@@ -372,7 +372,7 @@ export const aiConfigSchema = z.object({
   promptCache: z.boolean().optional(),
   /** F077.3 — refuse any "-latest" model id unless the call passes allowFloating: true. */
   strictPinning: z.boolean().optional(),
-  defaults: z.record(tierSchema, tierSpecSchema).optional(),
+  defaults: z.partialRecord(tierSchema, tierSpecSchema).optional(),
   // Functions can't be deeply validated — z.custom asserts the TS type and
   // passes the value through untouched.
   providers: z.record(z.string(), z.custom<ProviderAdapter>()).optional(),

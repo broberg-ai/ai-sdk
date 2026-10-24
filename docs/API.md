@@ -726,6 +726,14 @@ const { data } = await ai.contracts.extract({
 });
 ```
 
+**`schema` is anything with `parse(data): T` (v0.66+, F082).** The SDK itself moved
+to zod 4 (GHSA-mrhx-c7xc-m3w5: every zod 3 and zod <4.6.6 validates each element of an
+array that is already over its `.max()` — buddy measured 200k elements → 46 MB, 1.4 s
+on zod 3.25.76, 24 October 2026). Your own schema may still be zod 3 or zod 4: we
+only call `.parse`, and the parameter is typed for exactly that. Your OWN zod is still
+yours to upgrade — this release fixes the copy the SDK pulls in, not the one you
+validate your request bodies with.
+
 ### Decisions with calibrated probabilities — `ai.judge` (Jev, F066)
 
 **Jev (TypeSafe) is not a chat model.** It does not write text; it answers typed

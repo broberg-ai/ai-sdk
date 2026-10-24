@@ -1,7 +1,6 @@
 // Prompt-contract capability types (F5.5). These layer on chat/vision with a
 // fixed system prompt + (for extract) Zod output validation, so budget + cost
 // tracking apply uniformly. Exposed as ai.contracts.*.
-import type { z } from "zod";
 import type { Usage, Tier } from "../../types.js";
 
 export interface MockupInput {
@@ -29,8 +28,11 @@ export interface DesignResult {
 
 export interface ExtractInput<T> {
   text: string;
-  /** Zod schema the extracted data must satisfy. */
-  schema: z.ZodType<T>;
+  /** Schema the extracted data must satisfy — anything with `parse(data): T`. Typed
+   *  structurally (F082) so a zod 3 OR zod 4 schema from the caller both fit; we only
+   *  ever call `.parse`, and pinning our own zod major onto the caller's type was a
+   *  compile break waiting for every consumer still on zod 3. */
+  schema: { parse(data: unknown): T };
   instructions?: string;
   tier?: Tier;
   purpose?: string;

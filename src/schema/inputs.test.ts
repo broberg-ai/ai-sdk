@@ -42,3 +42,16 @@ test("client methods accept valid input", async () => {
   const res = await ai.chat({ prompt: "ok", temperature: 0.7 });
   expect(res.text).toContain("ok");
 });
+
+// F082 — GHSA-mrhx-c7xc-m3w5. Under zod <4.6.6 (and every zod 3) an array over its
+// .max() still validated every element: buddy measured 200k elements → 200001 issues,
+// ~46 MB, 1.4 s on zod 3.25.76. This must reject on the length alone.
+test("an oversized array is rejected on its length, not element by element (F082)", () => {
+  const huge = Array.from({ length: 200_000 }, () => "https://example.com/x.png");
+  const t0 = performance.now();
+  const r = imageInputSchema.safeParse({ prompt: "p", referenceImages: huge });
+  const ms = performance.now() - t0;
+  expect(r.success).toBe(false);
+  if (!r.success) expect(r.error.issues.length).toBe(1);
+  expect(ms).toBeLessThan(100);
+});

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { z } from "zod";
+import { z as z3 } from "zod3";
 import { CLASSIFY_ABSTAIN_SENTENCE, makeContracts, parseJsonLoose } from "./index.js";
 import type { ChatResult, Usage } from "../../types.js";
 
@@ -68,6 +69,16 @@ test("extract validates against the Zod schema", async () => {
   const schema = z.object({ name: z.string(), age: z.number() });
   const res = await makeContracts(client).extract({ text: "Sanne is 40", schema });
   expect(res.data).toEqual({ name: "Sanne", age: 40 });
+});
+
+// F082 — the SDK moved to zod 4; a consumer still on zod 3 passes a zod 3 schema. It
+// must typecheck (this file is under tsc) AND run, with both the accept and the reject.
+test("extract accepts a zod 3 schema from a consumer still on zod 3 (F082)", async () => {
+  const schema = z3.object({ name: z3.string(), age: z3.number() });
+  const ok = await makeContracts(fakeClient({ chat: ['{"name":"Sanne","age":40}'] }).client).extract({ text: "x", schema });
+  expect(ok.data).toEqual({ name: "Sanne", age: 40 });
+  const bad = makeContracts(fakeClient({ chat: ['{"name":"Sanne"}', '{"name":"Sanne"}'] }).client).extract({ text: "x", schema });
+  await expect(bad).rejects.toThrow();
 });
 
 test("extract retries once on invalid JSON, then succeeds", async () => {
