@@ -359,6 +359,8 @@ discovery.broberg.ai is the source; verify there before relying on a line here):
 | need | the EU route | since |
 |---|---|---|
 | Danish speech-to-text | `ai.transcribe` — Azure **da-DK**, a 2nd EU STT beside Voxtral | F029, v0.22.0 |
+| Danish speech-to-text (Mistral) | `override:{ provider:'mistral', model:'voxtral-small-transcribe-3-0' }`, `language:'da'` | F083, v0.67.0 — **live-verified 2026-10-25** |
+| text-to-speech | `ai.tts` with `override:{ provider:'mistral' }`, voice `voice_481` (Heidi) — no Danish-labelled voice, Danish measured intelligible | F083, v0.67.0 — **live-verified 2026-10-25** |
 | video + image ANALYSIS | `override:{ provider:'vertex', model:'gemini-2.5-flash' }` on `ai.video` / `ai.vision`. One env var `GOOGLE_VERTEX_CREDENTIALS`; region defaults `europe-west1`, `europe-west4` also works | F038, v0.27.0 — **live-verified 2026-08-11** |
 | image generation (text-to-image AND faces/portraits) | Black Forest Labs — `override:{ provider:'bfl', model:'flux-2-pro' }` (`flux-2-max` = premium), whole chain hard-pinned to EU hosts. The DEFAULT image route (fal) stays US | F023, v0.15.0; text-to-image v0.49.2 — **mock-measured 27/9, not live-verified yet** |
 

@@ -141,6 +141,9 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "mistral:voxtral-mini-latest": { unit: "per_min", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-transcribe-26-02 — alias of voxtral-mini-2602, $0.003/min" },
   "mistral:voxtral-mini-2507": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral; deprecated 2026-02-27, docs no longer show a price (NOT re-verifiable 2026-10-11)" },
   "mistral:voxtral-mini-2602": { unit: "per_min", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-transcribe-26-02 — $0.003/min (was 0.002 until 2026-10-11)" },
+  // F083 — read 2026-10-25 from Mistral's model pages (stated in source; the table keeps one checkedAt).
+  "mistral:voxtral-mini-tts-3-0": { unit: "per_1k_chars", usd: 0.013, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-tts-3-0 — $13 /M chars (read 2026-10-25)" },
+  "mistral:voxtral-small-transcribe-3-0": { unit: "per_min", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-small-transcribe-3-0 — $0.004 /min (read 2026-10-25)" },
 
   // OCR — per page.
   "mistral:ocr": { unit: "per_page", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "Mistral mail 2026-09-30 (OCR 4.1): $4/1000 pages direct; $2/1000 is the Batch-API price, which ai.ocr does not use" },

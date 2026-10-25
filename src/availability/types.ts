@@ -10,7 +10,7 @@ export type AvailabilityStatus = "available" | "suspended" | "unknown";
 export type AvailabilitySource = "default" | "refresh";
 
 /** What a model IS, so a picker can offer only chat models in a chat dropdown (F022.6). */
-export type ModelKind = "chat" | "embedding" | "judge";
+export type ModelKind = "chat" | "embedding" | "judge" | "tts" | "transcribe";
 
 /** The provider's price/quality step, as a picker labels it (F022.6). Not a tier:
  *  tiers route calls, grades only describe a row. */

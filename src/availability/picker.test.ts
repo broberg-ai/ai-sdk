@@ -28,7 +28,7 @@ test("anthropic lists the live Claude 5 family (GET /v1/models, 2026-10-11) and 
 });
 
 test("every row says what it is", () => {
-  for (const r of listModels()) expect(["chat", "embedding", "judge"]).toContain(r.kind);
+  for (const r of listModels()) expect(["chat", "embedding", "judge", "tts", "transcribe"]).toContain(r.kind);
 });
 
 test("exactly one default per picker provider — priced, available, not floating", () => {

@@ -549,6 +549,41 @@ as `voice`, or a raw Azure voice name.
 when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
 per-character and tracked like every other call.
 
+### EU speech via Mistral — Voxtral 3 (`ai.tts` + `ai.transcribe`, F083)
+
+**Text-to-speech in the EU, on the Mistral key you already have** (v0.67+). Measured
+live 25 October 2026: a Danish sentence → MP3 in 1.2 s, `usage.region: "eu"`.
+
+```ts
+const { audio, mimeType, usage } = await ai.tts({
+  text: "Din tid er rykket til torsdag klokken halv elleve.",
+  voice: "voice_481",                 // Heidi — the owner's pick for Danish
+  override: { provider: "mistral" },  // model defaults to voxtral-mini-tts-3-0
+});
+```
+
+- **There is no Danish-labelled voice** among Mistral's 66. Danish text through
+  `voice_481` (Heidi, German) and `voice_3134` (Lars, Norwegian) came back word for
+  word through speech-to-text, and the owner approved both — Heidi sounds most Danish.
+- `voice` is a **slug or UUID**, never a display name (`"Heidi"` is a 404).
+- `format`: `mp3` (default), `wav`, `pcm`, `flac`, `opus`. Price $13 per million
+  characters, booked per call.
+- **Not available here, and it throws rather than being ignored:** `ipa`
+  pronunciations (use `alias`, or azure), `wordTimings` (azure). `rate` is not
+  supported by Voxtral and is not sent.
+- The DEFAULT `ai.tts` route is unchanged (ElevenLabs, US). Upgrading does not move you.
+
+**Danish speech-to-text — a second EU route beside Azure da-DK.** The new
+`voxtral-small-transcribe-3-0` takes `language: "da"` (measured 25 October 2026,
+word for word; the older `voxtral-mini` refuses `da`). $0.004 per minute.
+
+```ts
+const { text } = await ai.transcribe({
+  audio, language: "da",
+  override: { provider: "mistral", model: "voxtral-small-transcribe-3-0" },
+});
+```
+
 ### Streaming — `ai.chatStream`
 
 For streaming chat UIs (live token deltas + agentic tool-loops), `ai.chatStream`

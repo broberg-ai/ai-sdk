@@ -120,6 +120,9 @@ const DEFAULTS: RegistryEntry[] = [
   { id: "jev-1.13.0", aliases: ["jev"], provider: "typesafe", available: true, status: "available", note: "TypeSafe Jev, pinned version. US-hosted — not for personal data. Decision model: use ai.judge, not ai.chat", source: "default", kind: "judge" },
   { id: "jev-latest", aliases: [], provider: "typesafe", available: true, status: "available", note: "MOVING alias (jev-1.13.0 as of 2026-10-01). Pin jev-1.13.0 if you tuned thresholds on confidence. US-hosted — not for personal data", source: "default", kind: "judge" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
+  // F083 — speech, measured live 2026-10-25. Not chat models: use ai.tts / ai.transcribe.
+  { id: "voxtral-mini-tts-3-0", aliases: [], provider: "mistral", available: true, status: "available", note: "Voxtral TTS 3 — use ai.tts with override:{provider:\"mistral\"} and a voice slug (voice_481 Heidi, voice_3134 Lars). No Danish-labelled voice; Danish text measured intelligible 2026-10-25. EU", source: "default", kind: "tts" },
+  { id: "voxtral-small-transcribe-3-0", aliases: [], provider: "mistral", available: true, status: "available", note: "Voxtral Small Transcribe 3 — Danish (language:\"da\") measured word-for-word 2026-10-25; the older voxtral-mini rejects da. EU", source: "default", kind: "transcribe" },
   { id: "mistral-large-latest", aliases: ["mistral-large"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-medium-latest", aliases: ["mistral-medium"], provider: "mistral", available: true, status: "available", source: "default" },
   { id: "mistral-small-latest", aliases: ["mistral-small"], provider: "mistral", available: true, status: "available", source: "default" },

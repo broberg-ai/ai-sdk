@@ -22,8 +22,24 @@ import type {
   BatchJob,
   BatchResultItem,
   TierSpec,
+  TtsRequest,
+  PodcastResult,
 } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
+
+/** F083 — the TTS model when the call names none. `ai.tts` routes by VOICE and merges
+ *  an override without a model, so spec.model arrives as the default route's model
+ *  (ElevenLabs') — Mistral refuses a request without a model (422, measured), so we
+ *  need one. Pinned to the dated id from Mistral's docs, never `-latest` (F077). */
+export const MISTRAL_TTS_DEFAULT_MODEL = "voxtral-mini-tts-3-0";
+const MISTRAL_TTS_MIME: Record<string, string> = {
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  pcm: "audio/pcm",
+  flac: "audio/flac",
+  opus: "audio/ogg",
+};
 
 export function mistralAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePerPage?: number } = {},
@@ -196,6 +212,60 @@ export function mistralAdapter(
     return { text: data.text ?? "", usage };
   }
 
+  // TTS (F083) — Voxtral TTS 3 via POST /audio/speech. Answers JSON { audio_data:
+  // base64 }, not raw bytes (measured 2026-10-25). voice_id takes a slug ("voice_481")
+  // or a UUID; a display name ("Heidi") is a 404. Billed per character of input
+  // (media-pricing.ts); a model without a price row books "unpriced", never a guess.
+  async function tts(req: TtsRequest): Promise<PodcastResult> {
+    // Never silently ignored (the F049 lesson): a caller who asked for these would
+    // otherwise believe they got them.
+    if (req.wordTimings) {
+      throw new Error("mistral tts: wordTimings is not available on Voxtral — route this call to azure for per-word timings.");
+    }
+    const format = req.format ?? "mp3";
+    const mimeType = MISTRAL_TTS_MIME[format];
+    if (!mimeType) {
+      throw new Error(`mistral tts: format "${format}" is not one Voxtral produces — use ${Object.keys(MISTRAL_TTS_MIME).join(", ")}.`);
+    }
+    assertPronunciations(req.pronunciations, "mistral");
+    for (const p of req.pronunciations ?? []) {
+      if (p.ipa !== undefined) {
+        throw new Error(
+          `mistral tts: pronunciation "${p.word}" uses ipa, which this adapter does not map to Voxtral's phoneme_hints yet — ` +
+            `use { alias } here, or route this call to azure.`,
+        );
+      }
+    }
+    const input = applyPronunciations(req.text, req.pronunciations, (p) => p.alias!);
+    const model = /^voxtral-.*tts/.test(req.spec.model) ? req.spec.model : MISTRAL_TTS_DEFAULT_MODEL;
+    const res = await fetchImpl(`${baseUrl}/audio/speech`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key()}` },
+      body: JSON.stringify({ model, input, voice_id: req.voiceId, response_format: format }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`mistral tts ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as { audio_data?: string };
+    if (!data.audio_data) throw new Error("mistral tts: response carried no audio_data");
+    const usage = freshUsage({
+      provider: "mistral",
+      region: regionOfHost(baseUrl),
+      model,
+      transport: "http",
+      capability: "tts",
+      inputTokens: 0,
+      outputTokens: 0,
+    });
+    const price = getMediaPrice("mistral", model);
+    if (price) {
+      usage.costUsd = (input.length / 1000) * price.usd;
+      usage.costBasis = "computed";
+    }
+    return { audio: new Uint8Array(Buffer.from(data.audio_data, "base64")), mimeType, usage };
+  }
+
   // Batch (F016.1) — async chat at 50% cost. Upload a JSONL of requests → create
   // a job → poll status → download results. Each line: {custom_id, body:{model,messages}}.
   async function batchSubmit(req: { items: BatchRequestItem[]; spec: TierSpec }): Promise<BatchJob> {
@@ -250,5 +320,5 @@ export function mistralAdapter(
     });
   }
 
-  return { ...base, ocr, moderate, embedding, transcribe, batchSubmit, batchStatus, batchResults };
+  return { ...base, ocr, moderate, embedding, transcribe, tts, batchSubmit, batchStatus, batchResults };
 }
