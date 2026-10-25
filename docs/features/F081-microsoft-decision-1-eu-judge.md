@@ -105,3 +105,12 @@ Additivt: ny provider, standard uændret (Jev). Minor-bump (ny capability-rute +
 **M** — 2–3 dage efter Azure-adgang findes.
 
 Kilder (læst 23/10 2026): llmreference.com/provider/microsoft-foundry/microsoft-decision-1, hermes-agent.nousresearch.com/docs/plugins/ms-decision-provider, nuget ElBruno.AI.Decisions.Foundry. Microsofts egen API-reference er ikke læst endnu — gøres i F081.2.
+
+## Målt 26/10 2026 (F081.1)
+
+- **Login:** abonnement `aea479dd…` hører til Entra-tenant senti.info (`69977c23-…`). Login som cb@senti.info via device-code — Lens udfyldte microsoft.com/devicelogin, MFA (6-cifret kode) gik til ejeren via ARS. Ingen `az` CLI nødvendig; token fra Azure CLI's offentlige app-id.
+- **Ressource:** `ai-sdk-decision-eu` (kind AIServices, S0, swedencentral) i resource group `ai-sdk-generic-group`. Endpoint `https://ai-sdk-decision-eu.cognitiveservices.azure.com` (også `…services.ai.azure.com`). Den eksisterende `ai-sdk-generic` er SpeechServices F0 og kan ikke rumme model-deployments.
+- **Deployment:** `decision-1-eu`, Microsoft-Decision-1 v1, SKU DataZoneStandard, capacity 500 (standard), `versionUpgradeOption: NoAutoUpgrade`. Genskabes idempotent af `scripts/azure-decision-deploy.sh`.
+- **Udløb:** Azures model-katalog for swedencentral angiver `deprecationDate 2027-02-04` på både SKU'en og `deprecation.inference` — efter den dato modtager deploymentet ikke kald. En efterfølger skal vælges og deployes før; cardmem (Scope) har bedt om det.
+- **Wire-form:** POST `{endpoint}/providers/microsoft/v1/systemone`, header `api-key`, body `{ model: <deployment>, state, questions }` — samme spørgsmålsform som TypeSafe (score = array af 2–10 niveauer). Svar `{ model: "microsoft-decision-1", answers: { <id>: { type, noul | choice+probabilities+confidence | score+probabilities+legend+confidence } }, usage: { input_tokens, output_tokens } }` — samme felter som Jev. 0,7 s.
+- **Region pr. kald:** svaret har `x-ms-region: Sweden Central` og `azureml-destination-region: swedencentral`. Det er en måling pr. kald, bedre end en erklæring — adapteren læser `x-ms-region` og sætter `usage.region` ud fra den (se F081.3).
