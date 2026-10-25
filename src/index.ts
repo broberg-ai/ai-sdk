@@ -30,6 +30,7 @@ export type { AzureVoiceInfo } from "./providers/azure.js";
 export { vertexAdapter } from "./providers/vertex.js";
 export { deeplAdapter } from "./providers/deepl.js";
 export { typesafeAdapter } from "./providers/typesafe.js";
+export { microsoftDecisionAdapter, MICROSOFT_DECISION_DEFAULT_DEPLOYMENT } from "./providers/microsoft-decision.js";
 export { falAdapter } from "./providers/fal.js";
 export type { FalAdapterConfig } from "./providers/fal.js";
 export { bflAdapter, bflCredits } from "./providers/bfl.js";

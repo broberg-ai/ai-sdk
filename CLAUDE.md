@@ -363,6 +363,7 @@ discovery.broberg.ai is the source; verify there before relying on a line here):
 | text-to-speech | `ai.tts` with `override:{ provider:'mistral' }`, voice `voice_481` (Heidi) — no Danish-labelled voice, Danish measured intelligible | F083, v0.67.0 — **live-verified 2026-10-25** |
 | video + image ANALYSIS | `override:{ provider:'vertex', model:'gemini-2.5-flash' }` on `ai.video` / `ai.vision`. One env var `GOOGLE_VERTEX_CREDENTIALS`; region defaults `europe-west1`, `europe-west4` also works | F038, v0.27.0 — **live-verified 2026-08-11** |
 | image generation (text-to-image AND faces/portraits) | Black Forest Labs — `override:{ provider:'bfl', model:'flux-2-pro' }` (`flux-2-max` = premium), whole chain hard-pinned to EU hosts. The DEFAULT image route (fal) stays US | F023, v0.15.0; text-to-image v0.49.2 — **mock-measured 27/9, not live-verified yet** |
+| typed decisions (judge) | `ai.judge` with `override:{ provider:'microsoft-decision', model:'microsoft-decision-1-v1' }` or env `AI_JUDGE_PROVIDER=microsoft-decision` — Microsoft-Decision-1, Sweden Central, Data Zone Standard. Retired by Azure 2027-02-04 | F081, v0.68.0 — **live-verified 2026-10-26** |
 
 **Upgrading does NOT move you to the EU.** These are overrides you set deliberately on
 your PII paths. The owner refused to switch everyone's default silently.

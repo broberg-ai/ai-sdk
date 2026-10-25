@@ -173,7 +173,7 @@ export async function fetchElevenLabsCatalogue(
 /** Providers we route to that publish NO model-list API we call. The report names
  *  them every month so their absence is a stated limit, not a silent one; their
  *  prices are covered by the hand-checked media table (F050). */
-export const NO_LIST_API = ["fal", "bfl", "azure", "deepl", "recraft", "typesafe", "vertex"] as const;
+export const NO_LIST_API = ["fal", "bfl", "azure", "deepl", "recraft", "typesafe", "microsoft-decision", "vertex"] as const;
 
 // ── Aggregate ───────────────────────────────────────────────────────────
 export interface CatalogueFetchResult {

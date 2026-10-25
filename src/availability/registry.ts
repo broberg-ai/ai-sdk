@@ -119,6 +119,9 @@ const DEFAULTS: RegistryEntry[] = [
   // pass a requireKnown gate and neither claims to be the other.
   { id: "jev-1.13.0", aliases: ["jev"], provider: "typesafe", available: true, status: "available", note: "TypeSafe Jev, pinned version. US-hosted — not for personal data. Decision model: use ai.judge, not ai.chat", source: "default", kind: "judge" },
   { id: "jev-latest", aliases: [], provider: "typesafe", available: true, status: "available", note: "MOVING alias (jev-1.13.0 as of 2026-10-01). Pin jev-1.13.0 if you tuned thresholds on confidence. US-hosted — not for personal data", source: "default", kind: "judge" },
+  // F081 — Microsoft-Decision-1, our deployment decision-1-eu (Sweden Central, Data Zone
+  // Standard). Version 1 pinned (NoAutoUpgrade). Azure's catalogue: inference ends 2027-02-04.
+  { id: "microsoft-decision-1-v1", aliases: ["decision-1"], provider: "microsoft-decision", available: true, status: "available", note: "Microsoft-Decision-1 v1 — EU decision model for ai.judge (Sweden Central, Data Zone Standard = EU+NO+CH). Same answer shape as Jev. Version 1 is RETIRED by Azure on 2027-02-04 (inference stops) — a successor must be deployed before then. Built on Qwen3.5-9B; Microsoft plans to move it to MAI/OpenAI models, so answers may change between versions", source: "default", kind: "judge" },
   // ── Mistral (EU / GDPR) ──────────────────────────────────────────────────
   // F083 — speech, measured live 2026-10-25. Not chat models: use ai.tts / ai.transcribe.
   { id: "voxtral-mini-tts-3-0", aliases: [], provider: "mistral", available: true, status: "available", note: "Voxtral TTS 3 — use ai.tts with override:{provider:\"mistral\"} and a voice slug (voice_481 Heidi, voice_3134 Lars). No Danish-labelled voice; Danish text measured intelligible 2026-10-25. EU", source: "default", kind: "tts" },

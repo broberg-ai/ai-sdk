@@ -14,6 +14,7 @@ import { azureAdapter } from "./azure.js";
 import { vertexAdapter } from "./vertex.js";
 import { deeplAdapter } from "./deepl.js";
 import { typesafeAdapter } from "./typesafe.js";
+import { microsoftDecisionAdapter } from "./microsoft-decision.js";
 import { falAdapter } from "./fal.js";
 import { bflAdapter } from "./bfl.js";
 import type { ProviderAdapter } from "../types.js";
@@ -32,6 +33,7 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   vertex: vertexAdapter(),
   deepl: deeplAdapter(),
   typesafe: typesafeAdapter(),
+  "microsoft-decision": microsoftDecisionAdapter(),
   fal: falAdapter(),
   bfl: bflAdapter(),
 };

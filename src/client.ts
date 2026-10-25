@@ -162,6 +162,19 @@ const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral
  *  Thresholds tuned on confidence stay valid until we move it in a release.
  *  US-hosted — there is no EU route for this capability. */
 const DEFAULT_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-1.13.0", transport: "http" };
+/** F081 — the EU judge route. Chosen client-wide by AI_JUDGE_PROVIDER=microsoft-decision
+ *  (or per call by override), so an app switches Jev ↔ Decision-1 without code changes. */
+const EU_JUDGE_SPEC: TierSpec = { provider: "microsoft-decision", model: "microsoft-decision-1-v1", transport: "http" };
+const JUDGE_SPECS: Record<string, TierSpec> = { typesafe: DEFAULT_JUDGE_SPEC, "microsoft-decision": EU_JUDGE_SPEC };
+/** Read once per createAI. Unknown value THROWS — fail closed like an unknown tier: a
+ *  typo must never silently leave personal data on the US route it was meant to leave. */
+function judgeSpecFromEnv(): TierSpec {
+  const v = process.env.AI_JUDGE_PROVIDER;
+  if (v === undefined || v === "") return DEFAULT_JUDGE_SPEC;
+  const spec = JUDGE_SPECS[v];
+  if (!spec) throw new Error(`createAI: AI_JUDGE_PROVIDER="${v}" is not a judge route — use ${Object.keys(JUDGE_SPECS).join(" or ")}`);
+  return spec;
+}
 /** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
@@ -182,6 +195,7 @@ export const ROUTED_SPECS: readonly TierSpec[] = [
   DEFAULT_OCR_SPEC,
   DEFAULT_MODERATION_SPEC,
   DEFAULT_JUDGE_SPEC,
+  EU_JUDGE_SPEC,
   DEFAULT_PODCAST_SPEC,
   DEFAULT_TTS_SPEC,
   DEFAULT_BATCH_SPEC,
@@ -230,6 +244,7 @@ export function createAI(config: AiConfig = {}): AiClient {
   // that could read the fleet's env keys, and never on the fleet's defaults.
   if (cfg.byok) assertByokProviders(cfg.providers);
   const providers = cfg.providers ?? defaultProviders;
+  const judgeSpec = judgeSpecFromEnv();
   // Explicit wins — including explicit NONE. `undefined` (omitted) auto-wires
   // from env (F034); `null` is a deliberate opt-out for a consumer that already
   // reports its own costs and would otherwise be double-counted (F034.3); an
@@ -828,7 +843,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       input = judgeInputSchema.parse(input);
       const stateText = typeof input.state === "string" ? input.state : JSON.stringify(input.state);
       return runCapability({
-        primary: withOverride(DEFAULT_JUDGE_SPEC, input.override, "judge"),
+        primary: withOverride(judgeSpec, input.override, "judge"),
         fallback: input.fallback,
         capability: "judge",
         purpose: input.purpose,

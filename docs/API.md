@@ -869,6 +869,37 @@ try {
 `purpose` is a free-text label that rides into the sink (`agent_runs.purpose`)
 for per-feature cost attribution.
 
+### The EU judge — Microsoft-Decision-1 (`ai.judge`, F081, v0.68+)
+
+**Same questions, same answer shape as Jev — processed in the EU.** Our deployment
+`decision-1-eu` runs in Microsoft Foundry, Sweden Central, **Data Zone Standard** (the
+EU data zone: EU + Norway + Switzerland). Measured live 26 October 2026: ~0.5 s,
+`usage.region: "eu"`, $0.042 per million tokens (Azure retail price list).
+
+```ts
+// per call
+await ai.judge({ state, questions, override: { provider: "microsoft-decision", model: "microsoft-decision-1-v1" } });
+// or app-wide, no code change: AI_JUDGE_PROVIDER=microsoft-decision
+await ai.judge({ state, questions });
+```
+
+- Env: `AZURE_DECISION_ENDPOINT`, `AZURE_DECISION_API_KEY`, `AZURE_DECISION_DEPLOYMENT`
+  (default `decision-1-eu`). Ships dark without them.
+- `AI_JUDGE_PROVIDER` takes `typesafe` (default, Jev) or `microsoft-decision`; anything
+  else **throws at `createAI()`** — a typo must not leave data on the US route.
+- **`usage.region` is measured per call** from Azure's `x-ms-region` response header.
+  No header → `"unknown"`, never an assumed `"eu"`.
+- **BYOK (a customer's own Azure resource):**
+  `createAI({ byok: true, providers: { "microsoft-decision": byokAdapter(microsoftDecisionAdapter, { endpoint, apiKey, deployment }) } })`.
+  An explicit key WITHOUT its own endpoint is refused — a key only works on its own resource.
+- **Version 1 is retired by Azure on 2027-02-04** (inference stops). A successor must be
+  deployed before then. Microsoft has said the model will move from Qwen3.5-9B to its own
+  MAI/OpenAI models, so answers can change between versions — the version is pinned.
+- **Jev vs Decision-1:** personal/customer/health data → Decision-1 (EU). Jev stays the
+  default for content without personal data. Microsoft's own figures claim slightly
+  higher accuracy and ~2.8× lower latency than Jev, with Jev better calibrated; there
+  are no independent numbers yet — our own comparison is F081.4.
+
 ### A model picker — `listModels()` (0.62+, F022.6)
 
 Build a "choose a model per provider" dropdown on the registry, not on a local list.

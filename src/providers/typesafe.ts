@@ -14,23 +14,8 @@
 import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { regionOfHost } from "../cost/region.js";
 import { freshUsage } from "../cost/usage.js";
-import type {
-  JudgeAnswer,
-  JudgeEntry,
-  JudgeQuestion,
-  JudgeRequest,
-  JudgeResult,
-  ProviderAdapter,
-} from "../types.js";
-
-type WireAnswer = {
-  noul?: number;
-  choice?: string;
-  score?: number;
-  probabilities?: Record<string, number>;
-  legend?: Record<string, JudgeEntry>;
-  confidence?: number;
-};
+import type { JudgeRequest, JudgeResult, ProviderAdapter } from "../types.js";
+import { mapSystemOneAnswers, type SystemOneWireAnswer } from "./system-one.js";
 
 export function typesafeAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
@@ -42,37 +27,6 @@ export function typesafeAdapter(
     const k = config.apiKey ?? process.env.TYPESAFE_API_KEY;
     if (!k) throw new Error("typesafe adapter: API key not set (env TYPESAFE_API_KEY)");
     return k;
-  }
-
-  /** Map one wire answer onto the question we ASKED. The type comes from our own
-   *  question, not from the response: the live API returns a `type` field that the
-   *  documentation's example does not show, and a contract read off an undocumented
-   *  field is a contract that breaks the day the docs are right. */
-  function mapAnswer(id: string, q: JudgeQuestion, a: WireAnswer | undefined): JudgeAnswer {
-    // A question that came back without an answer must not become `undefined` sitting
-    // where an answer should be — that is a "no" arriving shaped like a "yes".
-    if (!a) throw new Error(`typesafe judge: no answer returned for question "${id}"`);
-    const num = (v: unknown, field: string): number => {
-      if (typeof v !== "number") throw new Error(`typesafe judge: "${id}" answer has no numeric ${field}`);
-      return v;
-    };
-    if (q.type === "noul") return { type: "noul", noul: num(a.noul, "noul") };
-    if (q.type === "choice") {
-      if (typeof a.choice !== "string") throw new Error(`typesafe judge: "${id}" answer has no choice`);
-      return {
-        type: "choice",
-        choice: a.choice,
-        probabilities: a.probabilities ?? {},
-        confidence: num(a.confidence, "confidence"),
-      };
-    }
-    return {
-      type: "score",
-      score: num(a.score, "score"),
-      probabilities: a.probabilities ?? {},
-      legend: a.legend ?? {},
-      confidence: num(a.confidence, "confidence"),
-    };
   }
 
   async function judge(req: JudgeRequest): Promise<JudgeResult> {
@@ -90,14 +44,11 @@ export function typesafeAdapter(
     }
     const data = (await res.json()) as {
       model?: string;
-      answers?: Record<string, WireAnswer>;
+      answers?: Record<string, SystemOneWireAnswer>;
       usage?: { input_tokens?: number; output_tokens?: number };
     };
 
-    const answers: Record<string, JudgeAnswer> = {};
-    for (const [id, q] of Object.entries(req.questions)) {
-      answers[id] = mapAnswer(id, q, data.answers?.[id]);
-    }
+    const answers = mapSystemOneAnswers("typesafe judge", req.questions, data.answers);
 
     // Book the cost on the model that ANSWERED: asking for "jev-latest" comes back as
     // "jev-1.13.0". A version we have no price for is then booked "unpriced" by

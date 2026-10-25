@@ -185,6 +185,12 @@ export const PRICING: Record<string, PricingEntry> = {
   // "jev-latest" — so a future version arrives unpriced and is booked as such, rather
   // than inheriting a number nobody checked for it.
   "typesafe:jev-1.13.0": { inputPer1M: 0.042, outputPer1M: 0, version: "2026-10-01-typesafe-official" },
+  // F081 — Microsoft-Decision-1, Azure retail prices API (prices.azure.com, read
+  // 2026-10-26): ONE meter, "Microsoft Decision 1 1M Tokens" = $0.042, effective
+  // 2026-10-01, same in swedencentral as everywhere. A single meter does not say output
+  // is free, so output is priced at the same rate — at ~3 output tokens per call that
+  // over-counts by a rounding error rather than risking an under-count.
+  "microsoft-decision:microsoft-decision-1-v1": { inputPer1M: 0.042, outputPer1M: 0.042, version: "2026-10-26-azure-retail" },
 
   // Cached input tokens cost 10% of the input rate — $0.03 vs $0.30 (2.5-flash) and
   // $0.01 vs $0.10 (2.5-flash-lite), read from ai.google.dev/gemini-api/docs/pricing
