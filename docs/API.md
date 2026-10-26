@@ -552,19 +552,24 @@ per-character and tracked like every other call.
 ### EU speech via Mistral — Voxtral 3 (`ai.tts` + `ai.transcribe`, F083)
 
 **Text-to-speech in the EU, on the Mistral key you already have** (v0.67+). Measured
-live 25 October 2026: a Danish sentence → MP3 in 1.2 s, `usage.region: "eu"`.
+live 25 October 2026: a sentence → MP3 in 1.2–2.6 s, `usage.region: "eu"`.
 
 ```ts
 const { audio, mimeType, usage } = await ai.tts({
-  text: "Din tid er rykket til torsdag klokken halv elleve.",
-  voice: "voice_481",                 // Heidi — the owner's pick for Danish
+  text: "Hi Linda, what do you say we have an online meeting tomorrow?",
+  voice: "voice_3150",                // James (en_us) — the owner's pick for English, 26/10
   override: { provider: "mistral" },  // model defaults to voxtral-mini-tts-3-0
 });
 ```
 
-- **There is no Danish-labelled voice** among Mistral's 66. Danish text through
-  `voice_481` (Heidi, German) and `voice_3134` (Lars, Norwegian) came back word for
-  word through speech-to-text, and the owner approved both — Heidi sounds most Danish.
+- **NOT FOR DANISH — owner's verdict 26 October 2026.** Mistral has no Danish-labelled
+  voice among its 66. On 25/10 Danish text through `voice_481` (Heidi, German) and
+  `voice_3134` (Lars, Norwegian) came back word for word through speech-to-text and the
+  owner approved both on a first listen — but hearing Heidi read Danish in a real
+  surface (ARS) the next day he said: «Hun talte på tysk det dur ikke.» **A
+  speech-to-text round-trip proves the words are intelligible, not that the accent is
+  Danish.** For Danish speech use Azure `da-DK` (e.g. `da-DK-ChristelNeural`, what ARS
+  switched to) — also EU.
 - `voice` is a **slug or UUID**, never a display name (`"Heidi"` is a 404).
 - `format`: `mp3` (default), `wav`, `pcm`, `flac`, `opus`. Price $13 per million
   characters, booked per call.

@@ -73,3 +73,7 @@ Additivt (ny override-rute). Minor-bump. Standarder uændrede.
 
 ## Effort estimate
 **S–M** — ½–1 dag.
+
+## Rettelse 26/10 2026
+
+Ejeren hørte Heidi (voice_481) læse dansk i ARS og afviste den: «Hun talte på tysk det dur ikke.» Godkendelsen 25/10 holdt ikke i en rigtig flade. Tale-til-tekst-kontrollen beviste forståelige ord, ikke dansk accent. Voxtral TTS 3 bruges til engelsk (James, voice_3150, ejerens valg 26/10); dansk tale går til Azure da-DK. ARS kører på da-DK-ChristelNeural.
