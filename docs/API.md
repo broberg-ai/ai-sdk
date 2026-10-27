@@ -549,6 +549,32 @@ as `voice`, or a raw Azure voice name.
 when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
 per-character and tracked like every other call.
 
+### Images via Mistral — `ai.image` on the Mistral key you already have (F084, v0.69+)
+
+For an org that pays with its own Mistral key (BYOK) instead of a BFL key. Mistral's
+`image_generation` tool, called through the Conversations API — Black Forest Labs
+renders it behind Mistral. Measured live 27 October 2026: ~7 s, JPEG 1152×896,
+`usage.region: "eu"`.
+
+```ts
+const { url, usage } = await ai.image({
+  prompt: "A friendly illustration of a team brainstorming around a whiteboard",
+  override: { provider: "mistral", model: "mistral-small-2603" },  // cheapest that works; large/medium also do
+});
+```
+
+- **`url` expires after 1 hour** (a signed Azure blob link, `mistralaiblackforestprod`).
+  Download it if you keep it. The blob host resolves to Azure Sweden Central [Likely —
+  from the datacenter code, not documented by Mistral]. `store:false`: nothing is kept
+  in Mistral's conversation history.
+- **Price: $0.10 per image + tokens, booked `costBasis: "estimated"`.** Mistral's
+  pricing page says only "tool APIs are priced per call"; the figure is from third-party
+  guides. Tokens (~200 in / ~100 out) are exact. BFL `flux-2-pro` is cheaper per image.
+- **Only the prompt is honoured.** `width/height`, `referenceImages`, `finetune`, `loras`,
+  `seed`, `outputFormat` THROW with a hint to route to bfl — never silently dropped.
+  The style is the model's interpretation; "flat illustration" came back photographic.
+- **BYOK:** `createAI({ byok: true, providers: { mistral: byokAdapter(mistralAdapter, { apiKey }) } })`.
+
 ### EU speech via Mistral — Voxtral 3 (`ai.tts` + `ai.transcribe`, F083)
 
 **Text-to-speech in the EU, on the Mistral key you already have** (v0.67+). Measured

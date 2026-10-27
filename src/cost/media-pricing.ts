@@ -142,6 +142,10 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "mistral:voxtral-mini-2507": { unit: "per_min", usd: 0.002, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "mistral.ai/pricing — Voxtral; deprecated 2026-02-27, docs no longer show a price (NOT re-verifiable 2026-10-11)" },
   "mistral:voxtral-mini-2602": { unit: "per_min", usd: 0.003, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-transcribe-26-02 — $0.003/min (was 0.002 until 2026-10-11)" },
   // F083 — read 2026-10-25 from Mistral's model pages (stated in source; the table keeps one checkedAt).
+  // F084 — Mistral's image_generation tool. NOT on mistral.ai/pricing ("tool APIs are
+  // priced per call"); two third-party guides (puter.com, curlscape.com, read 2026-10-27)
+  // give $100 per 1,000 images on top of tokens. Booked "estimated" until Mistral confirms.
+  "mistral:image_generation": { unit: "per_image", usd: 0.1, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "third-party (puter.com, curlscape.com) $100/1k images — not on mistral.ai/pricing (read 2026-10-27)" },
   "mistral:voxtral-mini-tts-3-0": { unit: "per_1k_chars", usd: 0.013, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-tts-3-0 — $13 /M chars (read 2026-10-25)" },
   "mistral:voxtral-small-transcribe-3-0": { unit: "per_min", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-small-transcribe-3-0 — $0.004 /min (read 2026-10-25)" },
 

@@ -24,6 +24,8 @@ import type {
   TierSpec,
   TtsRequest,
   PodcastResult,
+  ImageRequest,
+  ImageResult,
 } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
 import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
@@ -266,6 +268,75 @@ export function mistralAdapter(
     return { audio: new Uint8Array(Buffer.from(data.audio_data, "base64")), mimeType, usage };
   }
 
+  // Image (F084) — Mistral's image_generation tool via the Conversations API. No agent
+  // needed: model + tools inline (measured 2026-10-27). store:false keeps nothing at
+  // Mistral and answers with a short-lived URL (1 h) instead of a file_id — the same
+  // {url} contract the bfl route has. Black Forest Labs renders it behind Mistral.
+  // Mistral publishes no per-image price ("tool APIs are priced per call"), so the
+  // image part is booked "estimated" from media-pricing.ts; the tokens are exact.
+  async function image(req: ImageRequest): Promise<ImageResult> {
+    const unsupported = (
+      [
+        ["width/height", req.width !== undefined || req.height !== undefined],
+        ["referenceImages", !!req.referenceImages?.length],
+        ["finetune", req.finetune !== undefined],
+        ["loras", !!req.loras?.length],
+        ["seed", req.seed !== undefined],
+        ["outputFormat", req.outputFormat !== undefined],
+      ] as const
+    ).filter(([, set]) => set).map(([name]) => name);
+    if (unsupported.length) {
+      throw new Error(
+        `mistral image: ${unsupported.join(", ")} not supported by Mistral's image tool — route this call to bfl (override:{ provider:"bfl", model:"flux-2-pro" }).`,
+      );
+    }
+    const res = await fetchImpl(`${baseUrl}/conversations`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key()}` },
+      body: JSON.stringify({
+        model: req.spec.model,
+        inputs: req.prompt,
+        tools: [{ type: "image_generation" }],
+        store: false,
+        // Without this the model echoes the URL back as markdown — ~350 output tokens
+        // per image (measured) for text nobody reads.
+        instructions: "Call image_generation exactly once with the user's request as the prompt. Afterwards reply only: done",
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`mistral image ${res.status}: ${body.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      outputs?: { type?: string; name?: string; info?: { result?: string }; content?: unknown }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number; connectors?: Record<string, number> };
+    };
+    const exec = data.outputs?.find((o) => o.type === "tool.execution" && o.name === "image_generation");
+    let url: string | undefined;
+    try {
+      url = exec?.info?.result ? (JSON.parse(exec.info.result) as { url?: string }).url : undefined;
+    } catch {
+      url = undefined; // a non-JSON result is handled exactly like a missing one, below
+    }
+    if (!url) {
+      const said = data.outputs?.find((o) => o.type === "message.output")?.content;
+      throw new Error(`mistral image: the model returned no image (${String(said ?? "no output").slice(0, 200)})`);
+    }
+    const usage = freshUsage({
+      provider: "mistral",
+      region: regionOfHost(baseUrl),
+      model: req.spec.model,
+      transport: "http",
+      capability: "image",
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+    });
+    const images = data.usage?.connectors?.image_generation ?? 1;
+    usage.costUsd += images * (getMediaPrice("mistral", "image_generation")?.usd ?? 0);
+    usage.costBasis = "estimated";
+    return { url, usage };
+  }
+
   // Batch (F016.1) — async chat at 50% cost. Upload a JSONL of requests → create
   // a job → poll status → download results. Each line: {custom_id, body:{model,messages}}.
   async function batchSubmit(req: { items: BatchRequestItem[]; spec: TierSpec }): Promise<BatchJob> {
@@ -320,5 +391,5 @@ export function mistralAdapter(
     });
   }
 
-  return { ...base, ocr, moderate, embedding, transcribe, tts, batchSubmit, batchStatus, batchResults };
+  return { ...base, ocr, moderate, embedding, transcribe, tts, image, batchSubmit, batchStatus, batchResults };
 }
