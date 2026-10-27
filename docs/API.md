@@ -105,6 +105,10 @@ run a pre-flight budget check, time the call, stamp call-context onto `Usage`,
 and report to the sink. Adapters never see budgets or sinks — that's the
 facade's job.
 
+**Every client needs an agent name** (owner order 2026-10-15: every AI call says who
+made it). `createAI({ agentName: "<your repo>" })`, or env `UPMETRICS_AGENT_NAME` —
+otherwise `createAI()` throws. Not needed with an explicit `costSink` or `costSink: null`.
+
 ### 3.2 Routing — Tiers
 A **Tier** is a named intent, not a model. The built-ins, **pinned to dated model ids**
 (F077, v0.56+):
@@ -569,7 +573,9 @@ const { url, usage } = await ai.image({
   in Mistral's conversation history.
 - **Price: $0.10 per image + tokens, booked `costBasis: "estimated"`.** Mistral's
   pricing page says only "tool APIs are priced per call"; the figure is from third-party
-  guides. Tokens (~200 in / ~100 out) are exact. BFL `flux-2-pro` is cheaper per image.
+  guides. Tokens (~200 in / ~100 out) are exact. For comparison BFL `flux-2-pro` is $0.12
+  and `flux-2-max` $0.25 per image (BFL reports the real billed cost) — Mistral's
+  estimated $0.10 is not more expensive, if the estimate holds.
 - **Only the prompt is honoured.** `width/height`, `referenceImages`, `finetune`, `loras`,
   `seed`, `outputFormat` THROW with a hint to route to bfl — never silently dropped.
   The style is the model's interpretation; "flat illustration" came back photographic.
