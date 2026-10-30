@@ -264,6 +264,12 @@ export const PRICING: Record<string, PricingEntry> = {
   "mistral:ministral-3b-2512": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.1, version: "2026-10-08-docs.mistral.ai" },
   "mistral:voxtral-small-2507": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-10-08-docs.mistral.ai" },
   "mistral:voxtral-small-latest": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-10-08-docs.mistral.ai" },
+  // F085.4 — Z.ai GLM 5.3 served by Mistral. Mistral deprecation mail 2026-10-30: "$1.4 per 1M
+  // input tokens, $0.14 per 1M cached input tokens, and $4.4 per 1M output tokens". Aliases per
+  // /v1/models (measured 30/10): zai-glm-5, zai-glm-latest → zai-glm-5-3.
+  "mistral:zai-glm-5-3": { inputPer1M: 1.4, cacheReadPer1M: 0.14, outputPer1M: 4.4, version: "2026-10-30-mistral-deprecation-mail" },
+  "mistral:zai-glm-5": { inputPer1M: 1.4, cacheReadPer1M: 0.14, outputPer1M: 4.4, version: "2026-10-30-mistral-deprecation-mail" },
+  "mistral:zai-glm-latest": { inputPer1M: 1.4, cacheReadPer1M: 0.14, outputPer1M: 4.4, version: "2026-10-30-mistral-deprecation-mail" },
   "mistral:codestral-2508": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },
   "mistral:mistral-code-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },
   "mistral:mistral-code-fim-latest": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 0.9, version: "2026-10-08-docs.mistral.ai" },

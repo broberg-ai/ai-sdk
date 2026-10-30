@@ -126,3 +126,10 @@ test("Mistral Small 4 (the fast/cheap tiers) is $0.15/$0.60, not Small 3's $0.10
     expect(computeCost(spec.provider, spec.model, 1_000_000, 1_000_000)).toBeCloseTo(0.75, 9);
   }
 });
+
+test("Z.ai GLM 5.3 via Mistral is priced from Mistral's 2026-10-30 mail, all three ids (F085.4)", () => {
+  for (const id of ["zai-glm-5-3", "zai-glm-5", "zai-glm-latest"]) {
+    expect(computeCost("mistral", id, 1_000_000, 1_000_000)).toBeCloseTo(5.8, 9);
+    expect(getPrice("mistral", id)?.cacheReadPer1M).toBe(0.14);
+  }
+});
