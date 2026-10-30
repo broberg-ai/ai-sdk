@@ -227,8 +227,10 @@ export const PRICING: Record<string, PricingEntry> = {
   // with no end date; booking the sale would under-report the day it ends, unseen.
   // Cached input shows as "$0.14": that is 10% of $1.36 rounded to cents (the sale's
   // "$0.07" is 0.068 the same way), and 10% is the rate measured for Mistral (F039).
-  "mistral:mistral-large-4": { inputPer1M: 1.36, cacheReadPer1M: 0.136, outputPer1M: 4.18, version: "2026-10-08-docs.mistral.ai" },
-  "mistral:mistral-large-4-0": { inputPer1M: 1.36, cacheReadPer1M: 0.136, outputPer1M: 4.18, version: "2026-10-08-docs.mistral.ai" },
+  // F085.1 — Mistral News 29/10 2026 («Le Chonk»): "Starting today, Mistral Large 4 is priced at
+  // $0.70 input / M, $0.07 cached input / M, and $2.10 output / M tokens." Was 1.36/4.18 (8/10).
+  "mistral:mistral-large-4": { inputPer1M: 0.7, cacheReadPer1M: 0.07, outputPer1M: 2.1, version: "2026-10-29-mistral-news-mail" },
+  "mistral:mistral-large-4-0": { inputPer1M: 0.7, cacheReadPer1M: 0.07, outputPer1M: 2.1, version: "2026-10-29-mistral-news-mail" },
   "mistral:mistral-medium-latest": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   "mistral:mistral-medium-3.5": { inputPer1M: 1.5, cacheReadPer1M: 0.15, outputPer1M: 7.5, version: MS },
   // F076.2 — Mistral's model API now lists mistral-medium-3 as an alias of Medium 3.5

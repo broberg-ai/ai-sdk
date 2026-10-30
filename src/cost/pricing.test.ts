@@ -76,14 +76,15 @@ test("every pricing entry carries a version", () => {
   expect(getPrice(spec.provider, spec.model)?.version).toBeString();
 });
 
-test("Mistral Large 4 is priced at LIST price, Large 3 unchanged (F074.1)", () => {
-  // Measured 2026-10-08: docs.mistral.ai lists $1.36 / $0.14 cached (= 0.136 shown to the cent) / $4.18, with a 50%
-  // preview sale we deliberately do not book (it would under-report the day it ends).
+test("Mistral Large 4 is priced at its new LIST price, Large 3 unchanged (F074.1, F085.1)", () => {
+  // 2026-10-08 the list was $1.36/$4.18 with a 50% preview sale we did not book. Mistral News
+  // 2026-10-29: "Starting today, Mistral Large 4 is priced at $0.70 / $0.07 cached / $2.10" —
+  // that is now the list price, so it is booked.
   for (const id of ["mistral-large-4", "mistral-large-4-0"]) {
-    expect(computeCost("mistral", id, 1_000_000, 1_000_000)).toBeCloseTo(5.54, 9);
-    expect(getPrice("mistral", id)?.cacheReadPer1M).toBe(0.136);
+    expect(computeCost("mistral", id, 1_000_000, 1_000_000)).toBeCloseTo(2.8, 9);
+    expect(getPrice("mistral", id)?.cacheReadPer1M).toBe(0.07);
   }
-  // `-latest` still answers as Large 3 (2512) — moving it is Christian's call, not a price edit.
+  // `-latest` still answers as Large 3 (2512) until Mistral moves it on 2026-11-12 (F085.2).
   for (const id of ["mistral-large-latest", "mistral-large-2512"]) {
     expect(computeCost("mistral", id, 1_000_000, 1_000_000)).toBeCloseTo(2.0, 9);
   }

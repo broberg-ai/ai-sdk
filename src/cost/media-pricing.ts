@@ -146,6 +146,10 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   // priced per call"); two third-party guides (puter.com, curlscape.com, read 2026-10-27)
   // give $100 per 1,000 images on top of tokens. Booked "estimated" until Mistral confirms.
   "mistral:image_generation": { unit: "per_image", usd: 0.1, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "third-party (puter.com, curlscape.com) $100/1k images — not on mistral.ai/pricing (read 2026-10-27)" },
+  // F085.1 — Mistral deprecation mail 30/10 2026: the Voxtral 2 transcribe models retire
+  // 2027-04-30; these are the stated successors and prices.
+  "mistral:voxtral-mini-transcribe-3-0": { unit: "per_min", usd: 0.0035, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "Mistral deprecation mail 2026-10-30 — Voxtral Mini Transcribe 3, $0.0035/min" },
+  "mistral:voxtral-mini-transcribe-realtime-3-0": { unit: "per_min", usd: 0.008, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "Mistral deprecation mail 2026-10-30 — Voxtral Mini Transcribe Realtime 3, $0.008/min" },
   "mistral:voxtral-mini-tts-3-0": { unit: "per_1k_chars", usd: 0.013, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-mini-tts-3-0 — $13 /M chars (read 2026-10-25)" },
   "mistral:voxtral-small-transcribe-3-0": { unit: "per_min", usd: 0.004, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "docs.mistral.ai/models/voxtral-small-transcribe-3-0 — $0.004 /min (read 2026-10-25)" },
 

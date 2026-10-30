@@ -132,8 +132,8 @@ const DEFAULTS: RegistryEntry[] = [
   // F077 — the dated ids the tiers are pinned to. The -latest rows above stay: callers
   // still pass them, and an unknown id would fail a requireKnown gate.
   // F022.6 — default = what the `smart` tier calls (a test holds them together).
-  { id: "mistral-large-2512", aliases: [], provider: "mistral", available: true, status: "available", source: "default", grade: "standard", default: true },
-  { id: "mistral-medium-2604", aliases: [], provider: "mistral", available: true, status: "available", source: "default" },
+  { id: "mistral-large-2512", aliases: [], provider: "mistral", available: true, status: "available", note: "Mistral Large 3 — RETIRES 2027-04-30 (Mistral deprecation mail 2026-10-30); Mistral recommends Mistral Large 4 (mistral-large-4-0). Backs the smart/powerful tiers until then (F085.3)", source: "default", grade: "standard", default: true },
+  { id: "mistral-medium-2604", aliases: [], provider: "mistral", available: true, status: "available", note: "Mistral Medium 3.5 — RETIRES 2027-04-30 (Mistral deprecation mail 2026-10-30); Mistral recommends Mistral Large 4. Backs the vision tier until then (F085.3)", source: "default" },
   { id: "mistral-small-2603", aliases: [], provider: "mistral", available: true, status: "available", source: "default", grade: "cheap" },
 ];
 
