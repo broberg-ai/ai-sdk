@@ -275,6 +275,8 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.podcast` | `{ script: {speaker,text}[], voices: {speaker→voiceId} }` | `{ audio, mimeType, usage }` | elevenlabs eleven_v3 (per-char) |
 | `ai.tts` | `{ text, voice, lang?, format? }` | `{ audio, mimeType, usage }` | elevenlabs eleven_multilingual_v2 (per-char); or Azure neural EU via `override:{provider:"azure"}` (F026) |
 
+> **Override with only a provider (F083.4, v0.70.1).** On `ai.tts` / `ai.transcribe`, `override:{provider}` without a model no longer inherits the default route's model: Azure is booked as `neural` (tts) / `fast-transcription` (stt), Mistral TTS as `voxtral-mini-tts-3-0`. Mistral **transcribe** refuses without a model — pick the Voxtral model yourself (e.g. `voxtral-small-transcribe-3-0` for Danish). Up to 0.70.0 Azure calls were booked as `eleven_multilingual_v2` / `whisper-1`, and a Mistral transcribe without model POSTed `whisper-1`.
+
 All accept `CallOptions`: `{ tier?, override?, fallback?, purpose?, labels? }`.
 
 **Attribution labels** — `labels?: Record<string,string>` rides each call into the

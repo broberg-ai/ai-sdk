@@ -57,7 +57,10 @@ test("no capability merges an override without going through a named merge helpe
 test("the unguarded merges are the speech ones, and each states a reason", () => {
   const code = readFileSync(SRC, "utf8");
   const calls = [...code.matchAll(/mergeUnguarded\(\s*DEFAULT_(\w+)_SPEC[^)]*?,\s*"([^"]+)"/g)];
-  const named = calls.map((m) => m[1]!.toLowerCase()).sort();
+  // F083.4: tts + transcribe go through voiceRoute, which wraps mergeUnguarded but drops
+  // the base model when the override switches provider without naming one.
+  const voice = [...code.matchAll(/voiceRoute\(\s*DEFAULT_(\w+)_SPEC/g)];
+  const named = [...calls, ...voice].map((m) => m[1]!.toLowerCase()).sort();
 
   // Exactly the three capabilities measured to not send spec.model to the provider.
   expect(named).toEqual(["podcast", "transcribe", "tts"]);

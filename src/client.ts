@@ -13,6 +13,7 @@ import { buildVideoMessages, VIDEO_DEFAULT_TIER } from "./capabilities/video.js"
 import { buildTranslateMessages, TRANSLATE_DEFAULT_TIER } from "./capabilities/translate.js";
 import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
+import { MISTRAL_TTS_DEFAULT_MODEL } from "./providers/mistral.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
 import { checkVoice, VoiceUnavailableError } from "./voices/index.js";
 import {
@@ -184,6 +185,19 @@ const DEFAULT_VECTORIZE_SPEC: TierSpec = { provider: "recraft", model: "vectoriz
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
 const DEFAULT_TTS_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_multilingual_v2", transport: "http" };
+/** F083.4 — the model a voice call is BOOKED under when an override switches provider
+ *  without naming one. Azure has no model choice (it routes by voice), so its entry is a
+ *  label. Mistral TTS has one pinned default (F083). Mistral transcribe is deliberately
+ *  absent: there are several priced Voxtral models, so the caller must choose. */
+const TTS_MODEL_BY_PROVIDER: Record<string, string> = {
+  elevenlabs: DEFAULT_TTS_SPEC.model,
+  azure: "neural",
+  mistral: MISTRAL_TTS_DEFAULT_MODEL,
+};
+const TRANSCRIBE_MODEL_BY_PROVIDER: Record<string, string> = {
+  openai: DEFAULT_TRANSCRIBE_SPEC.model,
+  azure: "fast-transcription",
+};
 /** Batch route (F016.1) — Mistral batch jobs (50% cost), cheap default model. */
 const DEFAULT_BATCH_SPEC: TierSpec = { provider: "mistral", model: "mistral-small-2603", transport: "http" }; // F077.4
 
@@ -310,6 +324,29 @@ export function createAI(config: AiConfig = {}): AiClient {
   function mergeUnguarded(base: TierSpec, override: Partial<TierSpec> | undefined, why: string): TierSpec {
     void why;
     return { ...base, ...override };
+  }
+
+  /** F083.4 — a voice route's override that names a DIFFERENT provider but no model.
+   *  `mergeUnguarded` kept the base route's model, so `ai.tts({override:{provider:"azure"}})`
+   *  was booked as `eleven_multilingual_v2` and `ai.transcribe({override:{provider:"mistral"}})`
+   *  POSTED `whisper-1` to Mistral. The base model now never travels to another provider:
+   *  the new provider's own label from `defaults` is used, and a provider with no entry
+   *  refuses — we do not pick a priced model on the caller's behalf. */
+  function voiceRoute(
+    base: TierSpec,
+    override: Partial<TierSpec> | undefined,
+    defaults: Record<string, string>,
+    label: string,
+  ): TierSpec {
+    const spec = mergeUnguarded(base, override, "routes by voice, not by model — the adapter never sends spec.model");
+    if (!override?.provider || override.provider === base.provider || override.model) return spec;
+    const model = defaults[override.provider];
+    if (!model) {
+      throw new Error(
+        `${label}: override:{provider:"${override.provider}"} needs a model — pass override:{ provider:"${override.provider}", model:"…" }.`,
+      );
+    }
+    return { ...spec, model };
   }
 
   function pickProvider(name: string): ProviderAdapter {
@@ -921,7 +958,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       // failure and retried against the fallback chain.
       const { voiceId } = checkVoice(input.voice, { fallback: input.voiceFallback, throwIfUnavailable: true });
       return runCapability({
-        primary: mergeUnguarded(DEFAULT_TTS_SPEC, input.override, "routes by voice, not by model — the adapter never sends spec.model"),
+        primary: voiceRoute(DEFAULT_TTS_SPEC, input.override, TTS_MODEL_BY_PROVIDER, "tts"),
         fallback: input.fallback,
         capability: "tts",
         purpose: input.purpose,
@@ -966,7 +1003,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       input = transcribeInputSchema.parse(input);
       const audio = await resolveAudio(input.audio);
       return runCapability({
-        primary: mergeUnguarded(DEFAULT_TRANSCRIBE_SPEC, input.override, "routes by voice, not by model — the adapter never sends spec.model"),
+        primary: voiceRoute(DEFAULT_TRANSCRIBE_SPEC, input.override, TRANSCRIBE_MODEL_BY_PROVIDER, "transcribe"),
         fallback: input.fallback,
         capability: "transcribe",
         purpose: input.purpose,

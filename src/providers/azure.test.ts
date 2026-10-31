@@ -246,3 +246,36 @@ test("transcribe: phrases → definition.phraseList biasing; absent → no phras
   await adapter.transcribe!({ audio: new Uint8Array([1]), language: "da", spec });
   expect(JSON.parse(cap.form!.get("definition") as string).phraseList).toBeUndefined();
 });
+
+// ── F083.4: an override naming only the provider must not inherit the default route's model ──
+test("F083.4 ai.tts override:{provider:'azure'} without model is booked as azure 'neural', not ElevenLabs'", async () => {
+  const { createAI } = await import("../client.js");
+  const cap: { url?: string; body?: string; headers?: Headers } = {};
+  const ai = createAI({ providers: { azure: azureAdapter({ apiKey: "k", fetch: azureFetch(cap) }) } });
+  const { usage } = await ai.tts({ text: "Goddag", voice: "christel", lang: "da-DK", override: { provider: "azure" } });
+  expect(usage.provider).toBe("azure");
+  expect(usage.model).toBe("neural");
+  expect(usage.model).not.toBe("eleven_multilingual_v2");
+});
+
+test("F083.4 ai.transcribe override:{provider:'azure'} without model is not booked as whisper-1", async () => {
+  const { createAI } = await import("../client.js");
+  const cap: { url?: string; form?: FormData; headers?: Headers } = {};
+  const ai = createAI({
+    providers: { azure: azureAdapter({ apiKey: "k", fetch: sttFetch(cap, { durationMilliseconds: 60000, combinedPhrases: [{ text: "hej" }] }) }) },
+  });
+  const { text, usage } = await ai.transcribe({ audio: new Uint8Array([1, 2, 3]), language: "da", override: { provider: "azure" } });
+  expect(text).toBe("hej");
+  expect(usage.provider).toBe("azure");
+  expect(usage.model).toBe("fast-transcription");
+});
+
+test("F083.4 ai.transcribe override:{provider:'mistral'} without model refuses instead of POSTing whisper-1", async () => {
+  const { createAI } = await import("../client.js");
+  const { mistralAdapter } = await import("./mistral.js");
+  let called = false;
+  const fetchSpy = (async () => { called = true; return new Response("{}"); }) as unknown as typeof fetch;
+  const ai = createAI({ providers: { mistral: mistralAdapter({ apiKey: "k", fetch: fetchSpy }) } });
+  await expect(ai.transcribe({ audio: new Uint8Array([1]), override: { provider: "mistral" } })).rejects.toThrow(/needs a model/);
+  expect(called).toBe(false);
+});
