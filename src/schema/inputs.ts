@@ -147,9 +147,11 @@ export const chatInputSchema = z.object({
   tools: z.array(toolSchema).max(L.tools).optional(),
   maxTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
-  /** F074.3 — Mistral reasoning ("thinking") before the answer. Large 4 thinks by
-   *  default; the SDK sends "none" for it unless you ask for "high". Mistral only. */
-  reasoningEffort: z.enum(["none", "high"]).optional(),
+  /** F074.3 / F085.5 — Mistral reasoning ("thinking") before the answer. Large 4 thinks
+   *  hard by default; the SDK sends "low" for it unless you ask. Since the 2026-10-29
+   *  Large 4 release Mistral REFUSES "none" for it (low/medium/high only — measured
+   *  2026-10-31). Mistral only. */
+  reasoningEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   /** "json" requests JSON-object output (OpenAI-compatible response_format). */
   responseFormat: z.enum(["json", "text"]).optional(),
   ...callOptions,
@@ -162,6 +164,8 @@ export const visionInputSchema = z.object({
   /** System instruction — drives instruction-following far better than stuffing
    *  rules into `prompt` for instruction-heavy vision tasks (e.g. a JSON critic). */
   system: z.string().optional(),
+  /** F085.5 — as on chat: Mistral reasoning effort (Large 4). Mistral only. */
+  reasoningEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   ...callOptions,
 });
 

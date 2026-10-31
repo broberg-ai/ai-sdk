@@ -6,12 +6,12 @@ import { mistralAdapter } from "./mistral.js";
 import { buildChatBody } from "./openai-compatible.js";
 
 const MISTRAL = { name: "mistral", supportsReasoningEffort: true } as const;
-const req = (model: string, reasoningEffort?: "none" | "high") =>
+const req = (model: string, reasoningEffort?: "none" | "low" | "medium" | "high") =>
   ({ messages: [{ role: "user", content: "q" }], spec: { provider: "mistral", model, transport: "http" }, reasoningEffort }) as never;
 
-test("Large 4 gets reasoning_effort 'none' when the caller says nothing", () => {
-  expect(buildChatBody(req("mistral-large-4"), MISTRAL).reasoning_effort).toBe("none");
-  expect(buildChatBody(req("mistral-large-4-0"), MISTRAL).reasoning_effort).toBe("none");
+test("Large 4 gets reasoning_effort 'low' when the caller says nothing (F085.5 — Mistral refuses 'none' since 2026-10-29)", () => {
+  expect(buildChatBody(req("mistral-large-4"), MISTRAL).reasoning_effort).toBe("low");
+  expect(buildChatBody(req("mistral-large-4-0"), MISTRAL).reasoning_effort).toBe("low");
 });
 
 test("an explicit 'high' wins over the default", () => {
@@ -54,5 +54,11 @@ test("end to end: ai.chat and ai.chatStream put it on the wire", async () => {
   // "high" on the stream too: the default alone would pass even if chatStream dropped the field.
   for await (const _ of ai.chatStream({ prompt: "x", override, reasoningEffort: "high" })) { /* drain */ }
 
-  expect(bodies.map((b) => b.reasoning_effort)).toEqual(["none", "high", "none", "high"]);
+  expect(bodies.map((b) => b.reasoning_effort)).toEqual(["low", "high", "low", "high"]);
+
+  // F085.5 — ai.vision forwards it too (jam: vision dropped it, so 'high' still sent the default).
+  bodies.length = 0;
+  await ai.vision({ image: "https://x/a.png", prompt: "x", override });
+  await ai.vision({ image: "https://x/a.png", prompt: "x", override, reasoningEffort: "medium" });
+  expect(bodies.map((b) => b.reasoning_effort)).toEqual(["low", "medium"]);
 });

@@ -261,7 +261,7 @@ export interface ChatRequest {
   temperature?: number;
   /** F074.3 — Mistral's `reasoning_effort`. Undefined = the SDK's default: "none" for
    *  models that think by default (Large 4), nothing for the rest. */
-  reasoningEffort?: "none" | "high";
+  reasoningEffort?: "none" | "low" | "medium" | "high";
   /** "json" → request JSON-object output where the provider supports it (F009). */
   responseFormat?: "json" | "text";
 }

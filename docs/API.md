@@ -665,15 +665,21 @@ const data = JSON.parse(text);
 **Mistral Large 4 (`mistral-large-4`) thinks before it answers unless told not to.**
 Measured 2026-10-08 on six everyday tasks (JSON extraction, classification, a Danish
 SMS, arithmetic): same answers as Large 3, but ~27x the output tokens, ~10x the
-latency and ~40x the price per call. So the SDK sends `reasoning_effort: "none"` for
-Large 4 by default. Ask for thinking explicitly when the task needs it:
+latency and ~40x the price per call. So the SDK sends the LOWEST effort Mistral
+accepts for Large 4 by default — **`"low"` since 0.69.3 (F085.5)**. Up to 0.69.2 it sent
+`"none"`, which Mistral's 2026-10-29 Large 4 release refuses ("supported values: high,
+low, medium", measured 2026-10-31): **every Large 4 call through 0.69.0–0.69.2 failed
+with a 400.** Take 0.69.3+. Ask for more thinking explicitly when the task needs it:
 
 ```ts
-ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4" } })                          // no thinking (default)
-ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4" }, reasoningEffort: "high" }) // thinks first
+ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4-0" } })                          // low (default)
+ai.chat({ prompt, override: { provider: "mistral", model: "mistral-large-4-0" }, reasoningEffort: "high" }) // thinks hard
+ai.vision({ image, prompt, override: { provider: "mistral", model: "mistral-large-4-0" }, reasoningEffort: "medium" }) // vision too (0.69.3+)
 ```
 
-- Values are `"none"` and `"high"` — Large 4 refuses `"low"` (measured).
+- Values accepted by the SDK: `"none" | "low" | "medium" | "high"`. Large 4 itself takes
+  `low`/`medium`/`high` today (measured 2026-10-31: 47 / 40 / 84 output tokens on a
+  trivial question). The 2026-10-08 note that Large 4 refused `"low"` is no longer true.
 - **Mistral only.** An OpenAI-compatible provider without the option REFUSES it rather
   than dropping it silently. Large 3 (`mistral-large-latest` as of 2026-10-08) rejects
   the field, so the default is applied only to the exact Large 4 ids.

@@ -621,7 +621,7 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.vision) throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
-          return adapter.vision({ messages, spec });
+          return adapter.vision({ messages, spec, reasoningEffort: input.reasoningEffort });
         },
       });
     },

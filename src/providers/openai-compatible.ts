@@ -48,7 +48,10 @@ export interface OpenAICompatibleConfig {
   supportsReasoningEffort?: boolean;
 }
 
-/** Models that think before answering unless told not to (F074.3). Measured 2026-10-08
+/** Models that think before answering unless told not to (F074.3). Default sent: "low"
+ *  (F085.5) — Mistral's 2026-10-29 Large 4 release refuses "none" ("supported values:
+ *  high, low, medium", measured 2026-10-31); "low" answered a trivial question in 47
+ *  output tokens vs 84 at high. Measured 2026-10-08
  *  on mistral-large-4: by default ~27x the output tokens, ~10x the latency and ~40x the
  *  price of Large 3 on simple tasks, with the same answers; reasoning_effort "none" put
  *  it back at Large 3's latency. An exact list, not a "mistral-large-*" pattern: Large 3
@@ -271,7 +274,7 @@ export function buildChatBody(
     throw new Error(`${config.name} adapter: reasoningEffort is a Mistral option and is not supported here`);
   }
   const effort =
-    req.reasoningEffort ?? (config.supportsReasoningEffort && REASONS_BY_DEFAULT.has(req.spec.model) ? "none" : undefined);
+    req.reasoningEffort ?? (config.supportsReasoningEffort && REASONS_BY_DEFAULT.has(req.spec.model) ? "low" : undefined);
   if (effort !== undefined) body.reasoning_effort = effort;
   // F039: Mistral caches a shared prefix at 10% of the input rate, but ONLY when the
   // request carries a cache key. Measured 2026-08-27: without it, an identical
