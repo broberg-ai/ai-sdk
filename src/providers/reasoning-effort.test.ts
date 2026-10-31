@@ -62,3 +62,16 @@ test("end to end: ai.chat and ai.chatStream put it on the wire", async () => {
   await ai.vision({ image: "https://x/a.png", prompt: "x", override, reasoningEffort: "medium" });
   expect(bodies.map((b) => b.reasoning_effort)).toEqual(["low", "medium"]);
 });
+
+test("ai.vision forwards maxTokens and temperature (F087 — Anthropic otherwise stops at 1024)", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const f = (async (_url: string | URL, init?: RequestInit) => {
+    const b = JSON.parse(String(init?.body));
+    bodies.push(b);
+    return new Response(JSON.stringify({ model: b.model, choices: [{ message: { content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } }), { status: 200 });
+  }) as typeof fetch;
+  const ai = createAI({ providers: { mistral: mistralAdapter({ apiKey: "k", fetch: f }) }, costSink: null });
+  await ai.vision({ image: "https://x/a.png", prompt: "x", override: { provider: "mistral", model: "mistral-medium-2604" }, maxTokens: 16000, temperature: 0.2 });
+  expect(bodies[0]!.max_tokens).toBe(16000);
+  expect(bodies[0]!.temperature).toBe(0.2);
+});

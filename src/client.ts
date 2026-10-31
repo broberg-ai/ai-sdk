@@ -617,11 +617,11 @@ export function createAI(config: AiConfig = {}): AiClient {
         labels: input.labels,
         allowFloating: input.allowFloating,
         estIn: estTokens(input.prompt) + 1000, // prompt + ~1k image payload
-        estOut: 512,
+        estOut: input.maxTokens ?? 512,
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.vision) throw new Error(`createAI: provider "${spec.provider}" does not support vision`);
-          return adapter.vision({ messages, spec, reasoningEffort: input.reasoningEffort });
+          return adapter.vision({ messages, spec, reasoningEffort: input.reasoningEffort, maxTokens: input.maxTokens, temperature: input.temperature });
         },
       });
     },

@@ -166,6 +166,10 @@ export const visionInputSchema = z.object({
   system: z.string().optional(),
   /** F085.5 — as on chat: Mistral reasoning effort (Large 4). Mistral only. */
   reasoningEffort: z.enum(["none", "low", "medium", "high"]).optional(),
+  /** F087 — as on chat. Without it the adapter's default applies: Anthropic stops at
+   *  1024 output tokens (measured 2026-10-31: a vision SVG cut off mid-path). */
+  maxTokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(2).optional(),
   ...callOptions,
 });
 
