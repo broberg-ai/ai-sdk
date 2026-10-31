@@ -1,16 +1,178 @@
 {
-  "generatedAt": "2026-10-20T11:06:01.218Z",
-  "checkedAt": "2026-10-20T11:06:01.218Z",
-  "modelCount": 470,
+  "generatedAt": "2026-10-31T04:01:50.919Z",
+  "checkedAt": "2026-10-31T04:01:50.919Z",
+  "modelCount": 456,
   "models": [
     {
-      "provider": "minimax",
-      "model": "minimax/minimax-m3.1-flash:free",
-      "name": "MiniMax: MiniMax M3.1 Flash (free)",
+      "provider": "particle-ai",
+      "model": "particle-ai/particle-1",
+      "name": "Particle AI: Particle-1",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
+        "input": 0.05,
+        "output": 0.5,
+        "cacheReadPer1M": 0.003
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Particle-1 is a token-efficient agentic coding model from Particle AI, post-trained on DeepSeek V4.1 Flash. It is suited for software engineering work such as terminal workflows, codebase changes, and data...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
+      "model": "openai/gpt-6.1-terra-pro",
+      "name": "OpenAI: GPT-6.1 Terra Pro",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1,
+        "output": 5,
+        "cacheReadPer1M": 0.05
+      },
+      "inputModalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1050000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "frontier"
+      ],
+      "description": "GPT-6.1 Terra Pro is the same underlying model as [GPT-6.1 Terra](https://openrouter.ai/openai/gpt-6.1-terra), served with `reasoning.mode` set to `pro` for higher-quality responses on complex tasks. **Cost note:** pro mode spends far more...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
+      "model": "openai/gpt-6.1-terra-pro:batch",
+      "name": "OpenAI: GPT-6.1 Terra Pro (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.5,
+        "output": 2.5,
+        "cacheReadPer1M": 0.025
+      },
+      "inputModalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1050000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "frontier"
+      ],
+      "description": "GPT-6.1 Terra Pro is the same underlying model as [GPT-6.1 Terra](https://openrouter.ai/openai/gpt-6.1-terra), served with `reasoning.mode` set to `pro` for higher-quality responses on complex tasks. **Cost note:** pro mode spends far more...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
+      "model": "openai/gpt-6.1-terra",
+      "name": "OpenAI: GPT-6.1 Terra",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1,
+        "output": 5,
+        "cacheReadPer1M": 0.05
+      },
+      "inputModalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1050000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "GPT-6.1 Terra is the mid-tier model in OpenAI's GPT-6.1 series, priced below GPT-6.1 Sol. It is suited for everyday agentic, coding, and writing work, is particularly strong at understanding screenshots...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openai",
+      "model": "openai/gpt-6.1-terra:batch",
+      "name": "OpenAI: GPT-6.1 Terra (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.5,
+        "output": 2.5,
+        "cacheReadPer1M": 0.025
+      },
+      "inputModalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1050000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "GPT-6.1 Terra is the mid-tier model in OpenAI's GPT-6.1 series, priced below GPT-6.1 Sol. It is suited for everyday agentic, coding, and writing work, is particularly strong at understanding screenshots...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "moonshotai",
+      "model": "moonshotai/kimi-k3.1-pro",
+      "name": "MoonshotAI: Kimi K3.1 Pro",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 2,
+        "output": 10,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -20,7 +182,68 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1000000,
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "frontier"
+      ],
+      "description": "Kimi K3.1 Pro is Moonshot AI's flagship open-weight multimodal reasoning model and a post-trained successor to Kimi K3, with a 1M-token context window. It is built for long-horizon coding, 3D...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "recursive",
+      "model": "recursive/flint-v1.0:free",
+      "name": "Recursive: Flint (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Flint is an open-weight mixture-of-experts model from Recursive, with about 2.5B active parameters out of 40B total, built by Recursive's autoresearch system Eureka Machine for coding agents. It is suited...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "minimax",
+      "model": "minimax/minimax-m3.1-flash",
+      "name": "MiniMax: MiniMax M3.1 Flash",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.15,
+        "output": 0.6,
+        "cacheReadPer1M": 0.015
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -135,9 +358,9 @@
       "name": "Reflection: Beam 1.0 501B A23B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.3,
+        "input": 0.25,
         "output": 1,
-        "cacheReadPer1M": 0.04
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text"
@@ -184,6 +407,37 @@
         "agentic"
       ],
       "description": "Mercury 3 is a diffusion-based language model from Inception, and the lab's most capable model to date. It is suited for agentic workflows and real-time applications where latency compounds, such...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "prism-ml",
+      "model": "prism-ml/ternary-bonsai-2-9b",
+      "name": "PrismML: Ternary Bonsai 2 9B",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.08,
+        "output": 0.13,
+        "cacheReadPer1M": 0.04
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Ternary Bonsai 2 9B is PrismML’s compact, open-weight language model for conversational AI, reasoning, and tool use. Built on Qwen3.5, it uses ternary weights packed into 2 bits for efficient...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -775,8 +1029,8 @@
       "name": "Mistral: Mistral Large 4",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.68,
-        "output": 2.09,
+        "input": 0.7,
+        "output": 2.1,
         "cacheReadPer1M": 0.07
       },
       "inputModalities": [
@@ -817,7 +1071,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 262144,
+      "contextLength": 1000000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -990,7 +1244,7 @@
         "frontier"
       ],
       "description": "Claude Sonnet 5.5 is Anthropic's Sonnet-class model for well-scoped everyday work, succeeding Claude Sonnet 5 as a direct upgrade. It is especially strong at building features, fixing bugs, and producing...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -1026,38 +1280,6 @@
       "isModerated": true,
       "source": "openrouter",
       "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "typesafe",
-      "model": "typesafe/jev-router",
-      "name": "TypeSafe: Jev Router",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "audio",
-        "file",
-        "image",
-        "text",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic"
-      ],
-      "description": "Jev Router picks the best model and reasoning effort for each request, balancing quality, speed, and cost. It runs on [Jev](https://openrouter.ai/~typesafe/jev-latest), TypeSafe's first System One model, and adapts as your...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -1637,30 +1859,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "nvidia",
-      "model": "nvidia/switchyard",
-      "name": "NVIDIA: Switchyard",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [],
-      "description": "Switchyard is an open-source model router that switches between multiple models to optimize the cost of requests. By default it will use OpenRouter market data to select the most popular...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "xiaomi",
       "model": "xiaomi/mimo-v2.6-pro-ultraspeed",
       "name": "Xiaomi: MiMo-V2.6-Pro-UltraSpeed",
@@ -1905,9 +2103,9 @@
       "name": "DeepSeek: DeepSeek Pro Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.225,
-        "output": 8,
-        "cacheReadPer1M": 0.23
+        "input": 0.1035,
+        "output": 4,
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text"
@@ -1935,9 +2133,9 @@
       "name": "DeepSeek: DeepSeek Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.07,
-        "output": 0.5,
-        "cacheReadPer1M": 0.008
+        "input": 0.0205,
+        "output": 0.228,
+        "cacheReadPer1M": 0.0189
       },
       "inputModalities": [
         "text",
@@ -2046,7 +2244,7 @@
         "agentic"
       ],
       "description": "This model always redirects to the latest model in the GPT Astra family.",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -2078,7 +2276,7 @@
         "agentic"
       ],
       "description": "This model always redirects to the latest model in the GPT Sol family.",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -2089,9 +2287,9 @@
       "name": "OpenAI: GPT Terra Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 2,
-        "output": 12,
-        "cacheReadPer1M": 0.2
+        "input": 1,
+        "output": 5,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "file",
@@ -2110,7 +2308,7 @@
         "agentic"
       ],
       "description": "This model always redirects to the latest model in the GPT Terra family.",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -2252,9 +2450,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.056,
-        "output": 0.12,
-        "cacheReadPer1M": 0.0016
+        "input": 0.045,
+        "output": 0.5,
+        "cacheReadPer1M": 0.006
       },
       "inputModalities": [
         "text",
@@ -2779,7 +2977,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.06,
-        "output": 0.25,
+        "output": 0.15,
         "cacheReadPer1M": 0.015
       },
       "inputModalities": [
@@ -2838,9 +3036,9 @@
       "name": "Z.ai: GLM Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.037476,
-        "output": 0.16,
-        "cacheReadPer1M": 0.006
+        "input": 0.0237,
+        "output": 0.1142,
+        "cacheReadPer1M": 0.0237
       },
       "inputModalities": [
         "text",
@@ -2906,9 +3104,9 @@
       "name": "Z.ai: GLM 5.3 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.037476,
-        "output": 0.16,
-        "cacheReadPer1M": 0.006
+        "input": 0.0237,
+        "output": 0.1142,
+        "cacheReadPer1M": 0.0237
       },
       "inputModalities": [
         "text",
@@ -3098,9 +3296,9 @@
       "name": "Z.ai: GLM Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.079,
+        "input": 0.0699,
         "output": 1.4,
-        "cacheReadPer1M": 0.078
+        "cacheReadPer1M": 0.0689
       },
       "inputModalities": [
         "text"
@@ -3153,9 +3351,9 @@
       "name": "Z.ai: GLM 5.3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.079,
+        "input": 0.0699,
         "output": 1.4,
-        "cacheReadPer1M": 0.078
+        "cacheReadPer1M": 0.0689
       },
       "inputModalities": [
         "text"
@@ -3211,9 +3409,9 @@
       "name": "Qwen: Qwen3.8 27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.04,
-        "output": 1.35,
-        "cacheReadPer1M": 0.018
+        "input": 0.15,
+        "output": 1.875,
+        "cacheReadPer1M": 0.0375
       },
       "inputModalities": [
         "text",
@@ -3497,6 +3695,35 @@
     },
     {
       "provider": "liquid",
+      "model": "liquid/lfm-2.5-2.6b",
+      "name": "LiquidAI: LFM2.5-2.6B",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.35,
+        "output": 0.5,
+        "cacheReadPer1M": 0.04
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 128000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "LFM2.5-2.6B is a compact reasoning model from Liquid AI. It is suited for agent workflows, data extraction, RAG, and long-context processing. Liquid advises against using it for agentic coding or...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "liquid",
       "model": "liquid/lfm-2.5-2.6b:free",
       "name": "LiquidAI: LFM2.5-2.6B (free)",
       "pricing": {
@@ -3712,9 +3939,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.00392,
-        "output": 0.12,
-        "cacheReadPer1M": 0.00336
+        "input": 0.0359,
+        "output": 0.3,
+        "cacheReadPer1M": 0.0349
       },
       "inputModalities": [
         "text"
@@ -3743,9 +3970,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0731",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.44,
-        "output": 1.32,
-        "cacheReadPer1M": 0.014
+        "input": 0.119,
+        "output": 0.238,
+        "cacheReadPer1M": 0.0238
       },
       "inputModalities": [
         "text"
@@ -4274,47 +4501,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "openrouter",
-      "model": "openrouter/auto-beta",
-      "name": "Auto Router (Beta)",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "audio",
-        "file",
-        "video"
-      ],
-      "outputModalities": [
-        "text",
-        "image"
-      ],
-      "contextLength": 2000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic"
-      ],
-      "description": "The experimental version of our Auto Router where we test new improvements. Use it to get the latest and greatest version of our general purpose auto router, but expect beta...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "moonshotai",
       "model": "moonshotai/kimi-k3",
       "name": "MoonshotAI: Kimi K3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.239,
-        "output": 11.936,
-        "cacheReadPer1M": 0.21
+        "input": 0.192,
+        "output": 15,
+        "cacheReadPer1M": 0.182
       },
       "inputModalities": [
         "text",
@@ -5242,9 +5436,9 @@
       "name": "Z.ai: GLM 5.2",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.62,
-        "output": 2.42,
-        "cacheReadPer1M": 0.14
+        "input": 0.006,
+        "output": 7,
+        "cacheReadPer1M": 0.005
       },
       "inputModalities": [
         "text"
@@ -5266,38 +5460,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "openrouter",
-      "model": "openrouter/fusion",
-      "name": "OpenRouter: Fusion",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [],
-      "description": "Fusion turns your prompt into a small multi-model deliberation. A panel of expert models (see below) analyzes your prompt in parallel with web search and web fetch enabled, then a...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "moonshotai",
       "model": "moonshotai/kimi-k2.7-code",
       "name": "MoonshotAI: Kimi K2.7 Code",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6712,
-        "output": 3.35,
-        "cacheReadPer1M": 0.18
+        "input": 0.6,
+        "output": 3.5,
+        "cacheReadPer1M": 0.15
       },
       "inputModalities": [
         "text",
@@ -6277,9 +6447,9 @@
       "name": "MoonshotAI: Kimi Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.238,
-        "output": 16,
-        "cacheReadPer1M": 0.228
+        "input": 0.1548,
+        "output": 9.3388,
+        "cacheReadPer1M": 0.15
       },
       "inputModalities": [
         "text",
@@ -6444,8 +6614,8 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.1,
-        "output": 0.95,
-        "cacheReadPer1M": 0.05
+        "output": 0.9,
+        "cacheReadPer1M": 0.025
       },
       "inputModalities": [
         "text",
@@ -6477,9 +6647,8 @@
       "name": "Qwen: Qwen3.6 27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 2,
-        "cacheReadPer1M": 0.025
+        "input": 0.45,
+        "output": 2.7
       },
       "inputModalities": [
         "text",
@@ -6639,9 +6808,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.95526,
-        "output": 1.91052,
-        "cacheReadPer1M": 0.079605
+        "input": 1.6,
+        "output": 3.2,
+        "cacheReadPer1M": 0.135
       },
       "inputModalities": [
         "text"
@@ -6729,9 +6898,9 @@
       "name": "Xiaomi: MiMo-V2.5-Pro",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.435,
-        "output": 0.87,
-        "cacheReadPer1M": 0.0036
+        "input": 0.48,
+        "output": 1.8,
+        "cacheReadPer1M": 0.096
       },
       "inputModalities": [
         "text"
@@ -6759,9 +6928,9 @@
       "name": "Xiaomi: MiMo-V2.5",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.14,
-        "output": 0.28,
-        "cacheReadPer1M": 0.0028
+        "input": 0.4,
+        "output": 2,
+        "cacheReadPer1M": 0.08
       },
       "inputModalities": [
         "text",
@@ -6850,33 +7019,6 @@
       ],
       "description": "This model always redirects to the latest model in the Claude Opus family.",
       "isModerated": true,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openrouter",
-      "model": "openrouter/pareto-code",
-      "name": "Pareto Code Router",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 2000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "coding"
-      ],
-      "description": "The Pareto Router maintains a tiered shortlist of strong coding models, ranked by [Artificial Analysis](https://artificialanalysis.ai/) coding percentiles. Set min_coding_score between 0 and 1 on the [pareto-router plugin](https://openrouter.ai/docs/guides/routing/routers/pareto-router#the-min_coding_score-parameter) to control how...",
-      "isModerated": false,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -6986,9 +7128,9 @@
       "name": "Z.ai: GLM 5.1",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.966,
-        "output": 3.036,
-        "cacheReadPer1M": 0.1794
+        "input": 1.4,
+        "output": 4.4,
+        "cacheReadPer1M": 0.26
       },
       "inputModalities": [
         "text"
@@ -7015,9 +7157,9 @@
       "name": "Google: Gemma 4 26B A4B ",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09,
-        "output": 0.3,
-        "cacheReadPer1M": 0.05
+        "input": 0.0675,
+        "output": 0.225,
+        "cacheReadPer1M": 0.0375
       },
       "inputModalities": [
         "image",
@@ -7195,37 +7337,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "arcee-ai",
-      "model": "arcee-ai/trinity-large-thinking",
-      "name": "Arcee AI: Trinity Large Thinking",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 0.8,
-        "cacheReadPer1M": 0.06
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "reasoning",
-        "frontier"
-      ],
-      "description": "Trinity Large Thinking is a powerful open source reasoning model from the team at Arcee AI. It shows strong performance in PinchBench, agentic workloads, and reasoning tasks. Launch video: https://youtu.be/Gc82AXLa0Rg?si=4RLn6WBz33qT--B7...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -7588,39 +7699,6 @@
       "gdprSafe": true
     },
     {
-      "provider": "mistralai",
-      "model": "mistralai/mistral-small-2603:batch",
-      "name": "Mistral: Mistral Small 4 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.075,
-        "output": 0.3,
-        "cacheReadPer1M": 0.0075
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "Mistral Small 4 is the next major release in the Mistral Small family, unifying the capabilities of several flagship Mistral models into a single system. It combines strong reasoning from...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "eu",
-      "gdprSafe": true
-    },
-    {
       "provider": "z-ai",
       "model": "z-ai/glm-5-turbo",
       "name": "Z.ai: GLM 5 Turbo",
@@ -7655,8 +7733,9 @@
       "name": "NVIDIA: Nemotron 3 Super",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.08,
-        "output": 0.45
+        "input": 0.3,
+        "output": 2.4,
+        "cacheReadPer1M": 0.15
       },
       "inputModalities": [
         "text"
@@ -7664,35 +7743,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "NVIDIA Nemotron 3 Super is a 120B-parameter open hybrid MoE model, activating just 12B parameters for maximum compute efficiency and accuracy in complex multi-agent applications. Built on a hybrid Mamba-Transformer...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "nvidia",
-      "model": "nvidia/nemotron-3-super-120b-a12b:free",
-      "name": "NVIDIA: Nemotron 3 Super (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
+      "contextLength": 1048576,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -7744,8 +7795,8 @@
       "name": "Qwen: Qwen3.5-9B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.1,
-        "output": 0.15
+        "input": 0.17,
+        "output": 0.25
       },
       "inputModalities": [
         "text",
@@ -8036,7 +8087,7 @@
       "name": "Qwen: Qwen3.5-35B-A3B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.15,
+        "input": 0.14,
         "output": 1,
         "cacheReadPer1M": 0.05
       },
@@ -8070,9 +8121,8 @@
       "name": "Qwen: Qwen3.5-27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.27,
-        "output": 2.16,
-        "cacheReadPer1M": 0.27
+        "input": 0.26,
+        "output": 2.6
       },
       "inputModalities": [
         "text",
@@ -8439,8 +8489,9 @@
       "name": "Qwen: Qwen3.5 397B A17B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.39,
-        "output": 2.34
+        "input": 0.5,
+        "output": 3.6,
+        "cacheReadPer1M": 0.3
       },
       "inputModalities": [
         "text",
@@ -8501,9 +8552,9 @@
       "name": "Z.ai: GLM 5",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.6,
-        "output": 1.92,
-        "cacheReadPer1M": 0.12
+        "input": 1,
+        "output": 3.2,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text"
@@ -8623,36 +8674,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "openrouter",
-      "model": "openrouter/free",
-      "name": "Free Models Router",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "The simplest way to get free inference. openrouter/free is a router that selects free models at random from the models available on OpenRouter. The router smartly filters for models that...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "stepfun",
       "model": "stepfun/step-3.5-flash",
       "name": "StepFun: Step 3.5 Flash",
@@ -8711,36 +8732,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "upstage",
-      "model": "upstage/solar-pro-3",
-      "name": "Upstage: Solar Pro 3",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.6,
-        "cacheReadPer1M": 0.015
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "frontier"
-      ],
-      "description": "Solar Pro 3 is Upstage's powerful Mixture-of-Experts (MoE) language model. With 102B total parameters and 12B active parameters per forward pass, it delivers exceptional performance while maintaining computational efficiency. Optimized...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -9130,7 +9121,8 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.06,
-        "output": 0.24
+        "output": 0.24,
+        "cacheReadPer1M": 0.012
       },
       "inputModalities": [
         "text"
@@ -9408,30 +9400,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "openrouter",
-      "model": "openrouter/bodybuilder",
-      "name": "Body Builder (beta)",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 128000,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [],
-      "description": "Transform your natural language requests into structured OpenRouter API request objects. Describe what you want to accomplish with AI models, and Body Builder will construct the appropriate API calls. Example:...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "openai",
       "model": "openai/gpt-5.1-codex-max",
       "name": "OpenAI: GPT-5.1-Codex-Max",
@@ -9566,39 +9534,6 @@
     },
     {
       "provider": "mistralai",
-      "model": "mistralai/ministral-8b-2512:batch",
-      "name": "Mistral: Ministral 3 8B 2512 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.075,
-        "output": 0.075,
-        "cacheReadPer1M": 0.0075
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "A balanced model in the Ministral 3 family, Ministral 3 8B is a powerful, efficient tiny language model with vision capabilities.",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "eu",
-      "gdprSafe": true
-    },
-    {
-      "provider": "mistralai",
       "model": "mistralai/ministral-3b-2512",
       "name": "Mistral: Ministral 3 3B 2512",
       "pricing": {
@@ -9664,47 +9599,14 @@
       "gdprSafe": true
     },
     {
-      "provider": "mistralai",
-      "model": "mistralai/mistral-large-2512:batch",
-      "name": "Mistral: Mistral Large 3 2512 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 0.75,
-        "cacheReadPer1M": 0.025
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "frontier"
-      ],
-      "description": "Mistral Large 3 2512 is Mistral’s most capable model to date, featuring a sparse mixture-of-experts architecture with 41B active parameters (675B total), and released under the Apache 2.0 license.",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "eu",
-      "gdprSafe": true
-    },
-    {
       "provider": "deepseek",
       "model": "deepseek/deepseek-v3.2",
       "name": "DeepSeek: DeepSeek V3.2",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.28,
-        "output": 0.42,
-        "cacheReadPer1M": 0.028
+        "input": 0.26,
+        "output": 0.38,
+        "cacheReadPer1M": 0.13
       },
       "inputModalities": [
         "text"
@@ -10134,7 +10036,7 @@
       ],
       "contextLength": 204800,
       "supportsTools": true,
-      "supportsStructuredOutput": true,
+      "supportsStructuredOutput": false,
       "categories": [],
       "goodFor": [
         "agentic",
@@ -10145,32 +10047,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "ibm-granite",
-      "model": "ibm-granite/granite-4.0-h-micro",
-      "name": "IBM: Granite 4.0 Micro",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.017,
-        "output": 0.112
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131000,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "Granite-4.0-H-Micro is a 3B parameter from the Granite 4 family of models. These models are the latest in a series of models released by IBM. They are fine-tuned for long...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -10510,9 +10386,9 @@
       "name": "Z.ai: GLM 4.6",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.55,
-        "output": 2.2,
-        "cacheReadPer1M": 0.11
+        "input": 0.5,
+        "output": 2,
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text"
@@ -10773,37 +10649,6 @@
     },
     {
       "provider": "qwen",
-      "model": "qwen/qwen3-next-80b-a3b-thinking",
-      "name": "Qwen: Qwen3 Next 80B A3B Thinking",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 1.2
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "reasoning",
-        "fast",
-        "edge"
-      ],
-      "description": "Qwen3-Next-80B-A3B-Thinking is a reasoning-first chat model in the Qwen3-Next line that outputs structured “thinking” traces by default. It’s designed for hard multi-step problems; math proofs, code synthesis/debugging, logic, and agentic...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "qwen",
       "model": "qwen/qwen3-next-80b-a3b-instruct",
       "name": "Qwen: Qwen3 Next 80B A3B Instruct",
       "pricing": {
@@ -10867,7 +10712,8 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 1,
-        "output": 3
+        "output": 3,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text"
@@ -10926,38 +10772,6 @@
         "input": 0.4,
         "output": 2,
         "cacheReadPer1M": 0.04
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "Mistral Medium 3.1 is an updated version of Mistral Medium 3, which is a high-performance enterprise-grade language model designed to deliver frontier-level capabilities at significantly reduced operational cost. It balances...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "eu",
-      "gdprSafe": true
-    },
-    {
-      "provider": "mistralai",
-      "model": "mistralai/mistral-medium-3.1:batch",
-      "name": "Mistral: Mistral Medium 3.1 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.2,
-        "output": 1,
-        "cacheReadPer1M": 0.02
       },
       "inputModalities": [
         "text",
@@ -11432,37 +11246,6 @@
       "gdprSafe": true
     },
     {
-      "provider": "mistralai",
-      "model": "mistralai/codestral-2508:batch",
-      "name": "Mistral: Codestral 2508 (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.45,
-        "cacheReadPer1M": 0.015
-      },
-      "inputModalities": [
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 256000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "coding"
-      ],
-      "description": "Mistral's cutting-edge language model for coding released end of July 2025. Codestral specializes in low-latency, high-frequency tasks such as fill-in-the-middle (FIM), code correction and test generation.\n\n[Blog Post](https://mistral.ai/news/codestral-25-08)",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "eu",
-      "gdprSafe": true
-    },
-    {
       "provider": "qwen",
       "model": "qwen/qwen3-coder-30b-a3b-instruct",
       "name": "Qwen: Qwen3 Coder 30B A3B Instruct",
@@ -11499,8 +11282,9 @@
       "name": "Qwen: Qwen3 30B A3B Instruct 2507",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09,
-        "output": 0.3
+        "input": 0.1,
+        "output": 0.3,
+        "cacheReadPer1M": 0.1
       },
       "inputModalities": [
         "text"
@@ -11708,43 +11492,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "google",
-      "model": "google/gemini-2.5-flash-lite:batch",
-      "name": "Google: Gemini 2.5 Flash Lite (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.05,
-        "output": 0.2,
-        "cacheReadPer1M": 0.01
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file",
-        "audio",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1048576,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "Gemini 2.5 Flash-Lite is a lightweight reasoning model in the Gemini 2.5 family, optimized for ultra-low latency and cost efficiency. It offers improved throughput, faster token generation, and better performance...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "qwen",
       "model": "qwen/qwen3-235b-a22b-2507",
       "name": "Qwen: Qwen3 235B A22B Instruct 2507",
@@ -11915,8 +11662,8 @@
       "name": "Mistral: Mistral Small 3.2 24B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09375,
-        "output": 0.25
+        "input": 0.075,
+        "output": 0.2
       },
       "inputModalities": [
         "image",
@@ -12010,87 +11757,12 @@
     },
     {
       "provider": "google",
-      "model": "google/gemini-2.5-flash:batch",
-      "name": "Google: Gemini 2.5 Flash (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 1.25,
-        "cacheReadPer1M": 0.03
-      },
-      "inputModalities": [
-        "file",
-        "image",
-        "text",
-        "audio",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1048576,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "Gemini 2.5 Flash is Google's state-of-the-art workhorse model, specifically designed for advanced reasoning, coding, mathematics, and scientific tasks. It includes built-in \"thinking\" capabilities, enabling it to provide responses with greater...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "google",
       "model": "google/gemini-2.5-pro",
       "name": "Google: Gemini 2.5 Pro",
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 1.25,
         "output": 10,
-        "cacheReadPer1M": 0.125
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file",
-        "audio",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1048576,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic",
-        "fast",
-        "edge",
-        "frontier"
-      ],
-      "description": "Gemini 2.5 Pro is Google’s state-of-the-art AI model designed for advanced reasoning, coding, mathematics, and scientific tasks. It employs “thinking” capabilities, enabling it to reason through responses with enhanced accuracy...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "google",
-      "model": "google/gemini-2.5-pro:batch",
-      "name": "Google: Gemini 2.5 Pro (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.625,
-        "output": 5,
         "cacheReadPer1M": 0.125
       },
       "inputModalities": [
@@ -12370,40 +12042,6 @@
     },
     {
       "provider": "openai",
-      "model": "openai/o4-mini-high",
-      "name": "OpenAI: o4 Mini High",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1.1,
-        "output": 4.4,
-        "cacheReadPer1M": 0.275
-      },
-      "inputModalities": [
-        "image",
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o4-mini-high is the same model as [o4-mini](/openai/o4-mini) with reasoning_effort set to high. OpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
       "model": "openai/o3",
       "name": "OpenAI: o3",
       "pricing": {
@@ -12461,40 +12099,6 @@
         "agentic"
       ],
       "description": "o3 is a well-rounded and powerful model across domains. It sets a new standard for math, science, coding, and visual reasoning tasks. It also excels at technical writing and instruction-following....",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o4-mini",
-      "name": "OpenAI: o4 Mini",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1.1,
-        "output": 4.4,
-        "cacheReadPer1M": 0.275
-      },
-      "inputModalities": [
-        "image",
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining strong multimodal and agentic capabilities. It supports tool use and demonstrates competitive reasoning...",
       "isModerated": true,
       "source": "openrouter",
       "region": "us",
@@ -12674,7 +12278,7 @@
         "unit": "per_1m_tokens",
         "input": 0.1,
         "output": 0.4,
-        "cacheReadPer1M": 0.025
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "image",
@@ -12695,7 +12299,7 @@
         "edge"
       ],
       "description": "For tasks that demand low latency, GPT‑4.1 nano is the fastest and cheapest model in the GPT-4.1 series. It delivers exceptional performance at a small size with its 1 million...",
-      "isModerated": true,
+      "isModerated": false,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -12825,37 +12429,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "openai",
-      "model": "openai/o1-pro",
-      "name": "OpenAI: o1-pro",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 150,
-        "output": 600
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "frontier"
-      ],
-      "description": "The o1 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "mistralai",
       "model": "mistralai/mistral-small-3.1-24b-instruct",
       "name": "Mistral: Mistral Small 3.1 24B",
@@ -12893,9 +12466,8 @@
       "name": "Google: Gemma 3 4B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.04,
-        "output": 0.05,
-        "cacheReadPer1M": 0.02
+        "input": 0.05,
+        "output": 0.1
       },
       "inputModalities": [
         "text",
@@ -13178,38 +12750,6 @@
       "gdprSafe": true
     },
     {
-      "provider": "openai",
-      "model": "openai/o3-mini-high",
-      "name": "OpenAI: o3 Mini High",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1.1,
-        "output": 4.4,
-        "cacheReadPer1M": 0.55
-      },
-      "inputModalities": [
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o3-mini-high is the same model as [o3-mini](/openai/o3-mini) with reasoning_effort set to high. o3-mini is a cost-efficient language model optimized for STEM reasoning tasks, particularly excelling in science, mathematics, and...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
       "provider": "aion-labs",
       "model": "aion-labs/aion-rp-llama-3.1-8b",
       "name": "AionLabs: Aion-RP 1.0 (8B)",
@@ -13295,38 +12835,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o3-mini",
-      "name": "OpenAI: o3 Mini",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1.1,
-        "output": 4.4,
-        "cacheReadPer1M": 0.55
-      },
-      "inputModalities": [
-        "text",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "OpenAI o3-mini is a cost-efficient language model optimized for STEM reasoning tasks, particularly excelling in science, mathematics, and coding. This model supports the `reasoning_effort` parameter, which can be set to...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
       "gdprSafe": false
     },
     {
@@ -13502,38 +13010,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/o1",
-      "name": "OpenAI: o1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 15,
-        "output": 60,
-        "cacheReadPer1M": 7.5
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "file"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 200000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "The latest and strongest model family from OpenAI, o1 is designed to spend more time thinking before responding. The o1 model series is trained with large-scale reinforcement learning to reason...",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
       "gdprSafe": false
     },
     {
@@ -13884,8 +13360,8 @@
       "name": "Meta: Llama 3.2 3B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0509,
-        "output": 0.335
+        "input": 0.05,
+        "output": 0.33
       },
       "inputModalities": [
         "text"
@@ -14474,36 +13950,6 @@
     },
     {
       "provider": "openai",
-      "model": "openai/gpt-4-turbo",
-      "name": "OpenAI: GPT-4 Turbo",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 10,
-        "output": 30
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 128000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "The latest GPT-4 Turbo model with vision capabilities. Vision requests can now use JSON mode and function calling.\n\nTraining data: up to December 2023.",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
       "model": "openai/gpt-4-turbo:batch",
       "name": "OpenAI: GPT-4 Turbo (batch)",
       "pricing": {
@@ -14587,65 +14033,6 @@
       ],
       "description": "GPT-3.5 Turbo is OpenAI's fastest model. It can understand and generate natural language or code, and is optimized for chat and traditional completion tasks.\n\nTraining data up to Sep 2021.",
       "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openrouter",
-      "model": "openrouter/auto",
-      "name": "Auto Router",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "audio",
-        "file",
-        "video"
-      ],
-      "outputModalities": [
-        "text",
-        "image"
-      ],
-      "contextLength": 2000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic"
-      ],
-      "description": "The Auto Router automatically selects the best model for your prompt, powered by the wisdom of the market. It routes you based on what the OpenRouter community collectively spends on...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/gpt-3.5-turbo-instruct",
-      "name": "OpenAI: GPT-3.5 Turbo Instruct",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1.5,
-        "output": 2
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 4095,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "This model is a variant of GPT-3.5 Turbo tuned for instructional prompts and omitting chat-related optimizations. Training data: up to Sep 2021.",
-      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -14764,62 +14151,6 @@
     },
     {
       "provider": "openai",
-      "model": "openai/gpt-3.5-turbo",
-      "name": "OpenAI: GPT-3.5 Turbo",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.5,
-        "output": 1.5
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 16385,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "GPT-3.5 Turbo is OpenAI's fastest model. It can understand and generate natural language or code, and is optimized for chat and traditional completion tasks.\n\nTraining data up to Sep 2021.",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
-      "model": "openai/gpt-3.5-turbo:batch",
-      "name": "OpenAI: GPT-3.5 Turbo (batch)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 0.75
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 16385,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "GPT-3.5 Turbo is OpenAI's fastest model. It can understand and generate natural language or code, and is optimized for chat and traditional completion tasks.\n\nTraining data up to Sep 2021.",
-      "isModerated": true,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openai",
       "model": "openai/gpt-4",
       "name": "OpenAI: GPT-4",
       "pricing": {
@@ -14844,6 +14175,233 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "typesafe",
+      "model": "typesafe/jev-router",
+      "name": "TypeSafe: Jev Router",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic"
+      ],
+      "description": "Jev Router picks the best model and reasoning effort for each request, balancing quality, speed, and cost. It runs on [Jev](https://openrouter.ai/~typesafe/jev-latest), TypeSafe's first System One model, and adapts as your...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "nvidia",
+      "model": "nvidia/switchyard",
+      "name": "NVIDIA: Switchyard",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [],
+      "description": "Switchyard is an open-source model routing system that switches between multiple models to optimize the cost of requests. By default it will use OpenRouter market data to select the most...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/auto-beta",
+      "name": "Auto Router (Beta)",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "image"
+      ],
+      "contextLength": 2000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic"
+      ],
+      "description": "The experimental version of our Auto Router where we test new improvements. Use it to get the latest and greatest version of our general purpose auto router, but expect beta...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/fusion",
+      "name": "OpenRouter: Fusion",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [],
+      "description": "Fusion turns your prompt into a small multi-model deliberation. A panel of expert models (see below) analyzes your prompt in parallel with web search and web fetch enabled, then a...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/pareto-code",
+      "name": "Pareto Code Router",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 2000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "coding"
+      ],
+      "description": "The Pareto Router maintains a tiered shortlist of strong coding models, ranked by [Artificial Analysis](https://artificialanalysis.ai/) coding percentiles. Set min_coding_score between 0 and 1 on the [pareto-router plugin](https://openrouter.ai/docs/guides/routing/routers/pareto-router#the-min_coding_score-parameter) to control how...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/free",
+      "name": "Free Models Router",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 200000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "The simplest way to get free inference. openrouter/free is a router that selects free models at random from the models available on OpenRouter. The router smartly filters for models that...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/bodybuilder",
+      "name": "Body Builder (beta)",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 128000,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [],
+      "description": "Transform your natural language requests into structured OpenRouter API request objects. Describe what you want to accomplish with AI models, and Body Builder will construct the appropriate API calls. Example:...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/auto",
+      "name": "Auto Router",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "image"
+      ],
+      "contextLength": 2000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic"
+      ],
+      "description": "The Auto Router automatically selects the best model for your prompt, powered by the wisdom of the market. It routes you based on what the OpenRouter community collectively spends on...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
       "gdprSafe": false
     }
   ]
