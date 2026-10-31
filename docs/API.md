@@ -553,6 +553,20 @@ as `voice`, or a raw Azure voice name.
 when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
 per-character and tracked like every other call.
 
+### Raster → SVG — `ai.vectorize` (Recraft, F070, v0.70+)
+
+```ts
+const { svg, usage } = await ai.vectorize({ image: pngBytes });   // or a URL / data-URL
+```
+
+- Recraft's vectorize endpoint; the SVG is **downloaded for you** (Recraft's own URL
+  expires after ~24 h). Input PNG/JPG/WEBP, < 20 MB, sides 256–4096 px.
+- $0.01 per call (Recraft's list price), booked `costBasis: "estimated"`.
+- Key `RECRAFT_API_TOKEN`; ships dark without it.
+- **`usage.region` is `"unknown"`** — Recraft does not say where it processes. Do not
+  send personal images (faces, documents) through it.
+- Measured live 2026-11-01: a 512 px PNG → 22,9 KB SVG in 5,3 s.
+
 ### Images via Mistral — `ai.image` on the Mistral key you already have (F084, v0.69+)
 
 For an org that pays with its own Mistral key (BYOK) instead of a BFL key. Mistral's

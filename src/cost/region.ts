@@ -57,6 +57,9 @@ const HOST_REGION: Record<string, Region> = {
   // COPENHAGEN edge (cf-ray …-CPH). That is where the TLS terminated, not where the data
   // is processed — a host behind a CDN cannot have its residency read off the edge.
   "api.typesafe.ai": "us",
+  // F070 — Recraft. We have not found where it processes data (read 2026-10-07), so
+  // "unknown": only "eu" is a residency claim, and we will not invent one.
+  "external.api.recraft.ai": "unknown",
   // Aggregators: the host is theirs, the upstream is not ours to know.
   "openrouter.ai": "unknown",
   "router.requesty.ai": "unknown",

@@ -29,6 +29,7 @@ import {
   ocrInputSchema,
   moderationInputSchema,
   judgeInputSchema,
+  vectorizeInputSchema,
   podcastInputSchema,
   ttsInputSchema,
 } from "./schema/inputs.js";
@@ -47,6 +48,7 @@ import type {
   OcrInput,
   ModerationInput,
   JudgeInput,
+  VectorizeInput,
   PodcastInput,
   TtsInput,
 } from "./schema/inputs.js";
@@ -61,6 +63,7 @@ import type {
   OcrResult,
   ModerationResult,
   JudgeResult,
+  VectorizeResult,
   PodcastResult,
   BatchRequestItem,
   BatchJob,
@@ -175,6 +178,8 @@ function judgeSpecFromEnv(): TierSpec {
   if (!spec) throw new Error(`createAI: AI_JUDGE_PROVIDER="${v}" is not a judge route — use ${Object.keys(JUDGE_SPECS).join(" or ")}`);
   return spec;
 }
+/** Vectorize route (F070) — Recraft. Residency unknown: do not send personal images. */
+const DEFAULT_VECTORIZE_SPEC: TierSpec = { provider: "recraft", model: "vectorize", transport: "http" };
 /** Podcast route (F020) — ElevenLabs Text-to-Dialogue, eleven_v3 (multi-voice, multilingual). */
 const DEFAULT_PODCAST_SPEC: TierSpec = { provider: "elevenlabs", model: "eleven_v3", transport: "http" };
 /** Single-voice TTS route (F020.4) — ElevenLabs eleven_multilingual_v2 (good Danish). */
@@ -196,6 +201,7 @@ export const ROUTED_SPECS: readonly TierSpec[] = [
   DEFAULT_MODERATION_SPEC,
   DEFAULT_JUDGE_SPEC,
   EU_JUDGE_SPEC,
+  DEFAULT_VECTORIZE_SPEC,
   DEFAULT_PODCAST_SPEC,
   DEFAULT_TTS_SPEC,
   DEFAULT_BATCH_SPEC,
@@ -855,6 +861,24 @@ export function createAI(config: AiConfig = {}): AiClient {
           const adapter = pickProvider(spec.provider);
           if (!adapter.judge) throw new Error(`createAI: provider "${spec.provider}" does not support judge`);
           return adapter.judge({ state: input.state, questions: input.questions, spec });
+        },
+      });
+    },
+
+    async vectorize(input: VectorizeInput): Promise<VectorizeResult> {
+      input = vectorizeInputSchema.parse(input);
+      return runCapability({
+        primary: withOverride(DEFAULT_VECTORIZE_SPEC, input.override, "vectorize"),
+        fallback: input.fallback,
+        capability: "vectorize",
+        purpose: input.purpose,
+        labels: input.labels,
+        estIn: 0,
+        estOut: 0,
+        invoke: async (spec) => {
+          const adapter = pickProvider(spec.provider);
+          if (!adapter.vectorize) throw new Error(`createAI: provider "${spec.provider}" does not support vectorize`);
+          return adapter.vectorize({ image: input.image, shapeStacking: input.shapeStacking, spec });
         },
       });
     },

@@ -24,6 +24,8 @@ export const DEFAULT_BASE_URLS = {
   openrouter: "https://openrouter.ai/api/v1",
   // F066. US-hosted per the TypeSafe privacy policy — see region.ts.
   typesafe: "https://api.typesafe.ai/v1",
+  // F070 — Recraft (vectorize). Residency not stated where we looked — see region.ts.
+  recraft: "https://external.api.recraft.ai/v1",
 } as const;
 
 export type FixedHostProvider = keyof typeof DEFAULT_BASE_URLS;

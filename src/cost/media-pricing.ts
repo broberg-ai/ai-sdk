@@ -119,6 +119,8 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
   "gemini:gemini-3-pro-image-preview": { unit: "per_image", usd: 0.134, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "ai.google.dev/gemini-api/docs/pricing — premium; was mistakenly the flash price once" },
 
   // OpenRouter images — the FALLBACK only. OpenRouter usually returns usage.cost.
+  // F070 — Recraft's own API, docs read 2026-10-07: "$0.01" per vectorize request.
+  "recraft:vectorize": { unit: "per_image", usd: 0.01, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "recraft.ai/docs/api-reference/endpoints — vectorize $0.01 per request (read 2026-10-07)" },
   "openrouter:recraft/recraft-v4.1": { unit: "per_image", usd: 0.035, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/recraft/recraft-v4.1 — fallback when usage.cost is omitted" },
   "openrouter:recraft/recraft-v4.1-vector": { unit: "per_image", usd: 0.08, checkedAt: MEDIA_PRICING_CHECKED_AT, source: "openrouter.ai/recraft/recraft-v4.1-vector — fallback when usage.cost is omitted" },
   // F063: OpenRouter prices Recraft per image-token; both rows above are that rate

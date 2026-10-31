@@ -55,7 +55,8 @@ export type Capability =
   | "classify"
   | "rerank"
   | "judge"
-  | "search";
+  | "search"
+  | "vectorize";
 
 // ── Messages + tools ───────────────────────────────────────────────────────
 
@@ -515,6 +516,20 @@ export interface JudgeResult {
   usage: Usage;
 }
 
+// Vectorize (F070) — raster image → SVG. Recraft.
+export interface VectorizeRequest {
+  /** URL (passed through), data: URL, or raw bytes. PNG/JPG/WEBP, sides 256–4096 px. */
+  image: string | Uint8Array;
+  /** Recraft's shape_stacking: "hierarchical" (default) or "cut_out". */
+  shapeStacking?: "hierarchical" | "cut_out";
+  spec: TierSpec;
+}
+export interface VectorizeResult {
+  /** The SVG document itself — already downloaded; Recraft's own link expires in ~24 h. */
+  svg: string;
+  usage: Usage;
+}
+
 // Podcast / multi-voice dialogue (F020) — a manuscript of speaker turns → one
 // finished multi-voice audio episode. ElevenLabs Text-to-Dialogue, billed per char.
 export interface DialogueTurn {
@@ -642,6 +657,8 @@ export interface ProviderAdapter {
   moderate?(req: ModerationRequest): Promise<ModerationResult>;
   /** F066 — typed decisions with calibrated probabilities (TypeSafe Jev). */
   judge?(req: JudgeRequest): Promise<JudgeResult>;
+  /** F070 — raster image → SVG (Recraft). */
+  vectorize?(req: VectorizeRequest): Promise<VectorizeResult>;
   /** Multi-voice dialogue → one audio episode (F020). ElevenLabs. */
   dialogue?(req: DialogueRequest): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) → audio. ElevenLabs. */

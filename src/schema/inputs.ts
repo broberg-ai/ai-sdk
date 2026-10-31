@@ -17,6 +17,7 @@ import type {
   OcrResult,
   ModerationResult,
   JudgeResult,
+  VectorizeResult,
   PodcastResult,
   BatchRequestItem,
   BatchJob,
@@ -318,6 +319,13 @@ const judgeQuestionSchema = z.discriminatedUnion("type", [
     criteria: z.array(judgeEntrySchema).min(2).max(10),
   }),
 ]);
+// Vectorize (F070) — raster image → SVG via Recraft.
+export const vectorizeInputSchema = z.object({
+  image: z.union([z.string().min(1), z.instanceof(Uint8Array)]),
+  shapeStacking: z.enum(["hierarchical", "cut_out"]).optional(),
+  ...callOptions,
+});
+
 export const judgeInputSchema = z.object({
   state: z.union([z.string().min(1), z.array(z.string()).max(L.stateItems), z.record(z.string(), z.unknown())]),
   questions: z.record(z.string(), judgeQuestionSchema).refine((q) => Object.keys(q).length > 0, {
@@ -432,6 +440,7 @@ export type TranscribeInput = z.infer<typeof transcribeInputSchema>;
 export type OcrInput = z.infer<typeof ocrInputSchema>;
 export type ModerationInput = z.infer<typeof moderationInputSchema>;
 export type JudgeInput = z.infer<typeof judgeInputSchema>;
+export type VectorizeInput = z.infer<typeof vectorizeInputSchema>;
 export type PodcastInput = z.infer<typeof podcastInputSchema>;
 export type TtsInput = z.infer<typeof ttsInputSchema>;
 export type AiConfig = z.infer<typeof aiConfigSchema>;
@@ -469,6 +478,8 @@ export interface AiClient {
   /** F078 — web search through ai-sdk; reports every call to this client's cost sink
    *  with the client's labels. Same request/result as the standalone `search()`. */
   search(req: import("../search/types.js").SearchRequest, opts?: Omit<import("../search/types.js").SearchOptions, "costSink">): Promise<import("../search/types.js").SearchResult>;
+  /** F070 — raster image → SVG (Recraft). Returns the SVG text, already downloaded. */
+  vectorize(input: VectorizeInput): Promise<VectorizeResult>;
   /** Podcast (F020) — a finished manuscript → one multi-voice audio episode. ElevenLabs. */
   podcast(input: PodcastInput): Promise<PodcastResult>;
   /** Single-voice TTS (F020.4) — text → audio. `voice` = curated name or voiceId. ElevenLabs. */

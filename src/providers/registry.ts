@@ -17,6 +17,7 @@ import { typesafeAdapter } from "./typesafe.js";
 import { microsoftDecisionAdapter } from "./microsoft-decision.js";
 import { falAdapter } from "./fal.js";
 import { bflAdapter } from "./bfl.js";
+import { recraftAdapter } from "./recraft.js";
 import type { ProviderAdapter } from "../types.js";
 
 export const defaultProviders: Record<string, ProviderAdapter> = {
@@ -36,4 +37,5 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   "microsoft-decision": microsoftDecisionAdapter(),
   fal: falAdapter(),
   bfl: bflAdapter(),
+  recraft: recraftAdapter(),
 };
