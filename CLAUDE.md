@@ -238,7 +238,7 @@ Apply these in every reply:
 
 **This is a CONTINUOUS obligation, not a one-time check before "building".** Every time you reach for a cross-cutting capability — mail, auth/session-mint, web-push, design tokens, secret-redaction, telemetry, LLM access, fleet comms, embeddable cc-chat, cron, infra setup, … — it goes through the shared `@broberg/*` inventory owned by `components`. Fleet rule: **reuse > re-roll** — a hand-rolled copy is drift waiting to happen.
 
-**It is now a REQUIRED planning step, not just a running obligation (F217).** When you author a feature/epic plan, the `feature` + `adopt` skills make you run a Discovery reuse check **before** the plan-doc is written (search `discovery.broberg.ai/api/search?q=<capability>` per capability) and record the reuse-vs-build decision in the plan-doc's mandatory **`## Reuse`** section. And every `cardmem_session_start` hands you this repo's **`discovery_reuse` gap** (the shipped `@broberg/*` packages it hasn't adopted). So the check is surfaced at session-start AND enforced at plan-time — see `.claude/skills/feature/SKILL.md` Step 3.5.
+**It is now a REQUIRED planning step, not just a running obligation (F217).** When you author a feature/epic plan, the `feature` + `adopt` skills make you run a Discovery reuse check **before** the plan-doc is written (search `discovery.broberg.ai/api/search?q=<capability>` per capability) and record the reuse-vs-build decision in the plan-doc's mandatory **`## Reuse`** section. And every `cardmem_session_start` hands you this repo's **`discovery_reuse` gap** (the shipped `@broberg/*` packages it hasn't adopted). So the check is surfaced at session-start AND enforced at plan-time — see `~/.claude/skills/feature/SKILL.md` Step 3.5.
 
 **The anti-pattern is a RAW provider integration.** A bare `fetch` to `api.resend.com`, a `new Resend()`, a raw Stripe/Twilio/S3/provider SDK wired directly into a repo — that IS the violation, even when it works and even when you didn't think of it as "building a capability". The test Christian applies: *if I want to swap the provider, do I change it in ONE place or in seventeen?* It must be one. So: **no raw provider SDKs/`fetch`es for anything a `@broberg/*` package owns** (mail → `@broberg/mail`, push → `@broberg/webpush`, LLM → `@broberg/ai-sdk`, …). "We don't use the shared package" is NOT a valid answer when you already have a raw integration doing that package's job — that's the thing to migrate, today.
 
@@ -250,7 +250,7 @@ Apply these in every reply:
 curl -H "x-discovery-session: <this-session>" -H "x-enroll-key: $DISCOVERY_ENROLL_KEY" https://discovery.broberg.ai/ai
 ```
 
-Discovery is closed on the owner's order until Broberg ID login (OIDC) is wired: everything except `/health` and `/robots.txt` answers **401** without them — a 401 is not "Discovery is down", it is a missing header. `<this-session>` is your registered session name; the key is the `DISCOVERY_ENROLL_KEY` already in your repo's gitignored `.env`. **No key, or a 401 with one? `ask_peer({ to: "components", … })`** — they register it. Do not generate a key yourself: a new key is no longer bound on first use. Every URL below takes the same two headers.
+Discovery is closed on the owner's order until BID login (OIDC) is wired: everything except `/health` and `/robots.txt` answers **401** without them — a 401 is not "Discovery is down", it is a missing header. `<this-session>` is your registered session name; the key is the `DISCOVERY_ENROLL_KEY` already in your repo's gitignored `.env`. **No key, or a 401 with one? `ask_peer({ to: "components", … })`** — they register it. Do not generate a key yourself: a new key is no longer bound on first use. Every URL below takes the same two headers.
 
 1. **Browse the map FIRST:** `GET https://discovery.broberg.ai/ai` (identical to `/llms.txt`) — every `@broberg/*` package grouped by layer, and **every fleet tip inline, in full**. Read it top-to-bottom BEFORE you wire anything. Human page: `https://discovery.broberg.ai/onboarding`.
    **But the PACKAGE descriptions there are one-liners — first sentence only.** The complete ones are at **`GET https://discovery.broberg.ai/llms-full.txt`**, and that second fetch is worth it before you decide a package cannot do what you need. Measured 11 Sep 2026: `/ai` 76 KB, `/llms-full.txt` 329 KB — 4.3× more, and the difference is entirely package detail.
@@ -259,7 +259,7 @@ Discovery is closed on the owner's order until Broberg ID login (OIDC) is wired:
 3. **Full roster (JSON):** `GET https://discovery.broberg.ai/api/packages` — every published `@broberg/*` package, machine-readable.
 4. **Self-describing:** `GET https://discovery.broberg.ai/api` — every endpoint + searchable vocabularies (layers, statuses, models, infra platforms, package names).
 5. **Browse (dashboard):** the live dashboard at https://discovery.broberg.ai (or `/api/components`, `/api/infra`).
-6. **Fallback:** `ask_peer({ to: "components", message: "har I en <X>-primitiv?" })`.
+6. **Fallback:** `cardmem_ask_peer({ session_id, to: "components", message: "har I en <X>-primitiv?" })`.
 
 Found one? Consume it (exact-pin prod-auth deps). Missing? Build it (or ask `components` to), then tell `components` so it's added for everyone — and check `/api/infra` for our Fly/Cloudflare/Resend/Supabase/Turso/npm best-practices before you wire infra.
 
@@ -270,7 +270,7 @@ Found one? Consume it (exact-pin prod-auth deps). Missing? Build it (or ask `com
 - **Your status anytime:** `GET https://discovery.broberg.ai/api/sessions/<this-session>` → what you're enrolled in, the newest published versions, and your **gap** (shipped packages you haven't adopted yet — your reuse to-do list).
 - **Self-report an adoption.** `POST https://discovery.broberg.ai/api/enroll` with the two headers above and JSON `{ "session": "<this-session>", "pkg": "@broberg/mail", "version": "<the version you installed>", "role": "uses" }` — a **placeholder on purpose**: an example that pins a real version reports a version that no longer exists the moment the package ships again, and the enroll call succeeds anyway (F149.7). `role` = `"uses"` (consumer) or `"src"` (you originated the pattern); optional `commit`, `notes`. Only registered sessions may enroll.
 
-Reads AND writes both need the two headers. When Broberg ID login replaces the key, `components` sends a new instruction and this block changes with it.
+Reads AND writes both need the two headers. When BID login replaces the key, `components` sends a new instruction and this block changes with it.
 
 ## @broberg/ai-sdk — the AI/LLM gateway (MUST)
 
