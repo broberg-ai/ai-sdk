@@ -565,7 +565,7 @@ rates the 5x is 8 dollars on a 100M-token corpus; the rebuild is the real bill.
 - `GET https://upmetrics.org/api/issues` (default = unresolved; `?status=` filtrerer)
 - `POST https://upmetrics.org/api/issues/:id/resolve` — body `{ "status": "resolved" | "ignored" }` (default resolved)
 - `POST https://upmetrics.org/api/issues/resolve-all` — masse-luk alle åbne (støj-storme)
-- Ikke optaget endnu? Bed upmetrics-sessionen om DSN + `uk_`-nøgle (`ask_peer({to:"upmetrics", …})`).
+- Ikke optaget endnu? Bed upmetrics-sessionen om DSN + `uk_`-nøgle (`cardmem_ask_peer({ session_id, to: "upmetrics", … })`).
 
 ## Trail — second brain + RAG
 
