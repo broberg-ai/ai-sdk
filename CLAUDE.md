@@ -1225,3 +1225,16 @@ sits still.
 
 **Say it with the number.** «Backlog 26 · Ready 0 · 3 blocked (F010.2 ← waits for
 mockup approval)» is an answer the owner can check; «nothing to build» is not.
+
+## Cardmem Intercom
+
+Cross-session messaging is **Cardmem Intercom** (D-245b0a) — use it when work touching this repo needs a sibling session (cms for the CMS side, cardmem for the board and the harness, trail-* for KB work).
+
+1. `cardmem_list_fleet_sessions` — who runs where right now, from cardmem's own roster. Don't guess a name.
+2. `cardmem_ask_peer({ session_id, to, message, reply_to? })` — 1:1. You are the sender (your registered session name); `reply_to` threads an answer to that `announcement_id`.
+3. `cardmem_announce({ session_id, message })` — every OTHER session in your own repo (shared code / schema / dependency changes).
+4. `cardmem_broadcast({ session_id, message })` — every running session in the fleet. Sparingly: it lands in every turn.
+
+**Read the receipt, not just «ok».** It says `delivered` (with the recipient's own `announcement_id`), `sent_unproven`, `queued` (the session is asleep and gets it when it starts), `ambiguous` (two machines answer to that name — nothing was guessed) or NOT SENT. A broadcast returns one receipt per recipient.
+
+**Cardmem is the only intercom.** Messages arrive as `<channel source="cardmem" type="intercom" …>` (shown as `← Intercom: …`) and are answered with `cardmem_ask_peer` + `reply_to`. Send only with the `cardmem_*` verbs above. No `cardmem_ask_peer` in your catalog? Restart the session — the catalog is read at start. Discord is not part of Cardmem Intercom (F412.10).
