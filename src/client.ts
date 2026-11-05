@@ -164,13 +164,15 @@ const DEFAULT_OCR_SPEC: TierSpec = { provider: "mistral", model: "mistral-ocr-4-
 const DEFAULT_MODERATION_SPEC: TierSpec = { provider: "mistral", model: "mistral-moderation-2603", transport: "http" };
 /** Judge route (F066) — TypeSafe Jev, pinned to jev-1.13.0 (F077.4; the version
  *  "jev-latest" answered with, and measured to accept a direct request 2026-10-08).
- *  Thresholds tuned on confidence stay valid until we move it in a release.
- *  US-hosted — there is no EU route for this capability. */
-const DEFAULT_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-1.13.0", transport: "http" };
-/** F081 — the EU judge route. Chosen client-wide by AI_JUDGE_PROVIDER=microsoft-decision
- *  (or per call by override), so an app switches Jev ↔ Decision-1 without code changes. */
+ *  US-hosted and retains input. Since F081.6 (v0.72) NOT the default: chosen by
+ *  AI_JUDGE_PROVIDER=typesafe or per call by override. */
+const JEV_JUDGE_SPEC: TierSpec = { provider: "typesafe", model: "jev-1.13.0", transport: "http" };
+/** F081 — the EU judge route, and since F081.6 (v0.72, owner 2026-11-05) THE DEFAULT:
+ *  measured 32/34 vs Jev 29/34 at 1/6 of the cost per decision (F081.4). Azure retires
+ *  this version 2027-02-04 — a successor must be chosen before then. */
 const EU_JUDGE_SPEC: TierSpec = { provider: "microsoft-decision", model: "microsoft-decision-1-v1", transport: "http" };
-const JUDGE_SPECS: Record<string, TierSpec> = { typesafe: DEFAULT_JUDGE_SPEC, "microsoft-decision": EU_JUDGE_SPEC };
+const DEFAULT_JUDGE_SPEC: TierSpec = EU_JUDGE_SPEC;
+const JUDGE_SPECS: Record<string, TierSpec> = { typesafe: JEV_JUDGE_SPEC, "microsoft-decision": EU_JUDGE_SPEC };
 /** Read once per createAI. Unknown value THROWS — fail closed like an unknown tier: a
  *  typo must never silently leave personal data on the US route it was meant to leave. */
 function judgeSpecFromEnv(): TierSpec {
@@ -216,6 +218,7 @@ export const ROUTED_SPECS: readonly TierSpec[] = [
   DEFAULT_MODERATION_SPEC,
   DEFAULT_JUDGE_SPEC,
   EU_JUDGE_SPEC,
+  JEV_JUDGE_SPEC,
   DEFAULT_VECTORIZE_SPEC,
   DEFAULT_PODCAST_SPEC,
   DEFAULT_TTS_SPEC,

@@ -3,6 +3,7 @@ import { microsoftDecisionAdapter } from "./microsoft-decision.js";
 import { createAI } from "../client.js";
 import { byokAdapter } from "../byok.js";
 import type { JudgeQuestion } from "../types.js";
+import { freshUsage } from "../cost/usage.js";
 
 // The raw answer measured live from decision-1-eu on 2026-10-26 (trimmed).
 const LIVE = {
@@ -96,7 +97,7 @@ test("usage.region is read off the x-ms-region header; without it, unknown — n
   expect(us.usage.region).toBe("us");
 });
 
-test("AI_JUDGE_PROVIDER=microsoft-decision routes ai.judge to Decision-1 without an override; unset stays on Jev (F081.3)", async () => {
+test("AI_JUDGE_PROVIDER=microsoft-decision routes ai.judge to Decision-1 without an override (F081.3)", async () => {
   const { f } = azureFetch();
   const ms = microsoftDecisionAdapter({ endpoint: "https://e", apiKey: "k", fetch: f });
   const ts = { name: "typesafe", judge: async () => ({ answers: {}, usage: { provider: "typesafe" } as any }) };
@@ -105,8 +106,6 @@ test("AI_JUDGE_PROVIDER=microsoft-decision routes ai.judge to Decision-1 without
   expect(r.usage.provider).toBe("microsoft-decision");
   expect(r.usage.model).toBe("microsoft-decision-1-v1");
   delete process.env.AI_JUDGE_PROVIDER;
-  const j = await createAI({ providers: { "microsoft-decision": ms, typesafe: ts }, costSink: null }).judge({ state: "s", questions: QUESTIONS });
-  expect(j.usage.provider).toBe("typesafe");
 });
 
 test("an unknown AI_JUDGE_PROVIDER fails closed at createAI and names the valid routes (F081.3)", () => {
@@ -125,4 +124,22 @@ test("the documented BYOK form works: createAI({ byok:true }) with byokAdapter(m
   await ai.judge({ state: "s", questions: QUESTIONS, override: { provider: "microsoft-decision", model: "microsoft-decision-1-v1" } });
   expect(seen[0]!.apiKey).toBe("customer-key");
   expect(seen[0]!.body.model).toBe("their-dep");
+});
+
+test("F081.6 unset AI_JUDGE_PROVIDER now routes to Decision-1; =typesafe keeps Jev", async () => {
+  const seen: string[] = [];
+  const mk = (name: string) => ({
+    name,
+    async judge(req: { spec: { provider: string; model: string } }) {
+      seen.push(`${req.spec.provider}:${req.spec.model}`);
+      return { answers: { q: { type: "noul", noul: 0.9 } }, usage: freshUsage({ provider: name, model: req.spec.model, transport: "http", capability: "judge", inputTokens: 1, outputTokens: 0 }) };
+    },
+  });
+  const providers = { "microsoft-decision": mk("microsoft-decision"), typesafe: mk("typesafe") } as never;
+  delete process.env.AI_JUDGE_PROVIDER;
+  await createAI({ providers, costSink: null }).judge({ state: "s", questions: { q: { type: "noul", instructions: "x" } } });
+  process.env.AI_JUDGE_PROVIDER = "typesafe";
+  await createAI({ providers, costSink: null }).judge({ state: "s", questions: { q: { type: "noul", instructions: "x" } } });
+  delete process.env.AI_JUDGE_PROVIDER;
+  expect(seen).toEqual(["microsoft-decision:microsoft-decision-1-v1", "typesafe:jev-1.13.0"]);
 });

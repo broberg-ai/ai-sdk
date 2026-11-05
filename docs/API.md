@@ -966,6 +966,13 @@ for per-feature cost attribution.
 
 ### The EU judge — Microsoft-Decision-1 (`ai.judge`, F081, v0.68+)
 
+> **The DEFAULT since v0.72.0 (F081.6, owner 2026-11-05).** `ai.judge` without an
+> override or `AI_JUDGE_PROVIDER` now goes to Decision-1. Measured 2026-11-05 on 34
+> known-answer cases: Decision-1 32/34 at $0.0022 per 1,000 decisions, Jev 29/34 at
+> $0.0134, Mistral Small via `contracts.classify` 27/34 at $0.0224 (report: ai-sdk Assets
+> → Reports). **Upgrading needs `AZURE_DECISION_ENDPOINT` + `AZURE_DECISION_API_KEY`**;
+> to stay on Jev set `AI_JUDGE_PROVIDER=typesafe`. Azure retires this version 2027-02-04.
+
 **Same questions, same answer shape as Jev — processed in the EU.** Our deployment
 `decision-1-eu` runs in Microsoft Foundry, Sweden Central, **Data Zone Standard** (the
 EU data zone: EU + Norway + Switzerland). Measured live 26 October 2026: ~0.5 s,
@@ -980,7 +987,7 @@ await ai.judge({ state, questions });
 
 - Env: `AZURE_DECISION_ENDPOINT`, `AZURE_DECISION_API_KEY`, `AZURE_DECISION_DEPLOYMENT`
   (default `decision-1-eu`). Ships dark without them.
-- `AI_JUDGE_PROVIDER` takes `typesafe` (default, Jev) or `microsoft-decision`; anything
+- `AI_JUDGE_PROVIDER` takes `microsoft-decision` (default since v0.72) or `typesafe` (Jev); anything
   else **throws at `createAI()`** — a typo must not leave data on the US route.
 - **`usage.region` is measured per call** from Azure's `x-ms-region` response header.
   No header → `"unknown"`, never an assumed `"eu"`.

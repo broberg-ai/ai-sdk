@@ -1,12 +1,16 @@
 // F066 — TypeSafe Jev through ai.judge. Every test drives the real adapter (and, where
 // it matters, the real client) through an injected fetch; the live call is verified
 // separately against the vault key, not here, so the suite needs no network.
-import { expect, test } from "bun:test";
+import { expect, test, beforeEach, afterEach } from "bun:test";
 import { typesafeAdapter } from "./typesafe.js";
 import { createAI } from "../client.js";
 import { regionOfHost } from "../cost/region.js";
 import { resolveModel } from "../availability/resolve.js";
 import type { JudgeQuestion } from "../types.js";
+
+// F081.6 (v0.72): Decision-1 is the default judge; these tests drive Jev, so they name it.
+beforeEach(() => { process.env.AI_JUDGE_PROVIDER = "typesafe"; });
+afterEach(() => { delete process.env.AI_JUDGE_PROVIDER; });
 
 const QUESTIONS: Record<string, JudgeQuestion> = {
   team: { type: "choice", instructions: "Which team", criteria: { billing: "Money", technical: "Bugs" } },
