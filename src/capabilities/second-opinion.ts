@@ -69,6 +69,11 @@ export interface SecondOpinionInput {
    *  answered "No" to a Mistral summary; the report carries the five reviews as-is. */
   synthesize?: boolean;
   maxTokens?: number;
+  /** F088.5 — per-model time limit. A model that has not answered by then gets an
+   *  error row ("timeout") and the others are delivered. Default 5 min. The provider
+   *  request is not cancelled, so a late answer may still be billed — it is just not
+   *  waited for. */
+  timeoutMs?: number;
   /** USD→DKK rate for the price line. Omitted: the ECB reference rate is fetched. */
   usdToDkk?: number;
   /** Language of every review and the summary. Default "Danish" — the owner reads them. */
@@ -124,6 +129,16 @@ export async function getUsdToDkk(
 }
 
 const DEFAULT_MAX_TOKENS = 12_000;
+/** F088.5 — measured 2026-11-05: the slowest of five answered in ~100 s on a 7,000-word plan. */
+export const SECOND_OPINION_DEFAULT_TIMEOUT_MS = 300_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const t = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}: timeout after ${Math.round(ms / 1000)} s`)), ms);
+  });
+  return Promise.race([p, t]).finally(() => clearTimeout(timer));
+}
 
 function override(m: PanelMember): TierSpec {
   return { provider: m.provider, model: m.model, transport: "http" };
@@ -164,6 +179,7 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
   const panel = input.panel ?? SECOND_OPINION_PANEL;
   if (panel.length === 0) throw new Error("ai.secondOpinion: panel is empty");
   const maxTokens = input.maxTokens ?? DEFAULT_MAX_TOKENS;
+  const timeoutMs = input.timeoutMs ?? SECOND_OPINION_DEFAULT_TIMEOUT_MS;
 
   const prompt = [
     input.title ? `Title: ${input.title}` : "",
@@ -179,13 +195,17 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
   const opinions: Opinion[] = await Promise.all(
     panel.map(async (m): Promise<Opinion> => {
       try {
-        const r: ChatResult = await ai.chat({
-          system: SECOND_OPINION_INSTRUCTION + lang,
-          prompt,
-          maxTokens,
-          override: override(m),
-          purpose: "second-opinion",
-        });
+        const r: ChatResult = await withTimeout(
+          ai.chat({
+            system: SECOND_OPINION_INSTRUCTION + lang,
+            prompt,
+            maxTokens,
+            override: override(m),
+            purpose: "second-opinion",
+          }),
+          timeoutMs,
+          m.label,
+        );
         return { ...m, text: r.text, usage: r.usage };
       } catch (e) {
         return { ...m, error: errText(e) };
@@ -198,13 +218,17 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
   if (input.synthesize === true && answered.length > 0) {
     const reviews = answered.map((o) => `<review by="${o.label}">\n${o.text}\n</review>`).join("\n\n");
     try {
-      const r = await ai.chat({
-        system: SECOND_OPINION_SYNTH_INSTRUCTION + lang,
-        prompt: reviews,
-        maxTokens: 6_000,
-        override: override(SECOND_OPINION_SYNTH),
-        purpose: "second-opinion-synthesis",
-      });
+      const r = await withTimeout(
+        ai.chat({
+          system: SECOND_OPINION_SYNTH_INSTRUCTION + lang,
+          prompt: reviews,
+          maxTokens: 6_000,
+          override: override(SECOND_OPINION_SYNTH),
+          purpose: "second-opinion-synthesis",
+        }),
+        timeoutMs,
+        SECOND_OPINION_SYNTH.label,
+      );
       synthesis = { text: r.text, usage: r.usage };
     } catch (e) {
       synthesis = { error: errText(e) };

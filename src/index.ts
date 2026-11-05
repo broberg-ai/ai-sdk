@@ -7,6 +7,7 @@ export {
   SECOND_OPINION_SYNTH,
   SECOND_OPINION_INSTRUCTION,
   SECOND_OPINION_SYNTH_INSTRUCTION,
+  SECOND_OPINION_DEFAULT_TIMEOUT_MS,
   type PanelMember,
   type Opinion,
   type SecondOpinionInput,

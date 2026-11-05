@@ -3,11 +3,11 @@ import { createAI } from "../client.js";
 import { freshUsage } from "../cost/usage.js";
 import { getPrice } from "../cost/pricing.js";
 import type { ChatRequest, ProviderAdapter } from "../types.js";
-import { getUsdToDkk, FALLBACK_USD_DKK, SECOND_OPINION_INSTRUCTION, SECOND_OPINION_PANEL, SECOND_OPINION_SYNTH, SECOND_OPINION_SYNTH_INSTRUCTION } from "./second-opinion.js";
+import { getUsdToDkk, FALLBACK_USD_DKK, SECOND_OPINION_DEFAULT_TIMEOUT_MS, SECOND_OPINION_INSTRUCTION, SECOND_OPINION_PANEL, SECOND_OPINION_SYNTH, SECOND_OPINION_SYNTH_INSTRUCTION } from "./second-opinion.js";
 
 type Seen = { provider: string; model: string; system: string; prompt: string };
 
-function spy(name: string, seen: Seen[], opts: { fail?: boolean } = {}): ProviderAdapter {
+function spy(name: string, seen: Seen[], opts: { fail?: boolean; hang?: boolean } = {}): ProviderAdapter {
   return {
     name,
     async chat(req: ChatRequest) {
@@ -15,6 +15,7 @@ function spy(name: string, seen: Seen[], opts: { fail?: boolean } = {}): Provide
       const prompt = String(req.messages.find((m) => m.role === "user")?.content ?? "");
       seen.push({ provider: name, model: req.spec.model, system, prompt });
       if (opts.fail) throw new Error(`${name} is down`);
+      if (opts.hang) await new Promise(() => {});
       const usage = freshUsage({ provider: name, model: req.spec.model, transport: "http", capability: "chat", inputTokens: 1000, outputTokens: 500 });
       usage.costUsd = 0.01;
       return { text: `review from ${req.spec.model}`, usage };
@@ -135,4 +136,20 @@ test("F088 USD to DKK: ECB rate when the fetch works, labelled fallback when it 
   expect(await getUsdToDkk(down)).toEqual({ rate: FALLBACK_USD_DKK.rate, date: FALLBACK_USD_DKK.date, source: "fallback" });
   const junk = (async () => new Response(JSON.stringify({ rates: {} }))) as unknown as typeof fetch;
   expect((await getUsdToDkk(junk)).source).toBe("fallback");
+});
+
+test("F088.5 a model that does not answer in time gets a timeout error; the others are delivered", async () => {
+  const seen: Seen[] = [];
+  const names = ["anthropic", "openai", "gemini", "mistral", "openrouter"];
+  const providers = Object.fromEntries(names.map((n) => [n, spy(n, seen, { hang: n === "gemini" })]));
+  const ai = createAI({ providers, costSink: null });
+  const r = await ai.secondOpinion({ content: "a plan", confirmNoPersonalData: true, usdToDkk: 6.5, timeoutMs: 50 });
+  const g = r.opinions.find((o) => o.provider === "gemini")!;
+  expect(g.error).toContain("timeout");
+  expect(g.text).toBeUndefined();
+  expect(r.opinions.filter((o) => o.text)).toHaveLength(4);
+});
+
+test("F088.5 default per-model timeout is 5 minutes", () => {
+  expect(SECOND_OPINION_DEFAULT_TIMEOUT_MS).toBe(300_000);
 });

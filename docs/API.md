@@ -586,6 +586,8 @@ DeepSeek V4.1 Flash 1017 (via openrouter). Override with `panel: [{ label, provi
 - **Material containing a credential is refused** (private key, sk-/AKIA/ghp_/AIza/xox
   shapes) — the error names the kind, never the value.
 - One failing model does not stop the others; its row carries `error`.
+- Per-model time limit `timeoutMs` (default 5 min, v0.71.1): a model that has not answered
+  gets an error row and the rest are delivered. The late request is not cancelled and may still bill.
 - Answers in Danish by default; `language: "English"` changes it.
 - Script: `bun run scripts/second-opinion.ts <file> [--focus …] [--synth] [--out …]`.
 
