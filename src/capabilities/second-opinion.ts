@@ -13,11 +13,11 @@ export interface PanelMember {
 
 /** Measured reachable with our keys 2026-11-05. Four of five are US/CN — hence the
  *  confirmNoPersonalData gate. DeepSeek goes via OpenRouter (no direct key here); so
- *  does GPT-6 Astra, because the direct OpenAI account answered 429 "no credits
+ *  does GPT-6.1 Sol (owner chose it over Astra 2026-11-05 — 5x cheaper), because the direct OpenAI account answered 429 "no credits
  *  remaining" on 2026-11-05 — same model and list price on OpenRouter. */
 export const SECOND_OPINION_PANEL: readonly PanelMember[] = [
   { label: "Anthropic Opus 5.5", provider: "anthropic", model: "claude-opus-5-5" },
-  { label: "OpenAI GPT-6 Astra", provider: "openrouter", model: "openai/gpt-6-astra" },
+  { label: "OpenAI GPT-6.1 Sol", provider: "openrouter", model: "openai/gpt-6.1-sol" },
   { label: "Google Gemini 4 Argon", provider: "gemini", model: "gemini-4-argon" },
   { label: "Mistral Large 4", provider: "mistral", model: "mistral-large-4-0" },
   { label: "DeepSeek V4.1 Flash 1017", provider: "openrouter", model: "deepseek/deepseek-v4.1-flash-1017" },
@@ -250,10 +250,12 @@ function toMarkdown(
   const src = { ecb: "ECB-kurs", given: "angivet kurs", fallback: "FAST kurs — ECB-kursen kunne ikke hentes" }[cost.rateSource];
   lines.push("", `**Rapporten kostede:** ${usd(cost.usd)} ≈ ${dkk} kr. (1 USD = ${cost.usdToDkk} DKK, ${src} ${cost.rateDate})`, "");
   if (synthesis) {
-    lines.push("## Opsummering", "", synthesis.text ?? `_Fejl: ${synthesis.error}_`, "");
+    lines.push("## Opsummering", "", synthesis.text ? synthesis.text.replace(/^(#{1,4}) /gm, "$1## ") : `_Fejl: ${synthesis.error}_`, "");
   }
   for (const o of opinions) {
-    lines.push(`## ${o.label}`, "", o.text ?? `_Fejl: ${o.error}_`, "");
+    // Demote the reviewer's own headings two levels so they nest under "## <model>".
+    const body = o.text ? o.text.replace(/^(#{1,4}) /gm, "$1## ") : `_Fejl: ${o.error}_`;
+    lines.push(`## ${o.label}`, "", body, "");
   }
   return lines.join("\n");
 }

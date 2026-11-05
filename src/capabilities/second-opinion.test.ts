@@ -96,6 +96,7 @@ test("F088 refuses material that carries a credential, naming the kind not the v
 test("F088.2 the two new panel models are priced", () => {
   expect(getPrice("gemini", "gemini-4-argon")).toMatchObject({ inputPer1M: 2, outputPer1M: 10 });
   expect(getPrice("openrouter", "openai/gpt-6-astra")).toMatchObject({ inputPer1M: 10, outputPer1M: 50 });
+  expect(getPrice("openrouter", "openai/gpt-6.1-sol")).toMatchObject({ inputPer1M: 2, outputPer1M: 10 });
   expect(getPrice("openrouter", "deepseek/deepseek-v4.1-flash-1017")).toMatchObject({ inputPer1M: 0.15, outputPer1M: 0.6 });
 });
 

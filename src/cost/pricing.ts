@@ -171,6 +171,7 @@ export const PRICING: Record<string, PricingEntry> = {
   "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.2088, outputPer1M: 0.4176, version: "2026-10-02-openrouter-live" },
   // F067.7: flash re-read 2026-10-20 — rose from 0.028/0.056.
   "openrouter:openai/gpt-6-astra": { inputPer1M: 10, outputPer1M: 50, version: "2026-11-05-openrouter-live" },
+  "openrouter:openai/gpt-6.1-sol": { inputPer1M: 2, outputPer1M: 10, version: "2026-11-05-openrouter-live" },
   "openrouter:deepseek/deepseek-v4.1-flash-1017": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-11-05-openrouter-live" },
   "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.091, outputPer1M: 0.182, version: "2026-10-20-openrouter-live" },
   // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from
