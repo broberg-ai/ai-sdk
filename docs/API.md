@@ -555,6 +555,40 @@ as `voice`, or a raw Azure voice name.
 when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
 per-character and tracked like every other call.
 
+### Second opinion from five frontier models — `ai.secondOpinion` (F088, v0.71+)
+
+Send a plan, an SDK design or a spec to five frontier models from five providers at
+once, with the same instruction (an impartial, qualitative, constructive review with
+improvements). Blind: no model is told who wrote it or sees the others' answers.
+
+```ts
+const r = await ai.secondOpinion({
+  content: planMarkdown,
+  title: "F006 v9.3",
+  focus: "security and cost",        // optional steering
+  confirmNoPersonalData: true,       // REQUIRED — see below
+});
+r.opinions   // [{ label, provider, model, text?, error?, usage? }] — the FULL answers, always
+r.cost       // { usd, dkk, usdToDkk, rateSource: "ecb"|"given"|"fallback", rateDate }
+r.markdown   // a report: price table + every review in full
+```
+
+Panel (`SECOND_OPINION_PANEL`, measured reachable 2026-11-05): Opus 5.5 (anthropic),
+GPT-6.1 Sol (via openrouter), Gemini 4 Argon (gemini), Mistral Large 4 (mistral, EU),
+DeepSeek V4.1 Flash 1017 (via openrouter). Override with `panel: [{ label, provider, model }]`.
+
+- **The full reviews are the product.** No summary by default — the asking agent forms
+  its own view. `synthesize: true` adds a summary by Mistral Large 4 ON TOP of them.
+- **Price is always returned**, in USD and DKK (ECB reference rate; a fixed rate labelled
+  `fallback` if the fetch fails). Measured: a ~7,000-word plan cost $0.39 ≈ 2.59 kr., 101 s.
+- **Four of five models are US/CN-hosted.** `confirmNoPersonalData: true` is required, or
+  nothing is sent. Plans are fine; personal, customer or health data is not.
+- **Material containing a credential is refused** (private key, sk-/AKIA/ghp_/AIza/xox
+  shapes) — the error names the kind, never the value.
+- One failing model does not stop the others; its row carries `error`.
+- Answers in Danish by default; `language: "English"` changes it.
+- Script: `bun run scripts/second-opinion.ts <file> [--focus …] [--synth] [--out …]`.
+
 ### Raster → SVG — `ai.vectorize` (Recraft, F070, v0.70+)
 
 ```ts
