@@ -170,6 +170,8 @@ export const PRICING: Record<string, PricingEntry> = {
   // OpenRouter call books usage.cost from the response anyway; this row is the fallback.
   "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.2088, outputPer1M: 0.4176, version: "2026-10-02-openrouter-live" },
   // F067.7: flash re-read 2026-10-20 — rose from 0.028/0.056.
+  "openrouter:openai/gpt-6-astra": { inputPer1M: 10, outputPer1M: 50, version: "2026-11-05-openrouter-live" },
+  "openrouter:deepseek/deepseek-v4.1-flash-1017": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-11-05-openrouter-live" },
   "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.091, outputPer1M: 0.182, version: "2026-10-20-openrouter-live" },
   // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from
   // api-docs.deepseek.com 2026-06-30 ($0.14/$0.28 per 1M; both map to deepseek-v4-flash).
@@ -203,6 +205,9 @@ export const PRICING: Record<string, PricingEntry> = {
   // priced per-image in the adapter, not here.)
   "gemini:gemini-2.5-flash": { inputPer1M: 0.3, cacheReadPer1M: 0.03, outputPer1M: 2.5, version: "2026-08-27-ai.google.dev" },
   // flash-lite is the default `video` tier (F019) — cheap native video understanding.
+  // F088 — measured 2026-11-05: reachable with our GEMINI_API_KEY; price = OpenRouter's
+  // live google/gemini-4-argon row (passes Google's list price through).
+  "gemini:gemini-4-argon": { inputPer1M: 2, outputPer1M: 10, version: "2026-11-05-openrouter-live" },
   "gemini:gemini-2.5-flash-lite": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0.4, version: "2026-08-27-ai.google.dev" },
 
   // Vertex AI (F038) — the EU-resident route to the SAME Gemini models, so Google's

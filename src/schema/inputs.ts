@@ -492,4 +492,7 @@ export interface AiClient {
   };
   /** Prompt-contract capabilities (F5.5) layered on chat/vision. */
   contracts: Contracts;
+  /** F088 — five frontier models review the same material blind; one EU model condenses
+   *  them. Four of five are US/CN: requires confirmNoPersonalData:true. */
+  secondOpinion(input: import("../capabilities/second-opinion.js").SecondOpinionInput): Promise<import("../capabilities/second-opinion.js").SecondOpinionResult>;
 }

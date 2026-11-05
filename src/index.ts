@@ -2,6 +2,16 @@
 // The facade is the only public surface; provider SDKs never leak through it.
 export { createAI } from "./client.js";
 export { makeContracts, parseJsonLoose, matchLabel } from "./capabilities/contracts/index.js";
+export {
+  SECOND_OPINION_PANEL,
+  SECOND_OPINION_SYNTH,
+  SECOND_OPINION_INSTRUCTION,
+  SECOND_OPINION_SYNTH_INSTRUCTION,
+  type PanelMember,
+  type Opinion,
+  type SecondOpinionInput,
+  type SecondOpinionResult,
+} from "./capabilities/second-opinion.js";
 export type {
   Contracts,
   MockupInput,

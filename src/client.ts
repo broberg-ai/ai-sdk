@@ -15,6 +15,7 @@ import { EMBEDDING_DEFAULT_TIER } from "./capabilities/embedding.js";
 import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe.js";
 import { MISTRAL_TTS_DEFAULT_MODEL } from "./providers/mistral.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
+import { runSecondOpinion } from "./capabilities/second-opinion.js";
 import { checkVoice, VoiceUnavailableError } from "./voices/index.js";
 import {
   aiConfigSchema,
@@ -1048,6 +1049,7 @@ export function createAI(config: AiConfig = {}): AiClient {
 
     // Replaced below with the real prompt-contracts (needs the client itself).
     contracts: undefined as unknown as AiClient["contracts"],
+    secondOpinion: (input) => runSecondOpinion(client, input),
   };
 
   client.contracts = makeContracts(client);
