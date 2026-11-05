@@ -69,6 +69,8 @@ export interface SecondOpinionInput {
    *  answered "No" to a Mistral summary; the report carries the five reviews as-is. */
   synthesize?: boolean;
   maxTokens?: number;
+  /** USD→DKK rate for the price line. Omitted: the ECB reference rate is fetched. */
+  usdToDkk?: number;
   /** Language of every review and the summary. Default "Danish" — the owner reads them. */
   language?: string;
   /** REQUIRED true: four of five panel models are US/CN-hosted. */
@@ -81,11 +83,44 @@ export interface Opinion extends PanelMember {
   usage?: Usage;
 }
 
+export interface ReportCost {
+  usd: number;
+  dkk: number;
+  usdToDkk: number;
+  /** "ecb" = fetched ECB reference rate · "given" = caller's rate · "fallback" = fixed rate, fetch failed. */
+  rateSource: "ecb" | "given" | "fallback";
+  /** Date the rate applies to (YYYY-MM-DD). */
+  rateDate: string;
+}
+
 export interface SecondOpinionResult {
   opinions: Opinion[];
   synthesis?: { text?: string; error?: string; usage?: Usage };
   totalCostUsd: number;
+  /** What the report cost, in USD and DKK — always present (owner, 2026-11-05). */
+  cost: ReportCost;
   markdown: string;
+}
+
+/** ECB reference rate via frankfurter.dev (free, no key). Measured 2026-11-04: 6.6334. */
+export const USD_DKK_RATE_URL = "https://api.frankfurter.dev/v1/latest?from=USD&to=DKK";
+/** Used ONLY when the fetch fails, and the report then says "fallback". */
+export const FALLBACK_USD_DKK = { rate: 6.6334, date: "2026-11-04" } as const;
+
+export async function getUsdToDkk(
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ rate: number; date: string; source: "ecb" | "fallback" }> {
+  try {
+    const res = await fetchImpl(USD_DKK_RATE_URL, { signal: AbortSignal.timeout(5_000) });
+    if (!res.ok) throw new Error(`rate ${res.status}`);
+    const data = (await res.json()) as { date?: string; rates?: { DKK?: number } };
+    const rate = data.rates?.DKK;
+    if (typeof rate !== "number" || !(rate > 0)) throw new Error("rate missing in response");
+    return { rate, date: data.date ?? "", source: "ecb" };
+  } catch {
+    // Not silent: source "fallback" is printed in the report next to the price.
+    return { rate: FALLBACK_USD_DKK.rate, date: FALLBACK_USD_DKK.date, source: "fallback" };
+  }
 }
 
 const DEFAULT_MAX_TOKENS = 12_000;
@@ -179,7 +214,17 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
   const totalCostUsd =
     opinions.reduce((n, o) => n + (o.usage?.costUsd ?? 0), 0) + (synthesis?.usage?.costUsd ?? 0);
 
-  return { opinions, synthesis, totalCostUsd, markdown: toMarkdown(input, opinions, synthesis, totalCostUsd) };
+  const fx = input.usdToDkk
+    ? { rate: input.usdToDkk, date: new Date().toISOString().slice(0, 10), source: "given" as const }
+    : await getUsdToDkk();
+  const cost: ReportCost = {
+    usd: totalCostUsd,
+    dkk: totalCostUsd * fx.rate,
+    usdToDkk: fx.rate,
+    rateSource: fx.source,
+    rateDate: fx.date,
+  };
+  return { opinions, synthesis, totalCostUsd, cost, markdown: toMarkdown(input, opinions, synthesis, cost) };
 }
 
 function usd(n: number | undefined): string {
@@ -190,7 +235,7 @@ function toMarkdown(
   input: SecondOpinionInput,
   opinions: Opinion[],
   synthesis: SecondOpinionResult["synthesis"],
-  total: number,
+  cost: ReportCost,
 ): string {
   const lines: string[] = [];
   lines.push(`# Second opinion${input.title ? ` — ${input.title}` : ""}`, "");
@@ -201,7 +246,9 @@ function toMarkdown(
   if (synthesis) {
     lines.push(`| ${SECOND_OPINION_SYNTH.label} | ${synthesis.usage?.region ?? "—"} | ${usd(synthesis.usage?.costUsd)} | ${synthesis.error ? "fejl" : "ok"} |`);
   }
-  lines.push("", `**Samlet pris:** ${usd(total)}`, "");
+  const dkk = cost.dkk.toLocaleString("da-DK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const src = { ecb: "ECB-kurs", given: "angivet kurs", fallback: "FAST kurs — ECB-kursen kunne ikke hentes" }[cost.rateSource];
+  lines.push("", `**Rapporten kostede:** ${usd(cost.usd)} ≈ ${dkk} kr. (1 USD = ${cost.usdToDkk} DKK, ${src} ${cost.rateDate})`, "");
   if (synthesis) {
     lines.push("## Opsummering", "", synthesis.text ?? `_Fejl: ${synthesis.error}_`, "");
   }

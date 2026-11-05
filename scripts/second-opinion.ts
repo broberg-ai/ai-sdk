@@ -37,7 +37,7 @@ const r = await createAI().secondOpinion({
 writeFileSync(out, r.markdown);
 const failed = r.opinions.filter((o) => o.error);
 console.log(`report: ${out}`);
-console.log(`cost:   $${r.totalCostUsd.toFixed(4)}  time: ${Math.round((Date.now() - started) / 1000)}s`);
+console.log(`cost:   $${r.cost.usd.toFixed(4)} ≈ ${r.cost.dkk.toFixed(2)} kr. (${r.cost.rateSource} ${r.cost.usdToDkk})  time: ${Math.round((Date.now() - started) / 1000)}s`);
 for (const o of r.opinions) console.log(`  ${o.error ? "FAIL" : "ok  "} ${o.label}${o.error ? ` — ${o.error.slice(0, 160)}` : ""}`);
 if (r.synthesis?.error) console.log(`  FAIL synthesis — ${r.synthesis.error.slice(0, 160)}`);
 process.exit(failed.length === r.opinions.length ? 1 : 0);
