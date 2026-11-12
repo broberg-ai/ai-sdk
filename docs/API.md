@@ -571,6 +571,22 @@ by exactly the reported sum. **BFL serves only `latest`** — no dated version e
 route counts as floating: pass `allowFloating: true`, and `strictPinning` refuses it.
 Klein alone takes `seed` and `outputFormat`. No finetunes on FLUX 3.
 
+### Cutting a call off — `timeoutMs` and `signal` on `ai.chat` / `ai.chatStream` (F090, v0.74+)
+
+```ts
+await ai.chat({ prompt, tier: "smart", timeoutMs: 120_000 }); // → AiTimeoutError after 2 min
+const c = new AbortController();
+await ai.chat({ prompt, signal: c.signal });                   // c.abort() → AiAbortError
+```
+
+Both abort the **fetch itself** — the connection to the provider is closed, not merely
+abandoned, so a late answer is not billed. The error is named (`AiTimeoutError` with
+`timeoutMs`, `AiAbortError`; both exported), a failure row goes to the cost sink
+(`errorCode: "timeout"` / `"aborted"`), and the call is **never retried on a fallback
+route** — your deadline is your decision, not an outage. No default timeout: without the
+options nothing changes. Reported by mailworker 2026-11-12 (a weekly job hung 36+ min on
+one Mistral call).
+
 ### Second opinion from five frontier models — `ai.secondOpinion` (F088, v0.71+)
 
 Send a plan, an SDK design or a spec to five frontier models from five providers at

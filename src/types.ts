@@ -239,6 +239,8 @@ export interface CallOptions {
 export interface ChatRequest {
   messages: Message[];
   spec: TierSpec;
+  /** F090 — abort the provider request (timeoutMs / caller signal combined). */
+  signal?: AbortSignal;
   tools?: Tool[];
   maxTokens?: number;
   /** F039 — Mistral prompt caching. A stable application-level id for "the same

@@ -10,6 +10,7 @@ export async function httpTransport(req: TransportRequest): Promise<HttpResponse
   const res = await (req.fetch ?? fetch)(url, {
     method,
     headers,
+    signal: req.signal,
     body:
       body === undefined
         ? undefined

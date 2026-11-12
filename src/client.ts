@@ -16,6 +16,7 @@ import { DEFAULT_TRANSCRIBE_SPEC, resolveAudio } from "./capabilities/transcribe
 import { MISTRAL_TTS_DEFAULT_MODEL } from "./providers/mistral.js";
 import { makeContracts } from "./capabilities/contracts/index.js";
 import { runSecondOpinion } from "./capabilities/second-opinion.js";
+import { callAbort, isCallerAbort } from "./transport/abort.js";
 import { checkVoice, VoiceUnavailableError } from "./voices/index.js";
 import {
   aiConfigSchema,
@@ -516,6 +517,8 @@ export function createAI(config: AiConfig = {}): AiClient {
           },
           e,
         );
+        // F090 — the caller's own timeout/abort is not an outage: never retry it elsewhere.
+        if (isCallerAbort(e)) throw e;
       }
     }
     throw lastErr;
@@ -546,6 +549,7 @@ export function createAI(config: AiConfig = {}): AiClient {
    *  surfaced as an error event and the stream ends. Budget breaches propagate. */
   async function* chatStreamImpl(input: ChatInput): AsyncIterable<ChatStreamEvent> {
     input = chatInputSchema.parse(input);
+    const abort = callAbort(input.signal, input.timeoutMs);
     const tier = input.tier ?? "smart";
     const messages = toMessages(input);
     const estIn = messages.reduce(
@@ -573,6 +577,7 @@ export function createAI(config: AiConfig = {}): AiClient {
       let emitted = false;
       try {
         for await (const ev of adapter.chatStream({
+          signal: abort.signal,
           messages,
           spec,
           tools: input.tools,
@@ -597,7 +602,8 @@ export function createAI(config: AiConfig = {}): AiClient {
           yield ev;
         }
         return; // stream completed cleanly
-      } catch (e) {
+      } catch (raw) {
+        const e = abort.translate(raw, "ai.chatStream");
         lastErr = e;
         await reportFailure(
           {
@@ -612,7 +618,7 @@ export function createAI(config: AiConfig = {}): AiClient {
           },
           e,
         );
-        if (emitted || !eligibleForFallback(e)) {
+        if (emitted || isCallerAbort(e) || !eligibleForFallback(e)) {
           yield errorEvent(e); // mid-stream or hard error → surface + stop
           return;
         }
@@ -625,6 +631,7 @@ export function createAI(config: AiConfig = {}): AiClient {
   const client: AiClient = {
     async chat(input: ChatInput): Promise<ChatResult> {
       input = chatInputSchema.parse(input);
+      const abort = callAbort(input.signal, input.timeoutMs);
       const tier = input.tier ?? "smart";
       const messages = toMessages(input);
       const estIn = messages.reduce(
@@ -644,7 +651,11 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.chat) throw new Error(`createAI: provider "${spec.provider}" does not support chat`);
-          return adapter.chat({ messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, reasoningEffort: input.reasoningEffort, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey, promptCache: input.promptCache ?? cfg.promptCache });
+          try {
+            return await adapter.chat({ signal: abort.signal, messages, spec, tools: input.tools, maxTokens: input.maxTokens, temperature: input.temperature, reasoningEffort: input.reasoningEffort, responseFormat: input.responseFormat, promptCacheKey: input.promptCacheKey, promptCache: input.promptCache ?? cfg.promptCache });
+          } catch (e) {
+            throw abort.translate(e, "ai.chat");
+          }
         },
       });
     },

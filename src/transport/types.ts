@@ -12,6 +12,8 @@ export interface TransportRequest {
    *  config MUST pass it here, or a test's fake fetch is silently bypassed and the call
    *  reaches the real provider with whatever key is in the environment. */
   fetch?: typeof fetch;
+  /** F090 — aborts the fetch itself (timeoutMs / caller signal). */
+  signal?: AbortSignal;
   http?: {
     url: string;
     method?: string;

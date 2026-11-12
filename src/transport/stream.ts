@@ -32,6 +32,7 @@ export async function* streamTransport(req: StreamTransportRequest): AsyncIterab
   const res = await fetchImpl(url, {
     method,
     headers,
+    signal: req.signal,
     body:
       body === undefined
         ? undefined

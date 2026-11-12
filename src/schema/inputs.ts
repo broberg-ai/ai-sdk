@@ -155,6 +155,11 @@ export const chatInputSchema = z.object({
   reasoningEffort: z.enum(["none", "low", "medium", "high"]).optional(),
   /** "json" requests JSON-object output (OpenAI-compatible response_format). */
   responseFormat: z.enum(["json", "text"]).optional(),
+  /** F090 — abort the request after this many ms (the connection is closed, not just
+   *  abandoned). Throws AiTimeoutError. */
+  timeoutMs: z.number().int().positive().optional(),
+  /** F090 — abort the request from outside. Throws AiAbortError. */
+  signal: z.instanceof(AbortSignal).optional(),
   ...callOptions,
 });
 

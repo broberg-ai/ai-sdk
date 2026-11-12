@@ -70,9 +70,10 @@ export interface SecondOpinionInput {
   synthesize?: boolean;
   maxTokens?: number;
   /** F088.5 — per-model time limit. A model that has not answered by then gets an
-   *  error row ("timeout") and the others are delivered. Default 5 min. The provider
-   *  request is not cancelled, so a late answer may still be billed — it is just not
-   *  waited for. */
+   *  error row ("timeout") and the others are delivered. Default 5 min. Since F090
+   *  (v0.74) the provider request itself is aborted — the connection closes, so a late
+   *  answer is not billed. The race below stays as a backstop for an adapter that does
+   *  not forward the signal. */
   timeoutMs?: number;
   /** USD→DKK rate for the price line. Omitted: the ECB reference rate is fetched. */
   usdToDkk?: number;
@@ -202,6 +203,7 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
             maxTokens,
             override: override(m),
             purpose: "second-opinion",
+            timeoutMs,
           }),
           timeoutMs,
           m.label,
@@ -225,6 +227,7 @@ export async function runSecondOpinion(ai: AiClient, input: SecondOpinionInput):
           maxTokens: 6_000,
           override: override(SECOND_OPINION_SYNTH),
           purpose: "second-opinion-synthesis",
+          timeoutMs,
         }),
         timeoutMs,
         SECOND_OPINION_SYNTH.label,

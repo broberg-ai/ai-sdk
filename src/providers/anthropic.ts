@@ -144,6 +144,7 @@ export function anthropicAdapter(
     const res = await httpTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${baseUrl}/v1/messages`,
         headers: {
@@ -217,6 +218,7 @@ export function anthropicAdapter(
     const stream = streamTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${baseUrl}/v1/messages`,
         headers: {

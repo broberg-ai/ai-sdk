@@ -303,6 +303,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     const res = await httpTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${config.baseUrl}/chat/completions`,
         headers: {
@@ -374,6 +375,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     const stream = streamTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${config.baseUrl}/chat/completions`,
         headers: {

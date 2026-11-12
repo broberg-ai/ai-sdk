@@ -2,6 +2,7 @@
 // The facade is the only public surface; provider SDKs never leak through it.
 export { createAI } from "./client.js";
 export { makeContracts, parseJsonLoose, matchLabel } from "./capabilities/contracts/index.js";
+export { AiTimeoutError, AiAbortError } from "./transport/abort.js";
 export {
   SECOND_OPINION_PANEL,
   SECOND_OPINION_SYNTH,

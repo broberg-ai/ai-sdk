@@ -135,6 +135,7 @@ export function geminiAdapter(
     const res = await httpTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${baseUrl}/models/${req.spec.model}:generateContent?key=${encodeURIComponent(apiKey)}`,
         headers: { "content-type": "application/json" },
@@ -177,6 +178,7 @@ export function geminiAdapter(
     const stream = streamTransport({
       spec: req.spec,
       fetch: config.fetch,
+      signal: req.signal,
       http: {
         url: `${baseUrl}/models/${req.spec.model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
         headers: { "content-type": "application/json" },

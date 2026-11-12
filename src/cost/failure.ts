@@ -31,7 +31,8 @@ export function classifyFailure(err: unknown): { errorCode: string; errorKind: F
   const e = err as { name?: string; message?: string; status?: unknown; cause?: { code?: string } };
   const name = e?.name ?? "";
   const message = String(e?.message ?? "");
-  if (name === "AbortError" || name === "TimeoutError" || /timed? ?out/i.test(message.split("\n")[0] ?? "")) {
+  if (name === "AiAbortError") return { errorCode: "aborted", errorKind: "other" };
+  if (name === "AbortError" || name === "TimeoutError" || name === "AiTimeoutError" || /timed? ?out/i.test(message.split("\n")[0] ?? "")) {
     return { errorCode: "timeout", errorKind: "timeout" };
   }
   let status: number | undefined = typeof e?.status === "number" ? e.status : undefined;
