@@ -555,6 +555,22 @@ as `voice`, or a raw Azure voice name.
 when a call passes no explicit `rate`; an explicit `rate` always wins. Cost is
 per-character and tracked like every other call.
 
+### FLUX 3 Image + Klein in the EU — `ai.image` via BFL (F079.3, v0.73+)
+
+```ts
+await ai.image({ prompt, width: 1024, height: 1024, allowFloating: true,
+  override: { provider: "bfl", model: "flux-3-image" } });        // $0.048 at 1k
+await ai.image({ prompt, override: { provider: "bfl", model: "flux-3-image-klein" }, allowFloating: true }); // $0.009 at 1k
+```
+
+Prompt alone is enough; `referenceImages` go to BFL's `images` field (style/subject
+reference). Pinned to `api.eu.bfl.ai`, `usage.region: "eu"`, cost is BFL's own billed
+credits (`costBasis: "reported"`). Measured 2026-11-12 at 1024×1024: FLUX 3 Image 4.8
+credits ($0.048, ~49 s), Klein 0.9 credits ($0.009, ~29 s); the `/v1/credits` balance fell
+by exactly the reported sum. **BFL serves only `latest`** — no dated version exists — so the
+route counts as floating: pass `allowFloating: true`, and `strictPinning` refuses it.
+Klein alone takes `seed` and `outputFormat`. No finetunes on FLUX 3.
+
 ### Second opinion from five frontier models — `ai.secondOpinion` (F088, v0.71+)
 
 Send a plan, an SDK design or a spec to five frontier models from five providers at

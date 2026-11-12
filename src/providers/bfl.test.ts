@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { bflAdapter } from "./bfl.js";
+import { getMediaPrice } from "../cost/media-pricing.js";
 
 const spec = { provider: "bfl", model: "flux-pro-1.1-ultra-finetuned", transport: "http" as const };
 
@@ -365,4 +366,58 @@ test("audio:false on a route that always makes sound is refused; a known-silent 
   const ai2 = createAI({ costSink: null, providers: { fal: kling as never } });
   await ai2.animate({ image: "u", prompt: "x", audio: false, override: { provider: "fal", model: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video" } });
   expect(reached).toBe(true);
+});
+
+// ── F079.3 — FLUX 3 Image + Klein, prompt alone, EU-pinned ─────────────────────
+for (const model of ["flux-3-image", "flux-3-image-klein"] as const) {
+  test(`F079.3 ${model}: prompt alone hits /v1/${model} on api.eu.bfl.ai with the real credit cost`, async () => {
+    const calls: string[] = [];
+    let body: Record<string, unknown> = {};
+    const adapter = bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls, body: (b) => (body = b), cost: 7 }) });
+    const { url, usage } = await adapter.image!({
+      prompt: "a lighthouse at dusk",
+      spec: { provider: "bfl", model, transport: "http" },
+      width: 1024,
+      height: 768,
+      seed: 5,
+    });
+    expect(url).toBe("https://delivery.eu2.bfl.ai/x.jpeg");
+    expect(usage.costUsd).toBe(0.07);
+    expect(usage.costBasis).toBe("reported");
+    expect(usage.region).toBe("eu");
+    expect(calls[0]).toBe(`https://api.eu.bfl.ai/v1/${model}`);
+    for (const u of calls) expect(u.startsWith("https://api.eu.bfl.ai/")).toBe(true);
+    expect(body.prompt).toBe("a lighthouse at dusk");
+    expect(body.width).toBe(1024);
+    expect(body.height).toBe(768);
+    expect(body.input_image).toBeUndefined();
+    // Klein alone has seed/output_format in BFL's schema
+    expect(body.seed).toBe(model === "flux-3-image-klein" ? 5 : undefined);
+    expect(body.output_format).toBe(model === "flux-3-image-klein" ? "jpeg" : undefined);
+  });
+}
+
+test("F079.3 flux-3-image references go in `images`, not input_image_N", async () => {
+  const calls: string[] = [];
+  let body: Record<string, unknown> = {};
+  const adapter = bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls, body: (b) => (body = b) }) });
+  await adapter.image!({
+    prompt: "same style",
+    spec: { provider: "bfl", model: "flux-3-image", transport: "http" },
+    referenceImages: ["https://example.com/a.jpg", "data:image/png;base64,QUJD"],
+  });
+  expect(body.images).toEqual(["https://example.com/a.jpg", "QUJD"]);
+  expect(body.input_image).toBeUndefined();
+});
+
+test("F079.3 flux-3-image refuses a finetune with a message naming the right model", async () => {
+  const adapter = bflAdapter({ apiKey: "k", fetch: flux2Fetch({ calls: [] }) });
+  await expect(
+    adapter.image!({ prompt: "x", spec: { provider: "bfl", model: "flux-3-image", transport: "http" }, finetune: "ft" }),
+  ).rejects.toThrow(/flux-pro-1.1-ultra-finetuned/);
+});
+
+test("F079.3 measured fallback prices exist for both FLUX 3 image models", () => {
+  expect(getMediaPrice("bfl", "flux-3-image")?.usd).toBe(0.048);
+  expect(getMediaPrice("bfl", "flux-3-image-klein")?.usd).toBe(0.009);
 });

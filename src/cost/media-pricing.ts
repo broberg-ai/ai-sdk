@@ -101,6 +101,22 @@ export const MEDIA_PRICING: Record<string, MediaPrice> = {
     source: "measured 2026-10-20: get_result cost 75 credits for a 5 s hd clip (hd only)",
   },
 
+  // F079.3 — FLUX 3 Image + Klein. MEASURED 2026-11-12 at 1024×1024 ("1k"): BFL reported
+  // 4.8 and 0.9 credits, and the /v1/credits balance fell by exactly 5.7. A normal call is
+  // `costBasis: "reported"` and never reads these rows; larger resolutions cost more.
+  "bfl:flux-3-image": {
+    unit: "per_image",
+    usd: 0.048,
+    checkedAt: MEDIA_PRICING_CHECKED_AT,
+    source: "measured 2026-11-12: submit cost 4.8 credits at 1024x1024, /v1/credits delta matched",
+  },
+  "bfl:flux-3-image-klein": {
+    unit: "per_image",
+    usd: 0.009,
+    checkedAt: MEDIA_PRICING_CHECKED_AT,
+    source: "measured 2026-11-12: submit cost 0.9 credits at 1024x1024, /v1/credits delta matched",
+  },
+
   // BFL — the fallback only. BFL RETURNS the real billed cost in credits, so a
   // normal call is `costBasis: "reported"` and never reads this row.
   "bfl:flux-pro-1.1-ultra-finetuned": {

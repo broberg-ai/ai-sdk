@@ -139,7 +139,21 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
     // F064 — FLUX 2 generates from the prompt alone; references are optional. That is
     // the EU route for a plain text-to-image call.
     const flux2PromptOnly = !req.referenceImages?.length && !req.finetune && req.spec.model.startsWith("flux-2");
-    if (req.referenceImages?.length || flux2PromptOnly) {
+    if (req.spec.model.startsWith("flux-3-image")) {
+      // F079.3 — FLUX 3 Image / Klein: prompt alone, optional references in `images`
+      // (NOT input_image_N), size as width/height. Measured against BFL's openapi.json
+      // 2026-11-12: Klein alone takes seed + output_format; the full model refuses neither
+      // but has no field for them, so they are sent only where they exist.
+      if (req.finetune) throw new Error(`bfl adapter: ${req.spec.model} takes no finetune — finetunes run on flux-pro-1.1-ultra-finetuned`);
+      if (req.referenceImages?.length) body.images = req.referenceImages.map(toBflImage);
+      if (req.width) body.width = req.width;
+      if (req.height) body.height = req.height;
+      body.safety_tolerance = req.safetyTolerance ?? 2;
+      if (req.spec.model === "flux-3-image-klein") {
+        if (req.seed !== undefined) body.seed = req.seed;
+        body.output_format = req.outputFormat ?? "jpeg";
+      }
+    } else if (req.referenceImages?.length || flux2PromptOnly) {
       // F023.5 — FLUX 2 multi-reference: input_image, input_image_2 … input_image_8.
       req.referenceImages?.forEach((img, i) => {
         body[i === 0 ? "input_image" : `input_image_${i + 1}`] = toBflImage(img);
@@ -197,7 +211,10 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
       usage.costBasis = "reported";
     } else {
       usage.costUsd =
-        config.pricePerImage ?? getMediaPrice("bfl", "flux-pro-1.1-ultra-finetuned")?.usd ?? 0;
+        config.pricePerImage ??
+        getMediaPrice("bfl", req.spec.model)?.usd ??
+        getMediaPrice("bfl", "flux-pro-1.1-ultra-finetuned")?.usd ??
+        0;
       usage.costBasis = config.pricePerImage !== undefined ? "computed" : "estimated";
     }
     return { url: sample, usage };

@@ -33,7 +33,7 @@ export const isFloatingId = (id: string): boolean => /-latest$/.test(id);
  *  moving `latest` and has no dated version to pin. Measured 20/10 2026 on BFL's
  *  openapi.json: FLUX 3 Video's `version` is the const "latest" ("dated pinnable
  *  release tags are added here as they are published"). Remove a row when it can pin. */
-export const LATEST_ONLY_ROUTES: ReadonlySet<string> = new Set(["bfl:flux-3-video"]);
+export const LATEST_ONLY_ROUTES: ReadonlySet<string> = new Set(["bfl:flux-3-video", "bfl:flux-3-image", "bfl:flux-3-image-klein"]);
 
 /** Does this route float — a `-latest` id, or a provider that only serves latest? */
 export const isFloatingRoute = (provider: string, model: string): boolean =>
