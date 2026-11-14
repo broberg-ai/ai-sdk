@@ -1,8 +1,720 @@
 {
-  "generatedAt": "2026-10-31T04:01:50.919Z",
-  "checkedAt": "2026-10-31T04:01:50.919Z",
-  "modelCount": 456,
+  "generatedAt": "2026-11-14T04:00:51.492Z",
+  "checkedAt": "2026-11-14T04:00:51.492Z",
+  "modelCount": 471,
   "models": [
+    {
+      "provider": "inclusionai",
+      "model": "inclusionai/ling-3.2-flash:free",
+      "name": "inclusionAI: Ling 3.2 Flash (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Ling 3.2 Flash is a hybrid reasoning model from inclusionAI that accepts text and image input, with a 1M-token context window and up to 200 images per request. Thinking can...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-4-hydrogen",
+      "name": "Google: Gemini 4 Hydrogen",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.5,
+        "output": 7.5,
+        "cacheReadPer1M": 0.075
+      },
+      "inputModalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini 4 Hydrogen is the high-efficiency workhorse model of the Gemini 4 family from Google, built for high-throughput agentic workflows, coding and multi-model routing at lower cost and latency than...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-4-hydrogen:batch",
+      "name": "Google: Gemini 4 Hydrogen (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.75,
+        "output": 3.75,
+        "cacheReadPer1M": 0.0375
+      },
+      "inputModalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini 4 Hydrogen is the high-efficiency workhorse model of the Gemini 4 family from Google, built for high-throughput agentic workflows, coding and multi-model routing at lower cost and latency than...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "baidu",
+      "model": "baidu/ernie-5.5-flash-preview:free",
+      "name": "Baidu: ERNIE-5.5-Flash-Preview (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1024000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "ERNIE 5.5 Flash Preview is the latest foundation model in the ERNIE family, with comprehensive improvements in coding, agentic capabilities, knowledge work, and deep research. It has 280 billion total...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "baidu",
+      "model": "baidu/ernie-light-dt-1.0-intl",
+      "name": "Baidu: ERNIE-Light-DT-1.0",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.13,
+        "output": 3.94,
+        "cacheReadPer1M": 0.113
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1024000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "ERNIE-Light-DT-1.0 is based on open-source GLM models and includes research findings from Baidu Search's Lightning large model. It features Baidu Sparse Attention (BSA), a unique sparse attention mechanism developed by...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-4-carbon",
+      "name": "Google: Gemini 4 Carbon",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 2,
+        "output": 10,
+        "cacheReadPer1M": 0.1
+      },
+      "inputModalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini 4 Carbon is a frontier Gemini 4 model from Google for coding, agentic and complex reasoning work. It takes text, image, audio, video and file input, supports long decode...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-4-carbon:batch",
+      "name": "Google: Gemini 4 Carbon (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1,
+        "output": 5,
+        "cacheReadPer1M": 0.05
+      },
+      "inputModalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini 4 Carbon is a frontier Gemini 4 model from Google for coding, agentic and complex reasoning work. It takes text, image, audio, video and file input, supports long decode...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "nex-agi",
+      "model": "nex-agi/nex-n2.6",
+      "name": "Nex AGI: Nex-N2.6",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.12,
+        "output": 0.4,
+        "cacheReadPer1M": 0.024
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Nex-N2.6 is an agentic model from Nex AGI, built on [GLM-5.3-Flash](https://huggingface.co/zai-org/GLM-5.3-Flash-BF16) with about 321B parameters. It is suited for computer use, coding, and long-horizon tasks that involve tools. Compared with...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "thinkingmachines",
+      "model": "thinkingmachines/inkling-2-small",
+      "name": "Thinking Machines: Inkling 2 Small",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.3,
+        "output": 1,
+        "cacheReadPer1M": 0.03
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "reasoning",
+        "fast",
+        "edge"
+      ],
+      "description": "Inkling 2 Small is an open-weight multimodal mixture-of-experts reasoning model from Thinking Machines Lab, with 17B active parameters out of 594B total. It is the first model in the second...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "thinkingmachines",
+      "model": "thinkingmachines/inkling-2-small:free",
+      "name": "Thinking Machines: Inkling 2 Small (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "reasoning",
+        "fast",
+        "edge"
+      ],
+      "description": "Inkling 2 Small is an open-weight multimodal mixture-of-experts reasoning model from Thinking Machines Lab, with 17B active parameters out of 594B total. It is the first model in the second...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "anthropic",
+      "model": "anthropic/claude-fable-5.2",
+      "name": "Anthropic: Claude Fable 5.2",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 8,
+        "output": 40,
+        "cacheReadPer1M": 0.2
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Claude Fable 5.2 is Anthropic's most capable model for the most demanding technical work, with gains over Fable 5.1 in coding, reasoning, and vision. In prerelease testing it completed otherwise-infeasible...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "anthropic",
+      "model": "anthropic/claude-fable-5.2:batch",
+      "name": "Anthropic: Claude Fable 5.2 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 4,
+        "output": 20,
+        "cacheReadPer1M": 0.1
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Claude Fable 5.2 is Anthropic's most capable model for the most demanding technical work, with gains over Fable 5.1 in coding, reasoning, and vision. In prerelease testing it completed otherwise-infeasible...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "meta",
+      "model": "meta/muse-ember",
+      "name": "Meta: Muse Ember",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.1,
+        "output": 0.5,
+        "cacheReadPer1M": 0.004
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video",
+        "file",
+        "audio"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic"
+      ],
+      "description": "Muse Ember is the smallest and most efficient model from Meta that’s designed for complex reasoning execution and the work agents repeat all day: tool calls, coding agent subtasks, routing,...",
+      "isModerated": true,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "liquid",
+      "model": "liquid/lfm-3-1.7b",
+      "name": "LiquidAI: LFM3-1.7B",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.08,
+        "output": 0.2,
+        "cacheReadPer1M": 0.02
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "A compact 1.7B-parameter text model with a 256K-token context, post-trained for agents, tool calling, and structured outputs. It reasons before it answers. Prompts and outputs may be retained and used...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "liquid",
+      "model": "liquid/lfm-3-1.7b:free",
+      "name": "LiquidAI: LFM3-1.7B (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "A compact 1.7B-parameter text model with a 256K-token context, post-trained for agents, tool calling, and structured outputs. It reasons before it answers. Prompts and outputs may be retained and used...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-omni-1.2-flash",
+      "name": "Google: Gemini Omni 1.2 Flash",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.5,
+        "output": 9
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "video"
+      ],
+      "contextLength": 131072,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini Omni 1.2 Flash is Google's native multimodal video generation and editing model, the successor to Gemini Omni 1.1 Flash. It generates clips up to 15 seconds long with native...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "kt",
+      "model": "kt/midm-k-3.0-pro",
+      "name": "KT: Mi:dm K 3.0 Pro",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.2,
+        "output": 0.8,
+        "cacheReadPer1M": 0.04
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 261795,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "frontier"
+      ],
+      "description": "Mi:dm K 3.0 Pro is a Mixture-of-Experts reasoning model from KT, with 120B total and 12B active parameters. It uses a hybrid architecture that mixes Mamba, MoE and attention layers.",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "google",
+      "model": "google/gemini-omni-1.1-flash",
+      "name": "Google: Gemini Omni 1.1 Flash",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.5,
+        "output": 9
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "video"
+      ],
+      "contextLength": 131072,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "fast",
+        "edge"
+      ],
+      "description": "Gemini Omni 1.1 Flash is Google's native multimodal video generation and editing model, the generally available successor to Gemini Omni Flash Preview. It is suited for text-to-video, image-to-video, first and...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "ricursiveai",
+      "model": "ricursiveai/ripple-65b-preview",
+      "name": "Ricursive: Ripple 65B Preview",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.1,
+        "output": 0.3,
+        "cacheReadPer1M": 0.025
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Ripple-65B-Preview by ricursiveAI, a 65B model with native tool calling, served in BF16.",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "tencent",
+      "model": "tencent/hy4",
+      "name": "Tencent: Hy4",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.417,
+        "output": 1.2505,
+        "cacheReadPer1M": 0.021
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "The official release of Hy4 delivers comprehensive and substantial improvements over Hy4 Preview, with particularly strong gains in agentic capabilities and performance across a wide range of long-horizon, real-world productivity...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "motif-technologies",
+      "model": "motif-technologies/motif-3",
+      "name": "Motif Technologies: Motif 3",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.3,
+        "output": 1.2,
+        "cacheReadPer1M": 0.06
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Motif 3 is a Mixture-of-Experts language model from Motif Technologies, with 314B total and 13.2B active parameters. It is a general-purpose multilingual model for English and Korean, particularly strong at...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "z-ai",
+      "model": "z-ai/glm-5.3-flashx-legal",
+      "name": "Z.ai: GLM 5.3 FlashX Legal",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.37,
+        "output": 1.25,
+        "cacheReadPer1M": 0.075
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "GLM-5.3-FlashX-Legal (GLM-Legal) is Z.ai's legal-domain variant of GLM-5.3-FlashX, a native multimodal model that accepts text, image, and video input and produces text. It adds legal-domain mid-training and post-training with reinforcement...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
     {
       "provider": "particle-ai",
       "model": "particle-ai/particle-1",
@@ -12,6 +724,36 @@
         "input": 0.05,
         "output": 0.5,
         "cacheReadPer1M": 0.003
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Particle-1 is a token-efficient agentic coding model from Particle AI, post-trained on DeepSeek V4.1 Flash. It is suited for software engineering work such as terminal workflows, codebase changes, and data...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "particle-ai",
+      "model": "particle-ai/particle-1:free",
+      "name": "Particle AI: Particle-1 (free)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0,
+        "output": 0
       },
       "inputModalities": [
         "text",
@@ -198,6 +940,38 @@
       "gdprSafe": false
     },
     {
+      "provider": "moonshotai",
+      "model": "moonshotai/kimi-k3.1-pro:batch",
+      "name": "MoonshotAI: Kimi K3.1 Pro (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.7,
+        "output": 6,
+        "cacheReadPer1M": 0.1
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "frontier"
+      ],
+      "description": "Kimi K3.1 Pro is Moonshot AI's flagship open-weight multimodal reasoning model and a post-trained successor to Kimi K3, with a 1M-token context window. It is built for long-horizon coding, 3D...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "recursive",
       "model": "recursive/flint-v1.0:free",
       "name": "Recursive: Flint (free)",
@@ -265,9 +1039,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash 1017",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.15,
-        "output": 0.6,
-        "cacheReadPer1M": 0.003
+        "input": 0.038,
+        "output": 0.5,
+        "cacheReadPer1M": 0.01
       },
       "inputModalities": [
         "text",
@@ -283,6 +1057,38 @@
       "goodFor": [
         "vision",
         "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "DeepSeek V4.1 Flash 1017 is the October 17, 2026 snapshot of DeepSeek V4.1 Flash, served by DeepSeek under the `deepseek-flash` API model name. V4.1 Flash is a sparse mixture-of-experts model...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek/deepseek-v4.1-flash-1017:batch",
+      "name": "DeepSeek: DeepSeek V4.1 Flash 1017 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.05,
+        "output": 0.15,
+        "cacheReadPer1M": 0.004
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [
+        "vision",
         "fast",
         "edge"
       ],
@@ -325,42 +1131,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "xingchen-agi",
-      "model": "xingchen-agi/xing4.0-29b-a4b:free",
-      "name": "XingChen: Xing4.0 29B A4B (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Xing4.0-29B-A4B is an open-weight mixture-of-experts language model from China Telecom's AI team (TeleAI) and the successor to the TeleChat series. It has 29B total parameters with 4B active per token...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "reflection",
       "model": "reflection/beam-1.0-501b-a23b",
       "name": "Reflection: Beam 1.0 501B A23B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.25,
+        "input": 0.3,
         "output": 1,
-        "cacheReadPer1M": 0.05
+        "cacheReadPer1M": 0.04
       },
       "inputModalities": [
         "text"
@@ -378,35 +1156,6 @@
         "edge"
       ],
       "description": "Beam 1.0 is Reflection's open-weight reasoning model for coding and long-horizon agentic workflows. It uses a sparse mixture-of-experts architecture with 501B total and 23B active parameters per token, and a...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "inception",
-      "model": "inception/mercury-3",
-      "name": "Inception: Mercury 3",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.1,
-        "output": 0.35,
-        "cacheReadPer1M": 0.01
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Mercury 3 is a diffusion-based language model from Inception, and the lab's most capable model to date. It is suited for agentic workflows and real-time applications where latency compounds, such...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -543,7 +1292,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.15,
-        "output": 0.5,
+        "output": 0.47,
         "cacheReadPer1M": 0.02
       },
       "inputModalities": [
@@ -908,7 +1657,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 1000000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -1061,9 +1810,9 @@
       "name": "inclusionAI: Ling 3.1 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.075,
-        "output": 0.225,
-        "cacheReadPer1M": 0.015
+        "input": 0.045,
+        "output": 0.135,
+        "cacheReadPer1M": 0.009
       },
       "inputModalities": [
         "text"
@@ -1073,7 +1822,7 @@
       ],
       "contextLength": 1000000,
       "supportsTools": true,
-      "supportsStructuredOutput": true,
+      "supportsStructuredOutput": false,
       "categories": [],
       "goodFor": [
         "agentic",
@@ -1081,6 +1830,37 @@
         "edge"
       ],
       "description": "Ling 3.1 Flash is a hybrid reasoning mixture-of-experts model from inclusionAI, with 25B active parameters out of 560B total.",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "unbiased",
+      "model": "unbiased/pareto-26.10-preview",
+      "name": "Pareto 26.10 Preview",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.8,
+        "output": 3.2,
+        "cacheReadPer1M": 0.03
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Pareto is a multimodal composite model built for research, coding, and agentic workflows, while delivering frontier-level performance across a broad range of general-purpose tasks. This is a preview of the...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -1997,6 +2777,38 @@
       "gdprSafe": false
     },
     {
+      "provider": "x-ai",
+      "model": "x-ai/grok-4.7:batch",
+      "name": "SpaceXAI: Grok 4.7 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.6,
+        "output": 4.8,
+        "cacheReadPer1M": 0.4
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "file"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 500000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Grok 4.7 is SpaceXAI's flagship model for coding, agentic tasks, and knowledge work, succeeding Grok 4.6. It is particularly strong at long-running software engineering tasks, verifying its own work, and...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "us",
+      "gdprSafe": false
+    },
+    {
       "provider": "qwen",
       "model": "qwen/qwen3.8-omni-flash",
       "name": "Qwen: Qwen3.8 Omni Flash",
@@ -2071,7 +2883,7 @@
         "unit": "per_1m_tokens",
         "input": 0.37,
         "output": 1.25,
-        "cacheReadPer1M": 0.09
+        "cacheReadPer1M": 0.075
       },
       "inputModalities": [
         "text",
@@ -2103,9 +2915,9 @@
       "name": "DeepSeek: DeepSeek Pro Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.1035,
-        "output": 4,
-        "cacheReadPer1M": 0.1
+        "input": 0.0999,
+        "output": 8,
+        "cacheReadPer1M": 0.0999
       },
       "inputModalities": [
         "text"
@@ -2133,9 +2945,9 @@
       "name": "DeepSeek: DeepSeek Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0205,
-        "output": 0.228,
-        "cacheReadPer1M": 0.0189
+        "input": 0.038,
+        "output": 0.5,
+        "cacheReadPer1M": 0.01
       },
       "inputModalities": [
         "text",
@@ -2308,7 +3120,7 @@
         "agentic"
       ],
       "description": "This model always redirects to the latest model in the GPT Terra family.",
-      "isModerated": true,
+      "isModerated": false,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -2450,9 +3262,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.045,
-        "output": 0.5,
-        "cacheReadPer1M": 0.006
+        "input": 0.0507,
+        "output": 0.2028,
+        "cacheReadPer1M": 0.001014
       },
       "inputModalities": [
         "text",
@@ -2483,9 +3295,9 @@
       "name": "DeepSeek: DeepSeek V4.1 Flash (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.05,
-        "output": 0.15,
-        "cacheReadPer1M": 0.004
+        "input": 0.112,
+        "output": 0.336,
+        "cacheReadPer1M": 0.00336
       },
       "inputModalities": [
         "text",
@@ -2508,35 +3320,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "cn",
-      "gdprSafe": false
-    },
-    {
-      "provider": "inception",
-      "model": "inception/mercury-2.5",
-      "name": "Inception: Mercury 2.5",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.04,
-        "output": 0.15,
-        "cacheReadPer1M": 0.004
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 260000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Mercury 2.5 is the fastest reasoning LLM, and the latest diffusion LLM (dLLM) from Inception. Instead of generating tokens sequentially, Mercury 2.5 produces and refines multiple tokens in parallel, achieving...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -2767,6 +3550,38 @@
       "gdprSafe": false
     },
     {
+      "provider": "qwen",
+      "model": "qwen/qwen3.8-max-0902:batch",
+      "name": "Qwen: Qwen3.8 Max (0902) (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 1.15,
+        "output": 3.45
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "frontier"
+      ],
+      "description": "Qwen3.8 Max 0902 is an updated snapshot of Qwen3.8 Max from Alibaba's Qwen team. It is a 2.4-trillion-parameter mixture-of-experts model that accepts text, image, and video input and returns text,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "meta",
       "model": "meta/muse-spark-1.3-contributor",
       "name": "Meta: Muse Spark 1.3 Contributor",
@@ -2977,7 +3792,7 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.06,
-        "output": 0.15,
+        "output": 0.25,
         "cacheReadPer1M": 0.015
       },
       "inputModalities": [
@@ -3036,9 +3851,9 @@
       "name": "Z.ai: GLM Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0237,
-        "output": 0.1142,
-        "cacheReadPer1M": 0.0237
+        "input": 0.0399,
+        "output": 0.0784,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text",
@@ -3104,9 +3919,9 @@
       "name": "Z.ai: GLM 5.3 Flash",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0237,
-        "output": 0.1142,
-        "cacheReadPer1M": 0.0237
+        "input": 0.0399,
+        "output": 0.0784,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text",
@@ -3205,9 +4020,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Vision Exp",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.2156,
-        "output": 0.6468,
-        "cacheReadPer1M": 0.00686
+        "input": 0.44,
+        "output": 1.32,
+        "cacheReadPer1M": 0.014
       },
       "inputModalities": [
         "text",
@@ -3351,9 +4166,9 @@
       "name": "Z.ai: GLM 5.3",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0699,
-        "output": 1.4,
-        "cacheReadPer1M": 0.0689
+        "input": 0.084,
+        "output": 3.6,
+        "cacheReadPer1M": 0.079
       },
       "inputModalities": [
         "text"
@@ -3421,7 +4236,39 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1000000,
+      "contextLength": 1024000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Qwen3.8 27B is an open-weight dense vision-language model from Qwen. It is suited for coding, professional workflows, research, multimodal interaction, and long-running agent tasks, with flexible thinking that can be...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "qwen",
+      "model": "qwen/qwen3.8-27b:batch",
+      "name": "Qwen: Qwen3.8 27B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.16,
+        "output": 2,
+        "cacheReadPer1M": 0.04
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -3600,46 +4447,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "bytedance-seed",
-      "model": "bytedance-seed/seed-2.0-code",
-      "name": "ByteDance Seed: Seed-2.0-Code",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.5,
-        "output": 3
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "coding"
-      ],
-      "description": "Seed 2.0 Code is a model from ByteDance Seed optimized for agentic coding. It is suited for frontend development, multilingual programming tasks, and coding-agent workflows in tools such as Claude...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "deepseek",
       "model": "deepseek/deepseek-v4-pro-0813",
       "name": "DeepSeek: DeepSeek V4 Pro 0813",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.66,
-        "output": 1.98,
-        "cacheReadPer1M": 0.022
+        "input": 0.111,
+        "output": 4.44,
+        "cacheReadPer1M": 0.097
       },
       "inputModalities": [
         "text"
@@ -3694,60 +4509,35 @@
       "gdprSafe": false
     },
     {
-      "provider": "liquid",
-      "model": "liquid/lfm-2.5-2.6b",
-      "name": "LiquidAI: LFM2.5-2.6B",
+      "provider": "x-ai",
+      "model": "x-ai/grok-4.6:batch",
+      "name": "SpaceXAI: Grok 4.6 (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.35,
-        "output": 0.5,
-        "cacheReadPer1M": 0.04
+        "input": 1.6,
+        "output": 4.8,
+        "cacheReadPer1M": 0.4
       },
       "inputModalities": [
-        "text"
+        "text",
+        "image",
+        "file"
       ],
       "outputModalities": [
         "text"
       ],
-      "contextLength": 128000,
+      "contextLength": 500000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
       "goodFor": [
+        "vision",
         "agentic"
       ],
-      "description": "LFM2.5-2.6B is a compact reasoning model from Liquid AI. It is suited for agent workflows, data extraction, RAG, and long-context processing. Liquid advises against using it for agentic coding or...",
+      "description": "Grok 4.6 is a model from SpaceXAI with frontier performance on coding, knowledge work, and STEM. It is succeeded by [Grok 4.7](/x-ai/grok-4.7).",
       "isModerated": false,
       "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "liquid",
-      "model": "liquid/lfm-2.5-2.6b:free",
-      "name": "LiquidAI: LFM2.5-2.6B (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 65536,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "LFM2.5-2.6B is a compact reasoning model from Liquid AI. It is suited for agent workflows, data extraction, RAG, and long-context processing. Liquid advises against using it for agentic coding or...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
+      "region": "us",
       "gdprSafe": false
     },
     {
@@ -3902,6 +4692,66 @@
     },
     {
       "provider": "meta",
+      "model": "meta/muse-glimmer-30b:batch",
+      "name": "Meta: Muse Glimmer 30B (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.24,
+        "output": 0.96,
+        "cacheReadPer1M": 0.032
+      },
+      "inputModalities": [
+        "text",
+        "image"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 131072,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic"
+      ],
+      "description": "Muse Glimmer 30B is a dense, open-weight multimodal model from Meta Superintelligence Labs, distilled from Muse Spark and optimized for autonomous agents on consumer hardware. It is suited for long-horizon...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "inclusionai",
+      "model": "inclusionai/ling-3.0-tiny",
+      "name": "inclusionAI: Ling 3.0 Tiny",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.015,
+        "output": 0.045,
+        "cacheReadPer1M": 0.003
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "Ling 3.0 Tiny is a mixture-of-experts model from InclusionAI, with 1.3B active parameters out of 7.9B total. It is designed for responsive agents, instruction following, and multi-turn conversations, with switchable...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "meta",
       "model": "meta/muse-spark-1.2",
       "name": "Meta: Muse Spark 1.2",
       "pricing": {
@@ -3939,9 +4789,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.0359,
+        "input": 0.0434,
         "output": 0.3,
-        "cacheReadPer1M": 0.0349
+        "cacheReadPer1M": 0.035
       },
       "inputModalities": [
         "text"
@@ -3970,9 +4820,40 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0731",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.119,
-        "output": 0.238,
-        "cacheReadPer1M": 0.0238
+        "input": 0.0434,
+        "output": 0.3,
+        "cacheReadPer1M": 0.035
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "DeepSeek V4 Flash 0731 is a sparse mixture-of-experts model from DeepSeek, with 13B active parameters out of 284B total. This re-post-trained revision is suited for coding, reasoning, and agent workflows....",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "deepseek",
+      "model": "deepseek/deepseek-v4-flash-0731:batch",
+      "name": "DeepSeek: DeepSeek V4 Flash 0731 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.048,
+        "output": 0.144,
+        "cacheReadPer1M": 0.012
       },
       "inputModalities": [
         "text"
@@ -4033,12 +4914,13 @@
     },
     {
       "provider": "thinkingmachines",
-      "model": "thinkingmachines/inkling-small:free",
-      "name": "Thinking Machines: Inkling Small (free)",
+      "model": "thinkingmachines/inkling-small:batch",
+      "name": "Thinking Machines: Inkling Small (batch)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
+        "input": 0.36,
+        "output": 0.96,
+        "cacheReadPer1M": 0.08
       },
       "inputModalities": [
         "text",
@@ -4048,7 +4930,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 524288,
       "supportsTools": true,
       "supportsStructuredOutput": false,
       "categories": [],
@@ -4194,63 +5076,6 @@
         "edge"
       ],
       "description": "*Ling-3.0-flash* is a *124B-parameter Mixture-of-Experts (MoE) model*, with approximately *5.1B parameters activated per token*. The model is designed with *token efficiency and production-scale agentic inference* as key priorities, enabling developers...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "poolside",
-      "model": "poolside/laguna-s-2.1",
-      "name": "Poolside: Laguna S 2.1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.09,
-        "output": 0.18,
-        "cacheReadPer1M": 0.009
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1048576,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Laguna S 2.1 is the latest coding agent model from [Poolside](<https://poolside.ai/>). Laguna S 2.1 is a 118B total parameter model with 8B active parameters, scoring 70.2% on Terminal-Bench 2.1 and...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "poolside",
-      "model": "poolside/laguna-s-2.1:free",
-      "name": "Poolside: Laguna S 2.1 (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Laguna S 2.1 is the latest coding agent model from [Poolside](<https://poolside.ai/>). Laguna S 2.1 is a 118B total parameter model with 8B active parameters, scoring 70.2% on Terminal-Bench 2.1 and...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -4468,46 +5293,13 @@
       "gdprSafe": false
     },
     {
-      "provider": "thinkingmachines",
-      "model": "thinkingmachines/inkling:free",
-      "name": "Thinking Machines: Inkling (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "audio"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1048576,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic",
-        "reasoning"
-      ],
-      "description": "Inkling is an open-weight multimodal mixture-of-experts model from Thinking Machines Lab, with 41B active parameters out of 975B total. It is designed for general-purpose reasoning, coding, agentic and tool-use systems,...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "moonshotai",
       "model": "moonshotai/kimi-k3",
       "name": "MoonshotAI: Kimi K3",
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 0.192,
-        "output": 15,
+        "output": 16,
         "cacheReadPer1M": 0.182
       },
       "inputModalities": [
@@ -5052,7 +5844,7 @@
         "agentic"
       ],
       "description": "This model always redirects to the latest Grok model from xAI.",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "other",
       "gdprSafe": false
@@ -5141,63 +5933,6 @@
         "agentic"
       ],
       "description": "Hy3 is a 295B-parameter Mixture-of-Experts model from Tencent (21B active, 192 experts with top-8 routing) built for reasoning, agentic workflows, and real-world production use. It supports a configurable reasoning effort:...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "poolside",
-      "model": "poolside/laguna-xs-2.1",
-      "name": "Poolside: Laguna XS 2.1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.06,
-        "output": 0.12,
-        "cacheReadPer1M": 0.03
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Laguna XS 2.1 is the latest coding agent model in the 33B-A3B category from [Poolside](https://poolside.ai/) and a step forward from their Laguna XS.2 model (released in April 2026). It combines...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "poolside",
-      "model": "poolside/laguna-xs-2.1:free",
-      "name": "Poolside: Laguna XS 2.1 (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Laguna XS 2.1 is the latest coding agent model in the 33B-A3B category from [Poolside](https://poolside.ai/) and a step forward from their Laguna XS.2 model (released in April 2026). It combines...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
@@ -5436,9 +6171,38 @@
       "name": "Z.ai: GLM 5.2",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.006,
-        "output": 7,
-        "cacheReadPer1M": 0.005
+        "input": 0.007,
+        "output": 6.8,
+        "cacheReadPer1M": 0.006
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 1048576,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "agentic"
+      ],
+      "description": "GLM 5.2 is a large-scale reasoning model from Z.ai. It supports text input and output with a 1M-token context window, and is suited for long-horizon agent workflows, project-level software engineering,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
+      "provider": "z-ai",
+      "model": "z-ai/glm-5.2:batch",
+      "name": "Z.ai: GLM 5.2 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.298,
+        "output": 0.916,
+        "cacheReadPer1M": 0.101
       },
       "inputModalities": [
         "text"
@@ -5467,7 +6231,7 @@
         "unit": "per_1m_tokens",
         "input": 0.6,
         "output": 3.5,
-        "cacheReadPer1M": 0.15
+        "cacheReadPer1M": 0.16
       },
       "inputModalities": [
         "text",
@@ -5497,9 +6261,9 @@
       "name": "Anthropic: Claude Fable Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 10,
-        "output": 50,
-        "cacheReadPer1M": 0.25
+        "input": 8,
+        "output": 40,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text",
@@ -5604,36 +6368,6 @@
         "text"
       ],
       "contextLength": 131072,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "moderation"
-      ],
-      "description": "NVIDIA Nemotron 3.5 Content Safety is a compact 4B-parameter multimodal guardrail model from NVIDIA, fine-tuned from Google Gemma-3-4B. It moderates both inputs to and responses from LLMs and VLMs, accepting...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "nvidia",
-      "model": "nvidia/nemotron-3.5-content-safety:free",
-      "name": "NVIDIA: Nemotron 3.5 Content Safety (free)",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0,
-        "output": 0
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 128000,
       "supportsTools": false,
       "supportsStructuredOutput": false,
       "categories": [],
@@ -5800,6 +6534,40 @@
       "gdprSafe": false
     },
     {
+      "provider": "minimax",
+      "model": "minimax/minimax-m3:batch",
+      "name": "MiniMax: MiniMax M3 (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.224,
+        "output": 0.88,
+        "cacheReadPer1M": 0.0448
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "video"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 524288,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "agentic",
+        "fast",
+        "edge"
+      ],
+      "description": "MiniMax-M3 is a multimodal foundation model from MiniMax. It supports text, image, and video inputs with text output, a 1M-token context window, and is suited for long-horizon agentic work, coding,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "cn",
+      "gdprSafe": false
+    },
+    {
       "provider": "stepfun",
       "model": "stepfun/step-3.7-flash",
       "name": "StepFun: Step 3.7 Flash",
@@ -5862,7 +6630,7 @@
         "frontier"
       ],
       "description": "Claude Opus 4.8 is Anthropic's most capable generally available model in the Opus family. It supports text, image, and file inputs with text output, with reasoning support and a 1M-token...",
-      "isModerated": true,
+      "isModerated": false,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -6447,9 +7215,9 @@
       "name": "MoonshotAI: Kimi Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.1548,
-        "output": 9.3388,
-        "cacheReadPer1M": 0.15
+        "input": 0.1824,
+        "output": 11.0055,
+        "cacheReadPer1M": 0.18
       },
       "inputModalities": [
         "text",
@@ -6479,16 +7247,16 @@
       "name": "Google: Gemini Flash Latest",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.75,
-        "output": 3.75,
+        "input": 1.5,
+        "output": 7.5,
         "cacheReadPer1M": 0.075
       },
       "inputModalities": [
-        "text",
-        "image",
-        "video",
+        "audio",
         "file",
-        "audio"
+        "image",
+        "text",
+        "video"
       ],
       "outputModalities": [
         "text"
@@ -6647,8 +7415,8 @@
       "name": "Qwen: Qwen3.6 27B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.45,
-        "output": 2.7
+        "input": 0.32,
+        "output": 3.2
       },
       "inputModalities": [
         "text",
@@ -6808,9 +7576,9 @@
       "name": "DeepSeek: DeepSeek V4 Pro 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 1.6,
-        "output": 3.2,
-        "cacheReadPer1M": 0.135
+        "input": 0.9,
+        "output": 1.5,
+        "cacheReadPer1M": 0.25
       },
       "inputModalities": [
         "text"
@@ -6838,9 +7606,9 @@
       "name": "DeepSeek: DeepSeek V4 Flash 0423",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.091,
-        "output": 0.182,
-        "cacheReadPer1M": 0.0182
+        "input": 0.09,
+        "output": 0.18,
+        "cacheReadPer1M": 0.018
       },
       "inputModalities": [
         "text"
@@ -6898,9 +7666,9 @@
       "name": "Xiaomi: MiMo-V2.5-Pro",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.48,
-        "output": 1.8,
-        "cacheReadPer1M": 0.096
+        "input": 0.435,
+        "output": 0.87,
+        "cacheReadPer1M": 0.0036
       },
       "inputModalities": [
         "text"
@@ -6908,7 +7676,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1050000,
+      "contextLength": 1024000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -6941,7 +7709,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1050000,
+      "contextLength": 1000000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -7500,9 +8268,9 @@
       "name": "MiniMax: MiniMax M2.7",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.3,
-        "output": 1.2,
-        "cacheReadPer1M": 0.06
+        "input": 0.21,
+        "output": 0.84,
+        "cacheReadPer1M": 0.042
       },
       "inputModalities": [
         "text"
@@ -7510,7 +8278,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 204800,
+      "contextLength": 196608,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -7733,9 +8501,8 @@
       "name": "NVIDIA: Nemotron 3 Super",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.3,
-        "output": 2.4,
-        "cacheReadPer1M": 0.15
+        "input": 0.075,
+        "output": 0.4
       },
       "inputModalities": [
         "text"
@@ -7743,7 +8510,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 1048576,
+      "contextLength": 262144,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -7795,8 +8562,9 @@
       "name": "Qwen: Qwen3.5-9B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.17,
-        "output": 0.25
+        "input": 0.115,
+        "output": 0.169,
+        "cacheReadPer1M": 0.104
       },
       "inputModalities": [
         "text",
@@ -7948,35 +8716,6 @@
       "isModerated": true,
       "source": "openrouter",
       "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "inception",
-      "model": "inception/mercury-2",
-      "name": "Inception: Mercury 2",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 0.75,
-        "cacheReadPer1M": 0.025
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 128000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Mercury 2 is an extremely fast reasoning LLM, and the first reasoning diffusion LLM (dLLM). Instead of generating tokens sequentially, Mercury 2 produces and refines multiple tokens in parallel, achieving...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
       "gdprSafe": false
     },
     {
@@ -8489,9 +9228,9 @@
       "name": "Qwen: Qwen3.5 397B A17B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.5,
+        "input": 0.6,
         "output": 3.6,
-        "cacheReadPer1M": 0.3
+        "cacheReadPer1M": 0.12
       },
       "inputModalities": [
         "text",
@@ -8531,7 +9270,7 @@
       "outputModalities": [
         "text"
       ],
-      "contextLength": 204800,
+      "contextLength": 198000,
       "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
@@ -8735,36 +9474,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "minimax",
-      "model": "minimax/minimax-m2-her",
-      "name": "MiniMax: MiniMax M2-her",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.3,
-        "output": 1.2,
-        "cacheReadPer1M": 0.03
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 65536,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "fast",
-        "edge"
-      ],
-      "description": "MiniMax M2-her is a dialogue-first large language model built for immersive roleplay, character-driven chat, and expressive multi-turn conversations. Designed to stay consistent in tone and personality, it supports rich message...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
       "provider": "writer",
       "model": "writer/palmyra-x5",
       "name": "Writer: Palmyra X5",
@@ -8918,109 +9627,14 @@
       "gdprSafe": false
     },
     {
-      "provider": "bytedance-seed",
-      "model": "bytedance-seed/seed-1.6-flash",
-      "name": "ByteDance Seed: Seed 1.6 Flash",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.075,
-        "output": 0.3
-      },
-      "inputModalities": [
-        "image",
-        "text",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "Seed 1.6 Flash is an ultra-fast multimodal deep thinking model by ByteDance Seed, supporting both text and visual understanding. It features a 256k context window and can generate outputs of...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "bytedance-seed",
-      "model": "bytedance-seed/seed-1.6",
-      "name": "ByteDance Seed: Seed 1.6",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.25,
-        "output": 2
-      },
-      "inputModalities": [
-        "image",
-        "text",
-        "video"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 262144,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "agentic"
-      ],
-      "description": "Seed 1.6 is a general-purpose model released by the ByteDance Seed team. It incorporates multimodal capabilities and adaptive deep thinking with a 256K context window.",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "minimax",
-      "model": "minimax/minimax-m2.1",
-      "name": "MiniMax: MiniMax M2.1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.3,
-        "output": 1.2,
-        "cacheReadPer1M": 0.03
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 204800,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "MiniMax-M2.1 is a lightweight, state-of-the-art large language model optimized for coding, agentic workflows, and modern application development. With only 10 billion activated parameters, it delivers a major jump in real-world...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
       "provider": "z-ai",
       "model": "z-ai/glm-4.7",
       "name": "Z.ai: GLM 4.7",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.54,
-        "output": 1.98,
-        "cacheReadPer1M": 0.099
+        "input": 0.6,
+        "output": 2.2,
+        "cacheReadPer1M": 0.11
       },
       "inputModalities": [
         "text"
@@ -10017,36 +10631,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "us",
-      "gdprSafe": false
-    },
-    {
-      "provider": "minimax",
-      "model": "minimax/minimax-m2",
-      "name": "MiniMax: MiniMax M2",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.255,
-        "output": 1.02
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 204800,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "MiniMax-M2 is a compact, high-efficiency large language model optimized for end-to-end coding and agentic workflows. With 10 billion activated parameters (230 billion total), it delivers near-frontier intelligence across general reasoning,...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
       "gdprSafe": false
     },
     {
@@ -11095,9 +11679,9 @@
       "name": "OpenAI: gpt-oss-20b",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.018,
-        "output": 0.09,
-        "cacheReadPer1M": 0.009
+        "input": 0.03,
+        "output": 0.13,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text"
@@ -11251,8 +11835,8 @@
       "name": "Qwen: Qwen3 Coder 30B A3B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.07,
-        "output": 0.28
+        "input": 0.15,
+        "output": 0.6
       },
       "inputModalities": [
         "text"
@@ -11271,7 +11855,7 @@
         "edge"
       ],
       "description": "Qwen3-Coder-30B-A3B-Instruct is a 30.5B parameter Mixture-of-Experts (MoE) model with 128 experts (8 active per forward pass), designed for advanced code generation, repository-scale understanding, and agentic tool use. Built on the...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "cn",
       "gdprSafe": false
@@ -11342,9 +11926,9 @@
       "name": "Z.ai: GLM 4.5 Air",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.13,
-        "output": 0.85,
-        "cacheReadPer1M": 0.025
+        "input": 0.2,
+        "output": 1.1,
+        "cacheReadPer1M": 0.03
       },
       "inputModalities": [
         "text"
@@ -11497,8 +12081,9 @@
       "name": "Qwen: Qwen3 235B A22B Instruct 2507",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.09,
-        "output": 0.55
+        "input": 0.14,
+        "output": 0.8,
+        "cacheReadPer1M": 0.05
       },
       "inputModalities": [
         "text"
@@ -11632,6 +12217,34 @@
     },
     {
       "provider": "morph",
+      "model": "morph/morph-v3-large:batch",
+      "name": "Morph: Morph V3 Large (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.45,
+        "output": 0.95
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 262144,
+      "supportsTools": false,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "frontier"
+      ],
+      "description": "Morph's high-accuracy apply model for complex code edits. ~4,500 tokens/sec with 98% accuracy for precise code transformations. The model requires the prompt to be in the following format: <instruction>{instruction}</instruction> <code>{initial_code}</code>...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "morph",
       "model": "morph/morph-v3-fast",
       "name": "Morph: Morph V3 Fast",
       "pricing": {
@@ -11657,13 +12270,40 @@
       "gdprSafe": false
     },
     {
+      "provider": "morph",
+      "model": "morph/morph-v3-fast:batch",
+      "name": "Morph: Morph V3 Fast (batch)",
+      "pricing": {
+        "unit": "per_1m_tokens",
+        "input": 0.4,
+        "output": 0.6
+      },
+      "inputModalities": [
+        "text"
+      ],
+      "outputModalities": [
+        "text"
+      ],
+      "contextLength": 81920,
+      "supportsTools": false,
+      "supportsStructuredOutput": false,
+      "categories": [],
+      "goodFor": [],
+      "description": "Morph's fastest apply model for code edits. ~10,500 tokens/sec with 96% accuracy for rapid code transformations. The model requires the prompt to be in the following format: <instruction>{instruction}</instruction> <code>{initial_code}</code> <update>{edit_snippet}</update>...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
       "provider": "mistralai",
       "model": "mistralai/mistral-small-3.2-24b-instruct",
       "name": "Mistral: Mistral Small 3.2 24B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.075,
-        "output": 0.2
+        "input": 0.1,
+        "output": 0.3,
+        "cacheReadPer1M": 0.01
       },
       "inputModalities": [
         "image",
@@ -11687,36 +12327,6 @@
       "source": "openrouter",
       "region": "eu",
       "gdprSafe": true
-    },
-    {
-      "provider": "minimax",
-      "model": "minimax/minimax-m1",
-      "name": "MiniMax: MiniMax M1",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.55,
-        "output": 2.2
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "agentic",
-        "fast",
-        "edge"
-      ],
-      "description": "MiniMax-M1 is a large-scale, open-weight reasoning model designed for extended context and high-efficiency inference. It leverages a hybrid Mixture-of-Experts (MoE) architecture paired with a custom \"lightning attention\" mechanism, allowing it...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
     },
     {
       "provider": "google",
@@ -12344,9 +12954,9 @@
       "name": "Meta: Llama 4 Maverick",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.1875,
-        "output": 0.6525,
-        "cacheReadPer1M": 0.05
+        "input": 0.35,
+        "output": 1,
+        "cacheReadPer1M": 0.17
       },
       "inputModalities": [
         "text",
@@ -12535,10 +13145,12 @@
         "text"
       ],
       "contextLength": 256000,
-      "supportsTools": false,
+      "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
-      "goodFor": [],
+      "goodFor": [
+        "agentic"
+      ],
       "description": "Command A is an open-weights 111B parameter model with a 256k context window focused on delivering great performance across agentic, multilingual, and coding use cases. Compared to other leading proprietary...",
       "isModerated": true,
       "source": "openrouter",
@@ -12928,37 +13540,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "minimax",
-      "model": "minimax/minimax-01",
-      "name": "MiniMax: MiniMax-01",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.2,
-        "output": 1.1
-      },
-      "inputModalities": [
-        "text",
-        "image"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 1000192,
-      "supportsTools": false,
-      "supportsStructuredOutput": false,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "fast",
-        "edge"
-      ],
-      "description": "MiniMax-01 is a combines MiniMax-Text-01 for text generation and MiniMax-VL-01 for image understanding. It has 456 billion parameters, with 45.9 billion parameters activated per inference, and can handle a context...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
-      "gdprSafe": false
-    },
-    {
       "provider": "microsoft",
       "model": "microsoft/phi-4",
       "name": "Microsoft: Phi 4",
@@ -13028,10 +13609,12 @@
         "text"
       ],
       "contextLength": 128000,
-      "supportsTools": false,
+      "supportsTools": true,
       "supportsStructuredOutput": true,
       "categories": [],
-      "goodFor": [],
+      "goodFor": [
+        "agentic"
+      ],
       "description": "Command R7B (12-2024) is a small, fast update of the Command R+ model, delivered in December 2024. It excels at RAG, tool use, agents, and similar tasks requiring complex reasoning...",
       "isModerated": true,
       "source": "openrouter",
@@ -13044,8 +13627,9 @@
       "name": "Meta: Llama 3.3 70B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.1,
-        "output": 0.32
+        "input": 0.71,
+        "output": 0.71,
+        "cacheReadPer1M": 0.71
       },
       "inputModalities": [
         "text"
@@ -13281,7 +13865,8 @@
       "pricing": {
         "unit": "per_1m_tokens",
         "input": 2.5,
-        "output": 5
+        "output": 5,
+        "cacheReadPer1M": 2.5
       },
       "inputModalities": [
         "text"
@@ -13298,34 +13883,6 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "qwen",
-      "model": "qwen/qwen-2.5-7b-instruct",
-      "name": "Qwen: Qwen2.5 7B Instruct",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.1,
-        "output": 0.2
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 32768,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "agentic"
-      ],
-      "description": "Qwen2.5 7B is the latest series of Qwen large language models. Qwen2.5 brings the following improvements upon Qwen2: - Significantly more knowledge and has greatly improved capabilities in coding and...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "cn",
       "gdprSafe": false
     },
     {
@@ -13360,8 +13917,8 @@
       "name": "Meta: Llama 3.2 3B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.05,
-        "output": 0.33
+        "input": 0.0509,
+        "output": 0.335
       },
       "inputModalities": [
         "text"
@@ -13494,60 +14051,6 @@
       "gdprSafe": false
     },
     {
-      "provider": "nousresearch",
-      "model": "nousresearch/hermes-3-llama-3.1-70b",
-      "name": "Nous: Hermes 3 70B Instruct",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 0.7,
-        "output": 0.7
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [],
-      "description": "Hermes 3 is a generalist language model with many improvements over [Hermes 2](/models/nousresearch/nous-hermes-2-mistral-7b-dpo), including advanced agentic capabilities, much better roleplaying, reasoning, multi-turn conversation, long context coherence, and improvements across the...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "nousresearch",
-      "model": "nousresearch/hermes-3-llama-3.1-405b",
-      "name": "Nous: Hermes 3 405B Instruct",
-      "pricing": {
-        "unit": "per_1m_tokens",
-        "input": 1,
-        "output": 1
-      },
-      "inputModalities": [
-        "text"
-      ],
-      "outputModalities": [
-        "text"
-      ],
-      "contextLength": 131072,
-      "supportsTools": false,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "frontier"
-      ],
-      "description": "Hermes 3 is a generalist language model with many improvements over Hermes 2, including advanced agentic capabilities, much better roleplaying, reasoning, multi-turn conversation, long context coherence, and improvements across the...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
       "provider": "sao10k",
       "model": "sao10k/l3-lunaris-8b",
       "name": "Sao10K: Llama 3 8B Lunaris",
@@ -13614,8 +14117,8 @@
       "name": "Meta: Llama 3.1 70B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.4,
-        "output": 0.4
+        "input": 0.72,
+        "output": 0.72
       },
       "inputModalities": [
         "text"
@@ -13625,13 +14128,13 @@
       ],
       "contextLength": 131072,
       "supportsTools": true,
-      "supportsStructuredOutput": true,
+      "supportsStructuredOutput": false,
       "categories": [],
       "goodFor": [
         "agentic"
       ],
       "description": "Meta's latest class of model (Llama 3.1) launched with a variety of sizes & flavors. This 70B instruct-tuned version is optimized for high quality dialogue usecases. It has demonstrated strong...",
-      "isModerated": false,
+      "isModerated": true,
       "source": "openrouter",
       "region": "us",
       "gdprSafe": false
@@ -13642,9 +14145,8 @@
       "name": "Meta: Llama 3.1 8B Instruct",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.05,
-        "output": 0.08,
-        "cacheReadPer1M": 0.025
+        "input": 0.02,
+        "output": 0.04
       },
       "inputModalities": [
         "text"
@@ -14071,8 +14573,9 @@
       "name": "Mancer: Weaver (alpha)",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.4,
-        "output": 0.75
+        "input": 0.3,
+        "output": 0.5,
+        "cacheReadPer1M": 0.3
       },
       "inputModalities": [
         "text"
@@ -14097,8 +14600,9 @@
       "name": "ReMM SLERP 13B",
       "pricing": {
         "unit": "per_1m_tokens",
-        "input": 0.35,
-        "output": 0.65
+        "input": 0.3,
+        "output": 0.5,
+        "cacheReadPer1M": 0.2
       },
       "inputModalities": [
         "text"
@@ -14175,6 +14679,73 @@
       "isModerated": false,
       "source": "openrouter",
       "region": "us",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/auto",
+      "name": "Auto Router",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "image"
+      ],
+      "contextLength": 2000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic"
+      ],
+      "description": "Auto is OpenRouter’s flagship model router, built for general-purpose usage. It adapts to each request, choosing cost-optimal models and adjusting reasoning effort. It balances task difficulty, benchmark results, live prices,...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
+      "gdprSafe": false
+    },
+    {
+      "provider": "openrouter",
+      "model": "openrouter/auto-code",
+      "name": "Auto Code",
+      "pricing": {
+        "unit": "per_1m_tokens"
+      },
+      "inputModalities": [
+        "text",
+        "image",
+        "audio",
+        "file",
+        "video"
+      ],
+      "outputModalities": [
+        "text",
+        "image"
+      ],
+      "contextLength": 2000000,
+      "supportsTools": true,
+      "supportsStructuredOutput": true,
+      "categories": [],
+      "goodFor": [
+        "vision",
+        "audio",
+        "agentic",
+        "coding"
+      ],
+      "description": "Auto Code is OpenRouter’s router built specifically for coding agents and harnesses. It uses the same routing engine as the [Auto Router](https://openrouter.ai/openrouter/auto), with every request treated as part of an...",
+      "isModerated": false,
+      "source": "openrouter",
+      "region": "other",
       "gdprSafe": false
     },
     {
@@ -14366,39 +14937,6 @@
       "categories": [],
       "goodFor": [],
       "description": "Transform your natural language requests into structured OpenRouter API request objects. Describe what you want to accomplish with AI models, and Body Builder will construct the appropriate API calls. Example:...",
-      "isModerated": false,
-      "source": "openrouter",
-      "region": "other",
-      "gdprSafe": false
-    },
-    {
-      "provider": "openrouter",
-      "model": "openrouter/auto",
-      "name": "Auto Router",
-      "pricing": {
-        "unit": "per_1m_tokens"
-      },
-      "inputModalities": [
-        "text",
-        "image",
-        "audio",
-        "file",
-        "video"
-      ],
-      "outputModalities": [
-        "text",
-        "image"
-      ],
-      "contextLength": 2000000,
-      "supportsTools": true,
-      "supportsStructuredOutput": true,
-      "categories": [],
-      "goodFor": [
-        "vision",
-        "audio",
-        "agentic"
-      ],
-      "description": "The Auto Router automatically selects the best model for your prompt, powered by the wisdom of the market. It routes you based on what the OpenRouter community collectively spends on...",
       "isModerated": false,
       "source": "openrouter",
       "region": "other",
