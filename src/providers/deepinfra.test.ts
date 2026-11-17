@@ -43,3 +43,34 @@ test("chat() posts to the DeepInfra OpenAI-compatible endpoint with Bearer auth"
   expect(res.usage.outputTokens).toBe(2);
   expect(res.usage.provider).toBe("deepinfra");
 });
+
+// ── F091 — DeepInfra's own price (usage.estimated_cost) is what gets booked ──
+test("F091 chat books usage.estimated_cost as the cost, basis reported, no usage:{include}", async () => {
+  const seen = mockFetch({
+    choices: [{ message: { role: "assistant", content: "ok" } }],
+    usage: { prompt_tokens: 11, completion_tokens: 3, estimated_cost: 0.00012 },
+  });
+  const r = await deepinfraAdapter({ apiKey: "k" }).chat!(req);
+  expect(r.usage.costUsd).toBe(0.00012);
+  expect(r.usage.costBasis).toBe("reported");
+  expect((seen[0]!.body as Record<string, unknown>).usage).toBeUndefined();
+});
+
+test("F091 without estimated_cost the model stays unpriced (no invented number)", async () => {
+  mockFetch({ choices: [{ message: { role: "assistant", content: "ok" } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+  const r = await deepinfraAdapter({ apiKey: "k" }).chat!(req);
+  expect(r.usage.costUsd).toBe(0);
+  expect(r.usage.costBasis).toBe("unpriced");
+});
+
+test("F091 stream books estimated_cost from the usage chunk", async () => {
+  const sse =
+    'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n' +
+    'data: {"choices":[],"usage":{"prompt_tokens":11,"completion_tokens":3,"estimated_cost":0.00012}}\n\n' +
+    "data: [DONE]\n\n";
+  globalThis.fetch = (async () => new Response(sse, { status: 200, headers: { "content-type": "text/event-stream" } })) as unknown as typeof fetch;
+  let usage: { costUsd: number; costBasis?: string } | undefined;
+  for await (const ev of deepinfraAdapter({ apiKey: "k" }).chatStream!(req)) if (ev.type === "usage") usage = ev.usage;
+  expect(usage?.costUsd).toBe(0.00012);
+  expect(usage?.costBasis).toBe("reported");
+});

@@ -146,3 +146,13 @@ test("image() throws without an API key", async () => {
   ).rejects.toThrow(/OPENROUTER_API_KEY not set/);
   if (prevKey !== undefined) process.env.OPENROUTER_API_KEY = prevKey;
 });
+
+test("F091 OpenRouter's own usage.cost is booked with costBasis reported", async () => {
+  mockFetch({ choices: [{ message: { content: "hi" } }], usage: { prompt_tokens: 10, completion_tokens: 4, cost: 0.0042 } });
+  const res = await openrouterAdapter({ apiKey: "k" }).chat!({
+    messages: [{ role: "user", content: "hi" }],
+    spec: { provider: "openrouter", model: "some/unpriced-model", transport: "http" },
+  });
+  expect(res.usage.costUsd).toBe(0.0042);
+  expect(res.usage.costBasis).toBe("reported");
+});

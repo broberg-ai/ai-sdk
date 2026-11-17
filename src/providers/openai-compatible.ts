@@ -36,6 +36,10 @@ export interface OpenAICompatibleConfig {
    *  response's `usage.cost` (USD) as costUsd, falling back to the pricing table.
    *  Only OpenRouter returns this field — openai/deepinfra leave it false. */
   costFromResponseField?: boolean;
+  /** F091 — the provider reports its own price under this `usage` field (USD) WITHOUT
+   *  being asked: DeepInfra's `estimated_cost`. Read in chat and stream; wins over the
+   *  pricing table. Unlike costFromResponseField nothing is added to the request. */
+  reportedCostField?: "estimated_cost";
   /** F039.2 — this provider accepts `prompt_cache_key` and caches a shared prefix
    *  on it. Mistral only, deliberately: an unknown field is ignored by some
    *  OpenAI-compatible servers and rejected with a 400 by others, so sending it
@@ -348,6 +352,12 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
     });
     if (config.costFromResponseField && typeof data.usage?.cost === "number") {
       usage.costUsd = data.usage.cost; // OpenRouter ground-truth beats the estimate
+      usage.costBasis = "reported";
+    }
+    const reported = config.reportedCostField ? (data.usage as Record<string, unknown> | undefined)?.[config.reportedCostField] : undefined;
+    if (typeof reported === "number") {
+      usage.costUsd = reported; // F091 — DeepInfra's own figure; we price none of its models
+      usage.costBasis = "reported";
     }
     if (typeof data.model === "string" && data.model) usage.servedModel = data.model;
     const result: ChatResult = { text, usage };
@@ -428,6 +438,12 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
         });
         if (config.costFromResponseField && typeof chunk.usage.cost === "number") {
           usage.costUsd = chunk.usage.cost; // OpenRouter ground-truth
+          usage.costBasis = "reported";
+        }
+        const reportedChunk = config.reportedCostField ? (chunk.usage as Record<string, unknown>)[config.reportedCostField] : undefined;
+        if (typeof reportedChunk === "number") {
+          usage.costUsd = reportedChunk; // F091 — DeepInfra
+          usage.costBasis = "reported";
         }
         if (typeof chunk.model === "string" && chunk.model) usage.servedModel = chunk.model;
         yield { type: "usage", costUsd: usage.costUsd, model: usage.model, usage };
