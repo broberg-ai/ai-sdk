@@ -46,11 +46,17 @@ export interface MediaPrice {
  *  ONE date for the table rather than trusting every row's own: a row added later
  *  with a fresh date would otherwise pull the table's average forward while the
  *  older rows sat unrevised. Freshness reads the OLDEST answer, and this is it. */
-export const MEDIA_PRICING_CHECKED_AT = "2026-10-11";
+// Re-verified 2026-11-17 row by row against each vendor's current page (37 rows, none
+// moved). Found then: the Gemini-API Veo models were SHUT DOWN 2026-10-22 (Google's
+// deprecations page) — their rows below now only price the Vertex route; DeepL publishes
+// no official API price any more (row kept, unconfirmed); fal FLUX bills per megapixel
+// rounded up, so a 1024² image may bill as 2 MP (unresolved).
+export const MEDIA_PRICING_CHECKED_AT = "2026-11-17";
 
-/** Veo per-second USD. Same model family and the same rates on the consumer
- *  Gemini API and on Vertex — one object, registered under both providers, so a
- *  correction cannot land on one route and miss the other. */
+/** Veo per-second USD. Re-read 2026-11-17 on cloud.google.com/vertex-ai/generative-ai/pricing
+ *  (720p rates). The consumer Gemini API SHUT DOWN these models 2026-10-22 (and the
+ *  3.0 ids 2026-06-30) — a call there now 404s, so the `gemini:` rows price nothing
+ *  live; the `vertex:` rows are the ones that bill. */
 const VEO_PER_SEC: Record<string, { usd: number; source: string }> = {
   "veo-3.1-generate-preview": { usd: 0.4, source: "ai.google.dev/gemini-api/docs/pricing — video with audio, 720p/1080p (4K = 0.60)" },
   "veo-3.1-fast-generate-preview": { usd: 0.1, source: "ai.google.dev/gemini-api/docs/pricing — 720p (1080p = 0.12, 4K = 0.30)" },

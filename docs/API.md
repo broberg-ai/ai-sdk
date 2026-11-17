@@ -571,6 +571,16 @@ by exactly the reported sum. **BFL serves only `latest`** — no dated version e
 route counts as floating: pass `allowFloating: true`, and `strictPinning` refuses it.
 Klein alone takes `seed` and `outputFormat`. No finetunes on FLUX 3.
 
+### DeepInfra — booked with DeepInfra's own price (F091, v0.74.1)
+
+`ai.chat({ override:{ provider:"deepinfra", model:"<any DeepInfra model>" } })` — key
+`DEEPINFRA_API_KEY`. We price none of DeepInfra's ~177 models; instead the SDK books the
+`usage.estimated_cost` DeepInfra sends in every answer (chat and stream), with
+`costBasis: "reported"`. Measured live 2026-11-17 (Llama 3.1 8B: $0.0000005 a call).
+**US-hosted (`usage.region: "us"`) — not for personal data.** OpenRouter's own
+`usage.cost` is now labelled `costBasis: "reported"` too (it was "unpriced" for models
+outside our table, though the number was already right).
+
 ### Cutting a call off — `timeoutMs` and `signal` on `ai.chat` / `ai.chatStream` (F090, v0.74+)
 
 ```ts
