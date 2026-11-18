@@ -102,13 +102,16 @@ const DEFAULT_TRAINSTYLE_SPEC: TierSpec = {
   model: "fal-ai/flux-lora-fast-training",
   transport: "http",
 };
-/** Image-to-video route (F024) — Veo 3.1 DIRECT via the Gemini API (no fal markup,
- *  our existing GEMINI_API_KEY, and the path to EU via Vertex later). Override to
- *  {provider:"fal", model:"fal-ai/veo3.1/..."} for the aggregator / other models
- *  (Kling, Seedance). US-hosted: consent-gated use (F024). */
+/** Image-to-video route — F092 (owner 2026-11-18, «A»): Black Forest Labs FLUX 3 Video,
+ *  hard-pinned to api.eu.bfl.ai, so a video made through the default stays in the EU.
+ *  It replaced gemini/veo-3.1-generate-preview, which Google SHUT DOWN in the Gemini API
+ *  on 2026-10-22 (measured 2026-11-17: 404) — every default call failed after that date.
+ *  BFL serves only "latest", so the default floats: one warning per process,
+ *  usage.floating = true, and strictPinning refuses it (pass allowFloating to accept).
+ *  Override to fal/kling (US, $0.07/s, silent) or vertex/veo (EU, needs project access). */
 const DEFAULT_ANIMATE_SPEC: TierSpec = {
-  provider: "gemini",
-  model: "veo-3.1-generate-preview",
+  provider: "bfl",
+  model: "flux-3-video",
   transport: "http",
 };
 /** Default audio directive for ai.animate (F024, Christian's preference): no

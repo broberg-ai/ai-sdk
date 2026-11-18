@@ -22,23 +22,19 @@ describe("F050 — the billed numbers did not move", () => {
   // bug than the blindness it fixes. Both numbers independently confirmed by super
   // on 0.38.0, BEFORE the move.
   test("Veo is still $0.40/s on both routes, Kling still $0.07/s", () => {
-    expect(getMediaPrice("gemini", "veo-3.1-generate-preview")?.usd).toBe(0.4);
+    // F092: Veo is priced on Vertex only — Google shut the Gemini-API Veo down 2026-10-22.
     expect(getMediaPrice("vertex", "veo-3.1-generate-preview")?.usd).toBe(0.4);
-    expect(getMediaPrice("gemini", "veo-3.1-fast-generate-preview")?.usd).toBe(0.1);
-    expect(getMediaPrice("gemini", "veo-3.1-lite-generate-preview")?.usd).toBe(0.05);
+    expect(getMediaPrice("vertex", "veo-3.1-fast-generate-preview")?.usd).toBe(0.1);
+    expect(getMediaPrice("vertex", "veo-3.1-lite-generate-preview")?.usd).toBe(0.05);
     expect(getMediaPrice("fal", "fal-ai/kling-video/v2.5-turbo/pro/image-to-video")?.usd).toBe(0.07);
     expect(getMediaPrice("bfl", "flux-pro-1.1-ultra-finetuned")?.usd).toBe(0.06);
     expect(getMediaPrice("fal", "fal-ai/flux/schnell")?.usd).toBe(0.003);
   });
 
-  test("the two Veo routes read the SAME object — a correction cannot land on one and miss the other", () => {
-    const veo = Object.entries(MEDIA_PRICING)
-      .filter(([k, v]) => k.startsWith("gemini:veo-") && v.unit === "per_sec")
-      .map(([k]) => k.slice("gemini:".length));
-    expect(veo.length).toBeGreaterThan(0); // an empty loop asserts nothing
-    for (const model of veo) {
-      expect(getMediaPrice("vertex", model)?.usd).toBe(getMediaPrice("gemini", model)!.usd);
-    }
+  test("F092: Veo is priced on Vertex only — no row for the shut-down Gemini-API route", () => {
+    const vertexVeo = Object.keys(MEDIA_PRICING).filter((k) => k.startsWith("vertex:veo-"));
+    expect(vertexVeo.length).toBe(5); // an empty loop would assert nothing
+    expect(Object.keys(MEDIA_PRICING).filter((k) => k.startsWith("gemini:veo-"))).toEqual([]);
   });
 
   test("an unknown model is undefined, never a fabricated 0", () => {
@@ -277,11 +273,13 @@ describe("F050 — costBasis is stamped where the number is made", () => {
 describe("F050 — the two answers a media row must NOT give", () => {
   test("a bare id resolves to the SAME provider every time, not to spread order", async () => {
     const { getModelPrice } = await import("../catalogue/pricing-api.js");
-    // Veo lives under gemini AND vertex with identical numbers. Last-write-wins made
-    // the bare answer "vertex" for no reason a reader could infer.
-    expect(getModelPrice("veo-3.1-generate-preview")?.provider).toBe("gemini");
+    // Until F092 Veo lived under gemini AND vertex; since Google shut the Gemini-API
+    // route down (2026-10-22) only vertex remains, so the bare id names vertex — and a
+    // lookup for the dead route never claims a gemini price (the catalogue falls back to
+    // the bare id, which is vertex's).
+    expect(getModelPrice("veo-3.1-generate-preview")?.provider).toBe("vertex");
     expect(getModelPrice("vertex:veo-3.1-generate-preview")?.provider).toBe("vertex");
-    expect(getModelPrice("gemini:veo-3.1-generate-preview")?.provider).toBe("gemini");
+    expect(getModelPrice("gemini:veo-3.1-generate-preview")?.provider).not.toBe("gemini");
     // …and whichever you get, the number is the same. That is what makes the bare
     // lookup safe to offer at all.
     const bare = getModelPrice("veo-3.1-generate-preview");

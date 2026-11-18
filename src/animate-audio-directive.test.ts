@@ -39,19 +39,20 @@ function spy(name: string): { adapter: ProviderAdapter; seen: (string | undefine
 const AUDIO = "ambient background sounds";
 
 function client() {
-  const gemini = spy("gemini");
+  // F092 — the default animate route is bfl/flux-3-video (it makes sound by default).
+  const bfl = spy("bfl");
   const fal = spy("fal");
-  const ai = createAI({ providers: { gemini: gemini.adapter, fal: fal.adapter } });
-  return { ai, gemini, fal };
+  const ai = createAI({ providers: { bfl: bfl.adapter, fal: fal.adapter } });
+  return { ai, bfl, fal };
 }
 
-test("the Veo default STILL carries the directive — the negative control", async () => {
+test("the default (FLUX 3 Video, makes sound) STILL carries the directive — the negative control", async () => {
   // Without this, simply deleting the directive everywhere would pass every other test
   // in this file. That would be a silent quality regression on the route we ship.
-  const { ai, gemini } = client();
-  await ai.animate({ image: "https://example.test/a.png", prompt: "she turns and smiles" });
-  expect(gemini.seen[0]).toContain(AUDIO);
-  expect(gemini.seen[0]).toContain("she turns and smiles");
+  const { ai, bfl } = client();
+  await ai.animate({ image: "https://example.test/a.png", prompt: "she turns and smiles", allowFloating: true });
+  expect(bfl.seen[0]).toContain(AUDIO);
+  expect(bfl.seen[0]).toContain("she turns and smiles");
 });
 
 test("a Kling override drops it — measured silent, so the sentence is noise", async () => {
@@ -77,10 +78,10 @@ test("Veo THROUGH fal keeps it — the rule is the model, not the provider", asy
   expect(fal.seen[0]).toContain(AUDIO);
 });
 
-test("no prompt at all: the directive is the whole prompt on Veo, and absent on Kling", async () => {
-  const { ai, gemini, fal } = client();
-  await ai.animate({ image: "https://example.test/a.png" });
-  expect(gemini.seen[0]).toContain(AUDIO);
+test("no prompt at all: the directive is the whole prompt on the default, and absent on Kling", async () => {
+  const { ai, bfl, fal } = client();
+  await ai.animate({ image: "https://example.test/a.png", allowFloating: true });
+  expect(bfl.seen[0]).toContain(AUDIO);
 
   await ai.animate({
     image: "https://example.test/a.png",

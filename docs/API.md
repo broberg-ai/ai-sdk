@@ -266,7 +266,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.video` | `{ video: string\|Uint8Array, prompt, mimeType?, system? }` | `{ text, usage }` | `video` (gemini-2.5-flash-lite) |
 | `ai.translate` | `{ text, to, from? }` | `{ text, usage }` | `fast` (chat prompt-contract, free-form `to`/`from` e.g. "Danish"); or **DeepL EU** dedicated MT via `override:{provider:"deepl"}` (F032) — `to`/`from` must be DeepL codes ("DA", not "Danish") |
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
-| `ai.animate` | `{ image?: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Veo 3.1 direct** (gemini); fal aggregator via override; **Vertex EU** (europe-west1) via `override:{provider:"vertex"}` (F031, needs a GCP service-account); **EU image→video AND text→video (no `image`) with sound** via `override:{provider:"bfl", model:"flux-3-video"}` (F079, v0.64+, $0.15/s at hd — measured 2026-10-20) |
+| `ai.animate` | `{ image?: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Default since v0.75 (F092): BFL FLUX 3 Video, EU** — image→video AND text→video (no `image`), with sound, $0.15/s at hd (live 2026-11-18: 5 s clip $0.75, `usage.region:"eu"`). fal (Kling, US) via override; **Vertex EU** Veo via `override:{provider:"vertex"}` (F031, needs Veo access on the GCP project). The old default, Gemini-API Veo, was **shut down by Google 2026-10-22** |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
 | `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1; EU: Voxtral (mistral, auto-detect) or **Azure da-DK** via `override:{provider:"azure"}` (F029) |
@@ -422,9 +422,15 @@ const { url, usage } = await ai.image({
 
 ### Image-to-video — `ai.animate` (F024)
 
-Turn a still (e.g. an F023 portrait) into a short video. **Default route: Veo 3.1
-DIRECT via the Gemini API** (`veo-3.1-generate-preview`) — no aggregator markup, the
-same `GEMINI_API_KEY` you already use, and the path to EU residency (Vertex) later.
+Turn a still (e.g. an F023 portrait) — or a prompt alone — into a short video.
+**Default route since v0.75.0 (F092, owner 2026-11-18): Black Forest Labs FLUX 3 Video,
+hard-pinned to `api.eu.bfl.ai`** — the video stays in the EU, `BFL_API_KEY`, $0.15/s at
+hd. BFL serves only "latest", so the default floats: one warning per process unless you
+pass `allowFloating: true`; `strictPinning` refuses it.
+
+> **Up to v0.74 the default was Veo 3.1 via the Gemini API — Google shut it down on
+> 2026-10-22, so every `ai.animate` without an override failed from that date
+> (measured 2026-11-17: 404).** Take v0.75+. Veo is still reachable on Vertex.
 
 ```ts
 import { readFileSync } from "node:fs";

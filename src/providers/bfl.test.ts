@@ -326,8 +326,8 @@ test("image→video-only routes refuse a missing image and name the text→video
   const noFetch = (async () => { throw new Error("must not be called"); }) as unknown as typeof fetch;
   const msg = (p: string) => `${p} animate: needs an image (image→video). For text→video use override:{ provider:"bfl", model:"flux-3-video" }.`;
   const ai = createAI({ costSink: null, providers: { gemini: geminiAdapter({ apiKey: "k", fetch: noFetch }) } });
-  const seen = await ai.animate({ prompt: "x" }).then(() => "resolved", (e: Error) => e.message);
-  expect(seen).toBe(msg("gemini")); // the default animate route
+  const seen = await ai.animate({ prompt: "x", override: { provider: "gemini", model: "veo-3.1-generate-preview" } }).then(() => "resolved", (e: Error) => e.message);
+  expect(seen).toBe(msg("gemini")); // a Veo route (the default until F092)
   for (const [name, adapter] of [["fal", falAdapter({ apiKey: "k", fetch: noFetch })], ["vertex", vertexAdapter({ fetch: noFetch } as never)]] as const) {
     const m = await adapter.animate!({ prompt: "x", spec: { provider: name, model: "m", transport: "http" } }).then(() => "resolved", (e: Error) => e.message);
     expect({ name, m }).toEqual({ name, m: msg(name) });
@@ -353,7 +353,7 @@ test("audio:false on a route that always makes sound is refused; a known-silent 
   const { geminiAdapter } = await import("./gemini.js");
   const noFetch = (async () => { throw new Error("must not be called"); }) as unknown as typeof fetch;
   const ai = createAI({ costSink: null, providers: { gemini: geminiAdapter({ apiKey: "k", fetch: noFetch }) } });
-  const m = await ai.animate({ image: "u", prompt: "x", audio: false }).then(() => "resolved", (e: Error) => e.message);
+  const m = await ai.animate({ image: "u", prompt: "x", audio: false, override: { provider: "gemini", model: "veo-3.1-generate-preview" } }).then(() => "resolved", (e: Error) => e.message);
   expect(m).toBe(
     'createAI: animate route "gemini:veo-3.1-generate-preview" cannot switch audio off. For a silent clip use override:{ provider:"bfl", model:"flux-3-video" }.',
   );
@@ -420,4 +420,31 @@ test("F079.3 flux-3-image refuses a finetune with a message naming the right mod
 test("F079.3 measured fallback prices exist for both FLUX 3 image models", () => {
   expect(getMediaPrice("bfl", "flux-3-image")?.usd).toBe(0.048);
   expect(getMediaPrice("bfl", "flux-3-image-klein")?.usd).toBe(0.009);
+});
+
+// ── F092 — the default animate route is bfl/flux-3-video (EU) ──────────────────
+test("F092 ai.animate without an override goes to bfl/flux-3-video on api.eu.bfl.ai", async () => {
+  const { createAI } = await import("../client.js");
+  const calls: string[] = [];
+  const ai = createAI({
+    costSink: null,
+    providers: { bfl: bflAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: videoFetch({ calls, body: () => {} }) }) },
+  });
+  const r = await ai.animate({ image: "https://example.test/a.png", prompt: "waves", allowFloating: true });
+  expect(r.usage.provider).toBe("bfl");
+  expect(r.usage.model).toBe("flux-3-video");
+  expect(r.usage.region).toBe("eu");
+  expect(calls[0]).toBe("https://api.eu.bfl.ai/v1/flux-3-video");
+});
+
+test("F092 no default and no price row points at a Gemini-API Veo model Google shut down", async () => {
+  const { ROUTED_SPECS } = await import("../client.js");
+  const { getMediaPrice } = await import("../cost/media-pricing.js");
+  const routed = ROUTED_SPECS.map((r) => `${r.provider}:${r.model}`);
+  expect(routed).toContain("bfl:flux-3-video");
+  expect(routed.filter((r) => r.startsWith("gemini:veo"))).toEqual([]);
+  for (const m of ["veo-3.1-generate-preview", "veo-3.1-fast-generate-preview", "veo-3.1-lite-generate-preview", "veo-3.0-generate-001", "veo-3.0-fast-generate-001"]) {
+    expect(getMediaPrice("gemini", m)).toBeUndefined();
+    expect(getMediaPrice("vertex", m)).toBeDefined(); // Vertex still serves Veo
+  }
 });

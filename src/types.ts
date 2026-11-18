@@ -645,8 +645,8 @@ export interface ProviderAdapter {
   translate?(req: TranslateRequest): Promise<TranslateResult>;
   vision?(req: ChatRequest): Promise<ChatResult>;
   image?(req: ImageRequest): Promise<ImageResult>;
-  /** Image-to-video generation (F024) — animate a still into a short clip. gemini
-   *  (Veo 3.1) by default; override to fal for Kling/Seedance. Name only the DEFAULT
+  /** Image-to-video generation (F024) — animate a still into a short clip. bfl
+   *  (FLUX 3 Video, EU) by default since F092; override for other routes. Name only the DEFAULT
    *  route here — provider-doc-drift.test.ts fails if this and DEFAULT_ANIMATE_SPEC
    *  disagree, because this sentence is the editor tooltip a consumer reads when
    *  deciding which API key to buy. */

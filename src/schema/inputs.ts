@@ -232,7 +232,7 @@ export const imageInputSchema = z.object({
 // Image-to-video (F024) — animate a still into a short clip via a pluggable provider.
 export const animateInputSchema = z.object({
   /** Input image: a URL or raw bytes. Where bytes are uploaded is the ADAPTER's
-   *  business — fal uses fal storage, the Gemini/Veo default inlines them.
+   *  business — the BFL default sends them as keyframes; other routes upload or inline them.
    *  Omit for text→video (F079.2): only bfl/flux-3-video supports it. */
   image: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
   /** Motion/scene prompt. */
@@ -462,7 +462,7 @@ export interface AiClient {
   translate(input: TranslateInput): Promise<TranslateResult>;
   image(input: ImageInput): Promise<ImageResult>;
   /** Image-to-video (F024) — animate a still into a short clip → { url, usage }.
-   *  gemini (Veo 3.1) by default; override to fal for Kling/Seedance.
+   *  bfl (FLUX 3 Video, EU) by default since F092; override for other routes.
    *
    *  THIS one is the tooltip a consumer sees, because it sits on the method they call.
    *  F045 fixed the same stale "fal." on ProviderAdapter and missed this copy — super

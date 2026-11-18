@@ -65,12 +65,14 @@ test("a done operation with no video uri throws", async () => {
   await expect(adapter.animate!({ image: new Uint8Array([1]), spec })).rejects.toThrow(/no video uri/);
 });
 
-test("ai.animate({ image }) routes to gemini Veo by default + appends the no-speech/ambient directive", async () => {
+test("ai.animate({ image }) on the gemini Veo route appends the no-speech/ambient directive", async () => {
   const { createAI } = await import("../client.js");
   const calls: string[] = [];
   const bodies: unknown[] = [];
   const ai = createAI({ providers: { gemini: geminiAdapter({ apiKey: "k", pollIntervalMs: 1, fetch: veoFetch({ calls, bodies }) }) } });
-  const { usage } = await ai.animate({ image: new Uint8Array([0xff, 0xd8]), prompt: "the man pours coffee" });
+  // F092 — no longer the default (Google shut it down 2026-10-22); the adapter path is
+  // still tested via an explicit override.
+  const { usage } = await ai.animate({ image: new Uint8Array([0xff, 0xd8]), prompt: "the man pours coffee", override: { provider: "gemini", model: "veo-3.1-generate-preview" } });
   expect(usage.provider).toBe("gemini");
   expect(usage.model).toBe("veo-3.1-generate-preview");
   expect(calls.some((u) => u.includes("veo-3.1-generate-preview:predictLongRunning"))).toBe(true);

@@ -75,7 +75,8 @@ const veoRows = (provider: string): Record<string, MediaPrice> =>
 
 /** Every non-token price the SDK bills from, keyed `provider:model`. */
 export const MEDIA_PRICING: Record<string, MediaPrice> = {
-  ...veoRows("gemini"),
+  // F092 — no `gemini:` Veo rows: Google shut those models down 2026-10-22, and a price
+  // row for a dead model invites someone to route to it. Vertex still serves Veo.
   ...veoRows("vertex"),
 
   // fal video — fal's OFFICIAL published per-second rate, not a guess. Kling 2.5
