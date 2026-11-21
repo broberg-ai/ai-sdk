@@ -13,6 +13,7 @@ import type {
   TranscribeResult,
 } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { env } from "../env.js";
 
 export function openaiAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
@@ -21,7 +22,7 @@ export function openaiAdapter(
   const base = makeOpenAICompatibleAdapter({ name: "openai", baseUrl, apiKey: config.apiKey, fetch: config.fetch });
 
   async function embedding(req: EmbeddingRequest): Promise<EmbeddingResult> {
-    const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY;
+    const apiKey = config.apiKey ?? env().OPENAI_API_KEY;
     if (!apiKey) throw new Error("openai adapter: API key not set (env OPENAI_API_KEY)");
     const res = await httpTransport({
       spec: req.spec,
@@ -52,7 +53,7 @@ export function openaiAdapter(
   }
 
   async function transcribe(req: TranscribeRequest): Promise<TranscribeResult> {
-    const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY;
+    const apiKey = config.apiKey ?? env().OPENAI_API_KEY;
     if (!apiKey) throw new Error("openai adapter: API key not set (env OPENAI_API_KEY)");
     // Whisper is multipart/form-data — bypass httpTransport (JSON-only). Don't set
     // content-type; fetch adds the multipart boundary.

@@ -29,6 +29,7 @@ import type {
 } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
 import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
+import { env } from "../env.js";
 
 /** F083 — the TTS model when the call names none. `ai.tts` routes by VOICE and merges
  *  an override without a model, so spec.model arrives as the default route's model
@@ -50,7 +51,7 @@ export function mistralAdapter(
   const base = makeOpenAICompatibleAdapter({ name: "mistral", baseUrl, apiKey: config.apiKey, fetch: config.fetch, supportsPromptCacheKey: true, supportsPrefix: true, supportsReasoningEffort: true });
 
   function key(): string {
-    const k = config.apiKey ?? process.env.MISTRAL_API_KEY;
+    const k = config.apiKey ?? env().MISTRAL_API_KEY;
     if (!k) throw new Error("mistral adapter: API key not set (env MISTRAL_API_KEY)");
     return k;
   }

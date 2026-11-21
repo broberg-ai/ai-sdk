@@ -4,6 +4,7 @@
 // Mythos suspension. NEVER on the resolve hot path. Never hard-fails the SDK:
 // a network/auth error keeps the curated defaults.
 import { providerIds, setAvailability } from "./registry.js";
+import { env } from "../env.js";
 
 export interface RefreshOptions {
   /** Only "anthropic" is wired in v1 (where the incident hit). */
@@ -55,7 +56,7 @@ export async function refreshAvailability(opts: RefreshOptions = {}): Promise<Re
   const last = lastRefreshAt.get(provider);
   if (last !== undefined && now - last < ttl) return NOT_REFRESHED; // within TTL → skip
 
-  const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  const apiKey = opts.apiKey ?? env().ANTHROPIC_API_KEY;
   if (!apiKey) return NOT_REFRESHED;
 
   const f = opts.fetch ?? fetch;

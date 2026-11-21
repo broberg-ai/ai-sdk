@@ -22,6 +22,7 @@ import type {
   ContentPart,
   ToolCall,
 } from "../types.js";
+import { env } from "../env.js";
 
 export interface GeminiPart {
   text?: string;
@@ -99,7 +100,7 @@ export function geminiAdapter(
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.gemini;
 
   function resolveKey(): string {
-    const apiKey = config.apiKey ?? process.env.GOOGLE_API_KEY ?? process.env.GEMINI_API_KEY;
+    const apiKey = config.apiKey ?? env().GOOGLE_API_KEY ?? env().GEMINI_API_KEY;
     if (!apiKey) throw new Error("gemini adapter: API key not set (env GOOGLE_API_KEY or GEMINI_API_KEY)");
     return apiKey;
   }

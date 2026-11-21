@@ -21,6 +21,7 @@ import {
   type SearchRequest,
   type SearchResult,
 } from "./types.js";
+import { env as readEnv } from "../env.js";
 
 const sharedCache = memorySearchCache();
 
@@ -45,7 +46,7 @@ const coolingUntil = new Map<string, number>();
  *  reroute another tenant or the house. Hashed so no key sits in the map in clear. */
 function cooldownKey(provider: SearchProviderId, opts: SearchOptions): string {
   const c = opts.credentials ?? {};
-  const env = opts.byok ? {} : process.env;
+  const env = opts.byok ? {} : readEnv();
   const secret = provider === "brave" ? (c.braveApiKey ?? env.BRAVE_API_KEY)
     : provider === "tavily" ? (c.tavilyApiKey ?? env.TAVILY_API_KEY)
     : `${c.cloudflareAccountId ?? env.CLOUDFLARE_ACCOUNT_ID}:${c.cloudflareApiToken ?? env.CLOUDFLARE_API_TOKEN}`;
@@ -59,7 +60,7 @@ async function callProvider(provider: SearchProviderId, req: SearchRequest, opts
   const f = opts.fetch ?? fetch;
   const c = opts.credentials ?? {};
   // byok: never the fleet's env keys — a missing customer key is a missing key.
-  const env = opts.byok ? {} : process.env;
+  const env = opts.byok ? {} : readEnv();
   if (provider === "brave") {
     const key = c.braveApiKey ?? env.BRAVE_API_KEY;
     if (!key) throw new SearchKeyMissingError(provider, "BRAVE_API_KEY");

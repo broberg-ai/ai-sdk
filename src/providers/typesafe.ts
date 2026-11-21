@@ -16,6 +16,7 @@ import { regionOfHost } from "../cost/region.js";
 import { freshUsage } from "../cost/usage.js";
 import type { JudgeRequest, JudgeResult, ProviderAdapter } from "../types.js";
 import { mapSystemOneAnswers, type SystemOneWireAnswer } from "./system-one.js";
+import { env } from "../env.js";
 
 export function typesafeAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
@@ -24,7 +25,7 @@ export function typesafeAdapter(
   const base = (config.baseUrl ?? DEFAULT_BASE_URLS.typesafe).replace(/\/$/, "");
 
   function key(): string {
-    const k = config.apiKey ?? process.env.TYPESAFE_API_KEY;
+    const k = config.apiKey ?? env().TYPESAFE_API_KEY;
     if (!k) throw new Error("typesafe adapter: API key not set (env TYPESAFE_API_KEY)");
     return k;
   }

@@ -8,6 +8,7 @@ import { applyPronunciations, assertPronunciations } from "./pronunciation.js";
 import type { Pronunciation } from "./pronunciation.js";
 import type { ProviderAdapter, DialogueRequest, TtsRequest, PodcastResult } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { env } from "../env.js";
 
 /** Curated Danish voices (F020.3) — friendly name → ElevenLabs voiceId. Apps can
  *  pass these names to `ai.podcast`/`ai.tts` instead of raw IDs. */
@@ -57,7 +58,7 @@ export function elevenlabsAdapter(
   const fetchImpl = config.fetch ?? fetch;
 
   function key(): string {
-    const k = config.apiKey ?? process.env.ELEVENLABS_API_KEY;
+    const k = config.apiKey ?? env().ELEVENLABS_API_KEY;
     if (!k) throw new Error("elevenlabs adapter: API key not set (env ELEVENLABS_API_KEY)");
     return k;
   }

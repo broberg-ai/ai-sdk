@@ -83,6 +83,7 @@ import type {
 import { upmetricsSink } from "./cost/sinks/upmetrics.js";
 import { assertByokProviders } from "./byok.js";
 import { classifyFailure, type CallFailure } from "./cost/failure.js";
+import { env } from "./env.js";
 
 /** Built-in image route (no image tier in the tier map — fal owns its routing). */
 const DEFAULT_IMAGE_SPEC: TierSpec = {
@@ -180,7 +181,7 @@ const JUDGE_SPECS: Record<string, TierSpec> = { typesafe: JEV_JUDGE_SPEC, "micro
 /** Read once per createAI. Unknown value THROWS — fail closed like an unknown tier: a
  *  typo must never silently leave personal data on the US route it was meant to leave. */
 function judgeSpecFromEnv(): TierSpec {
-  const v = process.env.AI_JUDGE_PROVIDER;
+  const v = env().AI_JUDGE_PROVIDER;
   if (v === undefined || v === "") return DEFAULT_JUDGE_SPEC;
   const spec = JUDGE_SPECS[v];
   if (!spec) throw new Error(`createAI: AI_JUDGE_PROVIDER="${v}" is not a judge route — use ${Object.keys(JUDGE_SPECS).join(" or ")}`);
@@ -239,13 +240,13 @@ export const ROUTED_SPECS: readonly TierSpec[] = [
  *  process.env at call time), so this module is never in the browser build (the
  *  browser imports "@broberg/ai-sdk/registry"). */
 function defaultCostSink(agentName: string): CostSink | undefined {
-  const apiKey = process.env.UPMETRICS_API_KEY;
+  const apiKey = env().UPMETRICS_API_KEY;
   if (!apiKey) return undefined;
   return upmetricsSink({
-    baseUrl: process.env.UPMETRICS_BASE_URL ?? "https://upmetrics.org",
+    baseUrl: env().UPMETRICS_BASE_URL ?? "https://upmetrics.org",
     apiKey,
     agentName,
-    complianceMode: process.env.UPMETRICS_COMPLIANCE === "1",
+    complianceMode: env().UPMETRICS_COMPLIANCE === "1",
   });
 }
 
@@ -256,7 +257,7 @@ function defaultCostSink(agentName: string): CostSink | undefined {
  *  UPMETRICS_API_KEY: CI rarely has the key, and a check that only fires where it does
  *  would fire first in production, at boot. */
 function requireAgentName(configured: string | undefined): string {
-  const name = (configured ?? process.env.UPMETRICS_AGENT_NAME ?? "").trim();
+  const name = (configured ?? env().UPMETRICS_AGENT_NAME ?? "").trim();
   if (name) return name;
   throw new Error(
     "createAI(): no agent name — every AI call must say who made it (owner order 2026-10-15). " +

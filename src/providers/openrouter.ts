@@ -6,6 +6,7 @@ import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { env } from "../env.js";
 
 // F033.1 — OpenRouter's unified Image API (POST /images, distinct from
 // /chat/completions) returns base64 image data under data[].b64_json, plus a
@@ -49,7 +50,7 @@ export function openrouterAdapter(config: OpenRouterAdapterConfig = {}): Provide
   });
 
   async function image(req: ImageRequest): Promise<ImageResult> {
-    const apiKey = config.apiKey ?? process.env.OPENROUTER_API_KEY;
+    const apiKey = config.apiKey ?? env().OPENROUTER_API_KEY;
     if (!apiKey) throw new Error("openrouter adapter: OPENROUTER_API_KEY not set");
     const doFetch = config.fetch ?? fetch;
 

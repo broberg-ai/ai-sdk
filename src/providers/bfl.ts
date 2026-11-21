@@ -27,6 +27,7 @@ import { freshUsage } from "../cost/usage.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
 import type { Region } from "../cost/region.js";
 import type { ProviderAdapter, ImageRequest, ImageResult, AnimateRequest, AnimateResult } from "../types.js";
+import { env } from "../env.js";
 
 const EU_BASE = "https://api.eu.bfl.ai";
 /** BFL bills in credits; 1 credit = $0.01 USD (official, bfl.ai/pricing). */
@@ -98,7 +99,7 @@ export interface BflCredits {
 export async function bflCredits(
   opts: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
 ): Promise<BflCredits> {
-  const apiKey = opts.apiKey ?? process.env.BFL_API_KEY;
+  const apiKey = opts.apiKey ?? env().BFL_API_KEY;
   if (!apiKey) throw new Error("bflCredits: BFL_API_KEY not set");
   const doFetch = opts.fetch ?? fetch;
   const res = await doFetch(`${opts.baseUrl ?? EU_BASE}/v1/credits`, { headers: { "x-key": apiKey } });
@@ -128,7 +129,7 @@ export function bflAdapter(config: BflAdapterConfig = {}): ProviderAdapter {
   const pollIntervalMs = config.pollIntervalMs ?? 1500;
   const timeoutMs = config.timeoutMs ?? 120000;
 
-  const resolveKey = () => config.apiKey ?? process.env.BFL_API_KEY;
+  const resolveKey = () => config.apiKey ?? env().BFL_API_KEY;
 
   async function image(req: ImageRequest): Promise<ImageResult> {
     const apiKey = resolveKey();

@@ -16,6 +16,7 @@ import type {
   TrainStyleRequest,
   TrainStyleResult,
 } from "../types.js";
+import { env } from "../env.js";
 
 interface FalImagesResponse {
   images?: { url?: string }[];
@@ -67,7 +68,7 @@ export function falAdapter(config: FalAdapterConfig = {}): ProviderAdapter {
 
   // sa flagged the gotcha: their env is FAL_API_KEY, the older convention is FAL_KEY.
   // Accept either so no repo has to alias one to the other.
-  const resolveKey = () => config.apiKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY;
+  const resolveKey = () => config.apiKey ?? env().FAL_KEY ?? env().FAL_API_KEY;
   const authHeaders = (apiKey: string) => ({
     "content-type": "application/json",
     Authorization: `Key ${apiKey}`,

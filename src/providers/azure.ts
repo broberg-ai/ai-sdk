@@ -10,6 +10,7 @@ import type { ProviderAdapter, TtsRequest, PodcastResult, TranscribeRequest, Tra
 import { getMediaPrice } from "../cost/media-pricing.js";
 import { alignWordTimings, type AzureWordBoundary } from "./word-timings.js";
 import { readZipEntry, listZipEntries } from "./zip.js";
+import { env } from "../env.js";
 
 /** Fast-transcription REST api-version. 2025-10-15 is required for the `phraseList`
  *  biasing field (2024-11-15 rejects it as "Invalid JSON"); both serve plain
@@ -129,12 +130,12 @@ export function azureAdapter(
   const fetchImpl = config.fetch ?? fetch;
 
   function key(): string {
-    const k = config.apiKey ?? process.env.AZURE_SPEECH_KEY;
+    const k = config.apiKey ?? env().AZURE_SPEECH_KEY;
     if (!k) throw new Error("azure adapter: API key not set (env AZURE_SPEECH_KEY)");
     return k;
   }
   function region(): string {
-    return config.region ?? process.env.AZURE_SPEECH_REGION ?? DEFAULT_REGION;
+    return config.region ?? env().AZURE_SPEECH_REGION ?? DEFAULT_REGION;
   }
   /** STT host. Default = regional cognitive host; a resource name (config/env) →
    *  the custom-domain host (some resources require it). Live-verified per resource. */
@@ -145,9 +146,9 @@ export function azureAdapter(
    *  prevent, found in review of F042. A resource host carries no region in its name,
    *  so it is honestly "unknown" unless an explicit region says otherwise. */
   function sttRegion(): Region {
-    if (config.sttBaseUrl || config.resource || process.env.AZURE_SPEECH_RESOURCE) {
+    if (config.sttBaseUrl || config.resource || env().AZURE_SPEECH_RESOURCE) {
       // An explicitly-set region still wins — the caller told us where the resource is.
-      return config.region ?? process.env.AZURE_SPEECH_REGION
+      return config.region ?? env().AZURE_SPEECH_REGION
         ? classifyRegionName(region())
         : "unknown";
     }
@@ -159,7 +160,7 @@ export function azureAdapter(
    *  URL string alone. "explicit" means the caller named it and owns where it forwards. */
   function sttHost(): { url: string; source: "explicit" | "resource" | "regional-fallback" } {
     if (config.sttBaseUrl) return { url: config.sttBaseUrl.replace(/\/$/, ""), source: "explicit" };
-    const resource = config.resource ?? process.env.AZURE_SPEECH_RESOURCE;
+    const resource = config.resource ?? env().AZURE_SPEECH_RESOURCE;
     if (resource) return { url: `https://${resource}.cognitiveservices.azure.com`, source: "resource" };
     return { url: `https://${region()}.api.cognitive.microsoft.com`, source: "regional-fallback" };
   }

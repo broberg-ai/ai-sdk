@@ -11,6 +11,7 @@ import { getMediaPrice } from "../cost/media-pricing.js";
 import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
 import { toInlineImage } from "./media.js";
 import type { ProviderAdapter, VectorizeRequest, VectorizeResult } from "../types.js";
+import { env } from "../env.js";
 
 export function recraftAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch } = {},
@@ -19,7 +20,7 @@ export function recraftAdapter(
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URLS.recraft;
 
   function key(): string {
-    const k = config.apiKey ?? process.env.RECRAFT_API_TOKEN;
+    const k = config.apiKey ?? env().RECRAFT_API_TOKEN;
     if (!k) throw new Error("recraft adapter: API token not set (env RECRAFT_API_TOKEN)");
     return k;
   }

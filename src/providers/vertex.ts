@@ -25,6 +25,7 @@ import type {
   ChatResult,
   Message,
 } from "../types.js";
+import { env } from "../env.js";
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const DEFAULT_REGION = "europe-west1";
@@ -52,7 +53,7 @@ function base64url(input: Buffer | string): string {
 }
 
 function resolveCredentials(config: { credentials?: string }): ServiceAccountCredentials {
-  const inline = config.credentials ?? process.env.GOOGLE_VERTEX_CREDENTIALS;
+  const inline = config.credentials ?? env().GOOGLE_VERTEX_CREDENTIALS;
   if (inline) {
     try {
       return JSON.parse(inline) as ServiceAccountCredentials;
@@ -60,7 +61,7 @@ function resolveCredentials(config: { credentials?: string }): ServiceAccountCre
       throw new Error("vertex adapter: GOOGLE_VERTEX_CREDENTIALS is not valid JSON");
     }
   }
-  const path = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const path = env().GOOGLE_APPLICATION_CREDENTIALS;
   if (path) {
     let raw: string;
     try {
@@ -127,14 +128,14 @@ export function vertexAdapter(
   let cached: { token: string; expiresAt: number } | null = null;
 
   function region(): string {
-    return config.region ?? process.env.GOOGLE_VERTEX_REGION ?? DEFAULT_REGION;
+    return config.region ?? env().GOOGLE_VERTEX_REGION ?? DEFAULT_REGION;
   }
   function project(): string {
     // The service-account JSON already carries project_id, so falling back to it
     // spares every consumer a second env var whose value is sitting in the first
     // one — and spares them a "project not set" error that looks like a bug.
     const p =
-      config.project ?? process.env.GOOGLE_VERTEX_PROJECT ?? resolveCredentials(config).project_id;
+      config.project ?? env().GOOGLE_VERTEX_PROJECT ?? resolveCredentials(config).project_id;
     if (!p) throw new Error("vertex adapter: project not set (config.project, env GOOGLE_VERTEX_PROJECT, or project_id in the credentials)");
     return p;
   }

@@ -15,6 +15,7 @@ import type {
   Message,
   ToolCall,
 } from "../types.js";
+import { env } from "../env.js";
 
 export interface OpenAICompatibleConfig {
   /** Provider name recorded on Usage (e.g. "openai", "deepinfra", "openrouter"). */
@@ -298,7 +299,7 @@ export function buildChatBody(
 
 export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): ProviderAdapter {
   async function chat(req: ChatRequest): Promise<ChatResult> {
-    const apiKey = config.apiKey ?? process.env[`${config.name.toUpperCase()}_API_KEY`];
+    const apiKey = config.apiKey ?? env()[`${config.name.toUpperCase()}_API_KEY`];
     if (!apiKey) {
       throw new Error(`${config.name} adapter: API key not set (env ${config.name.toUpperCase()}_API_KEY)`);
     }
@@ -371,7 +372,7 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
   // chunk → a usage event, finish_reason → the terminal finish (emitted last so
   // tool_calls + usage precede it).
   async function* chatStream(req: ChatRequest): AsyncIterable<ChatStreamEvent> {
-    const apiKey = config.apiKey ?? process.env[`${config.name.toUpperCase()}_API_KEY`];
+    const apiKey = config.apiKey ?? env()[`${config.name.toUpperCase()}_API_KEY`];
     if (!apiKey) {
       throw new Error(`${config.name} adapter: API key not set (env ${config.name.toUpperCase()}_API_KEY)`);
     }

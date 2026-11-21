@@ -10,6 +10,7 @@
 // Each fetcher is independently failable: fetchFullCatalogue collects results
 // and errors side by side so one provider being down never fails the whole run.
 import type { CatalogueModel } from "./types.js";
+import { env } from "../env.js";
 
 type FetchImpl = typeof fetch;
 
@@ -77,7 +78,7 @@ export async function fetchOpenAICatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.OPENAI_API_KEY;
+  const key = opts.apiKey ?? env().OPENAI_API_KEY;
   if (!key) throw new MissingKeyError("openai", "OPENAI_API_KEY");
   const base = opts.baseUrl ?? "https://api.openai.com/v1";
   const json = (await getJson(f, `${base}/models`, { authorization: `Bearer ${key}` })) as {
@@ -91,7 +92,7 @@ export async function fetchAnthropicCatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  const key = opts.apiKey ?? env().ANTHROPIC_API_KEY;
   if (!key) throw new MissingKeyError("anthropic", "ANTHROPIC_API_KEY");
   const base = opts.baseUrl ?? "https://api.anthropic.com/v1";
   const json = (await getJson(f, `${base}/models`, {
@@ -106,7 +107,7 @@ export async function fetchGeminiCatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
+  const key = opts.apiKey ?? env().GEMINI_API_KEY ?? env().GOOGLE_API_KEY;
   if (!key) throw new MissingKeyError("gemini", "GEMINI_API_KEY");
   const base = opts.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta";
   const json = (await getJson(f, `${base}/models?key=${encodeURIComponent(key)}`, {})) as {
@@ -127,7 +128,7 @@ export async function fetchMistralCatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.MISTRAL_API_KEY;
+  const key = opts.apiKey ?? env().MISTRAL_API_KEY;
   if (!key) throw new MissingKeyError("mistral", "MISTRAL_API_KEY");
   const base = opts.baseUrl ?? "https://api.mistral.ai/v1";
   const json = (await getJson(f, `${base}/models`, { authorization: `Bearer ${key}` })) as {
@@ -146,7 +147,7 @@ export async function fetchDeepSeekCatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.DEEPSEEK_API_KEY;
+  const key = opts.apiKey ?? env().DEEPSEEK_API_KEY;
   if (!key) throw new MissingKeyError("deepseek", "DEEPSEEK_API_KEY");
   const base = opts.baseUrl ?? "https://api.deepseek.com";
   const json = (await getJson(f, `${base}/models`, { authorization: `Bearer ${key}` })) as {
@@ -163,7 +164,7 @@ export async function fetchElevenLabsCatalogue(
   opts: { fetch?: FetchImpl; apiKey?: string; baseUrl?: string } = {},
 ): Promise<CatalogueModel[]> {
   const f = opts.fetch ?? fetch;
-  const key = opts.apiKey ?? process.env.ELEVENLABS_API_KEY;
+  const key = opts.apiKey ?? env().ELEVENLABS_API_KEY;
   if (!key) throw new MissingKeyError("elevenlabs", "ELEVENLABS_API_KEY");
   const base = opts.baseUrl ?? "https://api.elevenlabs.io/v1";
   const json = (await getJson(f, `${base}/models`, { "xi-api-key": key })) as { model_id: string }[];

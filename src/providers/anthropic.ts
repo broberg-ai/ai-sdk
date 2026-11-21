@@ -17,6 +17,7 @@ import type {
   ContentPart,
   ToolCall,
 } from "../types.js";
+import { env } from "../env.js";
 
 interface AnthropicBlock {
   type: string;
@@ -132,7 +133,7 @@ export function anthropicAdapter(
   }
 
   function apiKeyOrThrow(): string {
-    const apiKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY;
+    const apiKey = config.apiKey ?? env().ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("anthropic adapter: API key not set (env ANTHROPIC_API_KEY)");
     return apiKey;
   }

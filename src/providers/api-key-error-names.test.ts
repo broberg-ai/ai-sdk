@@ -17,9 +17,10 @@ function src(file: string): string {
   return readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
 }
 
-/** `config.apiKey ?? process.env.A ?? process.env.B` → ["A", "B"] per occurrence. */
+/** `config.apiKey ?? env().A ?? env().B` → ["A", "B"] per occurrence (F093: env reads go
+ *  through env(), so the browser has no `process` to trip on). */
 function multiKeySites(text: string): [string, string][] {
-  return [...text.matchAll(/process\.env\.([A-Z_]+)\s*\?\?\s*process\.env\.([A-Z_]+)/g)]
+  return [...text.matchAll(/env\(\)\.([A-Z_]+)\s*\?\?\s*env\(\)\.([A-Z_]+)/g)]
     .map((m): [string, string] => [m[1]!, m[2]!]);
 }
 

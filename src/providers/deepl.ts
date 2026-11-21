@@ -10,6 +10,7 @@ import { freshUsage } from "../cost/usage.js";
 import { regionOfHost } from "../cost/region.js";
 import type { ProviderAdapter, TranslateRequest, TranslateResult } from "../types.js";
 import { getMediaPrice } from "../cost/media-pricing.js";
+import { env } from "../env.js";
 
 export function deeplAdapter(
   config: { apiKey?: string; baseUrl?: string; fetch?: typeof fetch; pricePer1kChars?: number } = {},
@@ -17,7 +18,7 @@ export function deeplAdapter(
   const fetchImpl = config.fetch ?? fetch;
 
   function key(): string {
-    const k = config.apiKey ?? process.env.DEEPL_API_KEY;
+    const k = config.apiKey ?? env().DEEPL_API_KEY;
     if (!k) throw new Error("deepl adapter: API key not set (env DEEPL_API_KEY)");
     return k;
   }

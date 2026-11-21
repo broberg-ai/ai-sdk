@@ -15,6 +15,7 @@ import { classifyRegionName } from "../cost/region.js";
 import { freshUsage } from "../cost/usage.js";
 import type { JudgeRequest, JudgeResult, ProviderAdapter } from "../types.js";
 import { mapSystemOneAnswers, type SystemOneWireAnswer } from "./system-one.js";
+import { env } from "../env.js";
 
 export const MICROSOFT_DECISION_DEFAULT_DEPLOYMENT = "decision-1-eu";
 
@@ -31,12 +32,12 @@ export function microsoftDecisionAdapter(
     if (config.apiKey !== undefined && config.endpoint === undefined) {
       throw new Error("microsoft-decision adapter: an explicit apiKey needs its own endpoint — pass both (never the env endpoint with a caller's key)");
     }
-    const e = config.endpoint ?? process.env.AZURE_DECISION_ENDPOINT;
+    const e = config.endpoint ?? env().AZURE_DECISION_ENDPOINT;
     if (!e) throw new Error("microsoft-decision adapter: endpoint not set (env AZURE_DECISION_ENDPOINT)");
     return e.replace(/\/$/, "");
   }
   function key(): string {
-    const k = config.apiKey ?? process.env.AZURE_DECISION_API_KEY;
+    const k = config.apiKey ?? env().AZURE_DECISION_API_KEY;
     if (!k) throw new Error("microsoft-decision adapter: API key not set (env AZURE_DECISION_API_KEY)");
     return k;
   }
@@ -44,7 +45,7 @@ export function microsoftDecisionAdapter(
   async function judge(req: JudgeRequest): Promise<JudgeResult> {
     const url = `${endpoint()}/providers/microsoft/v1/systemone`;
     const apiKey = key();
-    const deployment = config.deployment ?? process.env.AZURE_DECISION_DEPLOYMENT ?? MICROSOFT_DECISION_DEFAULT_DEPLOYMENT;
+    const deployment = config.deployment ?? env().AZURE_DECISION_DEPLOYMENT ?? MICROSOFT_DECISION_DEFAULT_DEPLOYMENT;
     const res = await fetchImpl(url, {
       method: "POST",
       headers: { "content-type": "application/json", "api-key": apiKey },
