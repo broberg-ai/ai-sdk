@@ -33,6 +33,8 @@ export { openaiAdapter } from "./providers/openai.js";
 export { geminiAdapter } from "./providers/gemini.js";
 export { deepinfraAdapter } from "./providers/deepinfra.js";
 export { openrouterAdapter } from "./providers/openrouter.js";
+export { localAdapter, LOCAL_EMBEDDING_DEFAULT_URL } from "./providers/local.js";
+export type { LocalAdapterConfig } from "./providers/local.js";
 export { requestyAdapter } from "./providers/requesty.js";
 export { deepseekAdapter } from "./providers/deepseek.js";
 export { mistralAdapter } from "./providers/mistral.js";

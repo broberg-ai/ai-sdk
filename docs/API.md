@@ -268,7 +268,7 @@ input, throwing `ZodError` on a bad shape before any provider work happens.
 | `ai.image` | `{ prompt, width?, height?, loras?, lora?, finetune?, finetuneStrength?, referenceImages?, seed?, outputFormat?, safetyTolerance?, retryOnBlack? }` | `{ url, usage }` | fal.ai (flux/schnell; flux-lora when loras given); **BFL EU** when `referenceImages` (flux-2-max) or `finetune` given |
 | `ai.animate` | `{ image?: string\|Uint8Array, prompt?, durationSec?, resolution? }` | `{ url, bytes?, mimeType?, usage }` | **Default since v0.75 (F092): BFL FLUX 3 Video, EU** — image→video AND text→video (no `image`), with sound, $0.15/s at hd (live 2026-11-18: 5 s clip $0.75, `usage.region:"eu"`). fal (Kling, US) via override; **Vertex EU** Veo via `override:{provider:"vertex"}` (F031, needs Veo access on the GCP project). The old default, Gemini-API Veo, was **shut down by Google 2026-10-22** |
 | `ai.trainStyle` | `{ images: string\|string[], isStyle?, triggerWord?, steps? }` | `{ loraUrl, configUrl, usage }` | fal flux-lora-fast-training (~$2) |
-| `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage }` | `embedding` |
+| `ai.embedding` | `{ text: string \| string[] }` | `{ vectors, usage, model, dimensions }` | `embedding` |
 | `ai.transcribe` | `{ audio: string\|Uint8Array, language?, durationSec? }` | `{ text, usage }` | openai whisper-1; EU: Voxtral (mistral, auto-detect) or **Azure da-DK** via `override:{provider:"azure"}` (F029) |
 | `ai.ocr` | `{ document: string\|Uint8Array, mimeType? }` | `{ pages: {index,markdown}[], usage }` | mistral-ocr (per-page) |
 | `ai.moderate` | `{ input: string \| string[] }` | `{ results: {flagged,categories,categoryScores}[], usage }` | mistral-moderation (per-token) |
@@ -638,6 +638,32 @@ DeepSeek V4.1 Flash 1017 (via openrouter). Override with `panel: [{ label, provi
   gets an error row and the rest are delivered. The late request is not cancelled and may still bill.
 - Answers in Danish by default; `language: "English"` changes it.
 - Script: `bun run scripts/second-opinion.ts <file> [--focus …] [--synth] [--out …]`.
+
+### Local embeddings at $0 — provider `local` (F095, v0.76+)
+
+Embeddings on one of our own machines (Ollama; llama.cpp server and LM Studio speak the
+same `/v1/embeddings`), so a batch job pays no metered API. Owner's model choice
+2026-11-24: **`bge-m3`** (BAAI, 1024 dims, Danish + English).
+
+```ts
+const ai = createAI();   // LOCAL_EMBEDDING_URL=http://cb-ubuntu:11434/v1 (default http://127.0.0.1:11434/v1)
+const { vectors, model, dimensions, usage } = await ai.embedding({
+  text: ["Kan du flytte kortet til Review?", "Please move the card to Review."],
+  override: { provider: "local", model: "bge-m3" },
+});
+// model "bge-m3", dimensions 1024, usage.costUsd 0, usage.costBasis "computed"
+```
+
+- **Store `model` (and `dimensions`) next to every vector.** Two models' vectors cannot be
+  compared; a model change means re-indexing. Every embedding route returns both since 0.76.
+- **Ship dark, no fallback.** No server → an error naming the address; a missing model →
+  «`ollama pull <model>`». Nothing is ever sent to a paid provider instead.
+- **Not a default.** The `embedding` tier is unchanged; `local` is chosen per call.
+- `usage.region` is `"unknown"` for a local/LAN address: the SDK cannot know where the
+  machine stands. The data does not leave it.
+- **Measured 2026-11-24 on cb-ubuntu** (i7-6600U, 2 cores, no GPU): **1.5 snippets/s**
+  (100 conversation-length snippets in 65 s); Danish↔English same meaning cosine 0.85,
+  unrelated 0.28–0.35. Fine for a nightly batch, too slow for live search on that box.
 
 ### Raster → SVG — `ai.vectorize` (Recraft, F070, v0.70+)
 

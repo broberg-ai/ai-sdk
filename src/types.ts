@@ -387,6 +387,11 @@ export interface EmbeddingRequest {
 export interface EmbeddingResult {
   vectors: number[][];
   usage: Usage;
+  /** F095 — the model that made these vectors (= usage.model). Store it next to each
+   *  vector: two models' vectors cannot be compared, so a model change means re-indexing. */
+  model?: string;
+  /** F095 — vector length (e.g. 1024 for bge-m3). Set by the client on every route. */
+  dimensions?: number;
 }
 
 /** Timestamp granularity a caller can request from `ai.transcribe` (F036). */

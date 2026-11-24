@@ -1013,7 +1013,10 @@ export function createAI(config: AiConfig = {}): AiClient {
         invoke: async (spec) => {
           const adapter = pickProvider(spec.provider);
           if (!adapter.embedding) throw new Error(`createAI: provider "${spec.provider}" does not support embedding`);
-          return adapter.embedding({ input: text, spec });
+          const r = await adapter.embedding({ input: text, spec });
+          // F095 — every route says which model and how long, so a consumer can store
+          // both next to the vector and know when a model change forces a re-index.
+          return { ...r, model: r.usage.model, dimensions: r.vectors[0]?.length ?? 0 };
         },
       });
     },

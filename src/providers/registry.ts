@@ -18,6 +18,7 @@ import { microsoftDecisionAdapter } from "./microsoft-decision.js";
 import { falAdapter } from "./fal.js";
 import { bflAdapter } from "./bfl.js";
 import { recraftAdapter } from "./recraft.js";
+import { localAdapter } from "./local.js";
 import type { ProviderAdapter } from "../types.js";
 
 export const defaultProviders: Record<string, ProviderAdapter> = {
@@ -38,4 +39,6 @@ export const defaultProviders: Record<string, ProviderAdapter> = {
   fal: falAdapter(),
   bfl: bflAdapter(),
   recraft: recraftAdapter(),
+  // F095 — embeddings on our own machines (Ollama), $0. Only via override; never a default.
+  local: localAdapter(),
 };
