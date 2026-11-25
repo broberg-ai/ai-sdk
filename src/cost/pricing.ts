@@ -172,6 +172,13 @@ export const PRICING: Record<string, PricingEntry> = {
   // F067.7: flash re-read 2026-10-20 — rose from 0.028/0.056.
   "openrouter:openai/gpt-6-astra": { inputPer1M: 10, outputPer1M: 50, version: "2026-11-05-openrouter-live" },
   "openrouter:openai/gpt-6.1-sol": { inputPer1M: 2, outputPer1M: 10, version: "2026-11-05-openrouter-live" },
+  // F097 — EU-served DeepSeek (OpenRouter catalogue via inventory 2026-11-14); calls book OpenRouter's reported usage.cost anyway.
+  // F097 — Claude 5.5 via OpenRouter EU (backs claude-*-latest). OpenRouter catalogue via
+  // inventory 2026-11-14 = Anthropic list price; calls book OpenRouter's reported usage.cost.
+  "openrouter:anthropic/claude-haiku-5.5": { inputPer1M: 0.1, outputPer1M: 0.5, cacheReadPer1M: 0.01, version: "2026-11-14-openrouter-catalogue" },
+  "openrouter:anthropic/claude-sonnet-5.5": { inputPer1M: 2, outputPer1M: 10, cacheReadPer1M: 0.1, version: "2026-11-14-openrouter-catalogue" },
+  "openrouter:anthropic/claude-opus-5.5": { inputPer1M: 4, outputPer1M: 20, cacheReadPer1M: 0.2, version: "2026-11-14-openrouter-catalogue" },
+  "openrouter:deepseek/deepseek-v4-flash-0731": { inputPer1M: 0.0434, outputPer1M: 0.3, cacheReadPer1M: 0.035, version: "2026-11-14-openrouter-catalogue" },
   "openrouter:deepseek/deepseek-v4.1-flash-1017": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-11-05-openrouter-live" },
   "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.091, outputPer1M: 0.182, version: "2026-10-20-openrouter-live" },
   // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from

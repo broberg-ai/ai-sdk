@@ -21,7 +21,10 @@ export const DEFAULT_BASE_URLS = {
   gemini: "https://generativelanguage.googleapis.com/v1beta",
   mistral: "https://api.mistral.ai/v1",
   openai: "https://api.openai.com/v1",
-  openrouter: "https://openrouter.ai/api/v1",
+  // F097 — owner 2026-11-26: «brug https://eu.openrouter.ai/api/v1 fra nu af på alle
+  // OpenRouter kald» (account on Business, EU in-region routing). Recraft images are the
+  // one deliberate exception — see OPENROUTER_GLOBAL_URL.
+  openrouter: "https://eu.openrouter.ai/api/v1",
   // F066. US-hosted per the TypeSafe privacy policy — see region.ts.
   typesafe: "https://api.typesafe.ai/v1",
   // F070 — Recraft (vectorize). Residency not stated where we looked — see region.ts.
@@ -60,3 +63,8 @@ export const CONFIG_DERIVED_HOSTS: Record<string, string> = {
 export function defaultBaseUrl(provider: string): string | undefined {
   return (DEFAULT_BASE_URLS as Record<string, string>)[provider];
 }
+
+/** F097 — OpenRouter's GLOBAL endpoint. Used ONLY for recraft/* images: Recraft has no
+ *  EU endpoint (measured 2026-11-26: «No endpoints found supporting your data region»),
+ *  and the owner chose a deliberate exception for it. Nothing else may fall back here. */
+export const OPENROUTER_GLOBAL_URL = "https://openrouter.ai/api/v1";

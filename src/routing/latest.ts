@@ -25,11 +25,16 @@ export interface LatestEntry {
 const CHECKED = "2026-11-26";
 
 export const LATEST: readonly LatestEntry[] = [
-  { alias: "claude-haiku-latest", provider: "anthropic", model: "claude-haiku-5-5", checkedAt: CHECKED },
-  { alias: "claude-sonnet-latest", provider: "anthropic", model: "claude-sonnet-5-5", checkedAt: CHECKED },
-  { alias: "claude-opus-latest", provider: "anthropic", model: "claude-opus-5-5", checkedAt: CHECKED },
+  // F097 — owner 2026-11-26: «både Deep og Anthropic kører igennem EU så vi skal bare bede
+  // om at bruge OpenRouter eller EU modeller». Claude via OpenRouter's EU host, not
+  // Anthropic direct (US): every family below answers from the EU.
+  { alias: "claude-haiku-latest", provider: "openrouter", model: "anthropic/claude-haiku-5.5", checkedAt: CHECKED },
+  { alias: "claude-sonnet-latest", provider: "openrouter", model: "anthropic/claude-sonnet-5.5", checkedAt: CHECKED },
+  { alias: "claude-opus-latest", provider: "openrouter", model: "anthropic/claude-opus-5.5", checkedAt: CHECKED },
   { alias: "mistral-large-latest", provider: "mistral", model: "mistral-large-4-0", checkedAt: CHECKED },
-  { alias: "deepseek-flash-latest", provider: "openrouter", model: "deepseek/deepseek-v4.1-flash-1017", checkedAt: CHECKED },
+  // F097 — the newest DeepSeek Flash OpenRouter serves IN THE EU (measured 2026-11-26);
+  // v4.1-flash-1017 has no EU endpoint, and all OpenRouter calls now go via the EU host.
+  { alias: "deepseek-flash-latest", provider: "openrouter", model: "deepseek/deepseek-v4-flash-0731", checkedAt: CHECKED },
 ];
 
 const BY_ALIAS = new Map(LATEST.map((e) => [e.alias, e]));
@@ -49,8 +54,19 @@ export function resolveLatest(alias: string): LatestEntry | undefined {
  *  provider + model. With a provider the override is left alone, so a provider-native
  *  id such as `{ provider: "mistral", model: "mistral-large-latest" }` behaves exactly as
  *  before. An unknown `*-latest` without a provider fails closed, like a misspelt tier. */
+/** F097 — owner 2026-11-26: «gør det nemt for agenterne … at kalde alle modeller gennem
+ *  OpenRouter EU pånær Mistral den kalder vi direkte». An OpenRouter model id written
+ *  WITHOUT a provider (`override: { model: "moonshotai/kimi-k2.6" }`) routes to OpenRouter,
+ *  whose default host is the EU one. Only these vendor prefixes, so another provider's
+ *  slash ids (fal-ai/…, DeepInfra's org/model) are never captured; `mistralai/` is left
+ *  out on purpose — Mistral is called direct (tiers / provider "mistral"). */
+export const OPENROUTER_VENDOR_PREFIXES = ["anthropic/", "openai/", "google/", "deepseek/", "moonshotai/", "z-ai/", "amazon/"] as const;
+
 export function expandLatest<T extends Partial<TierSpec> | undefined>(override: T): T {
   if (!override || override.provider !== undefined || typeof override.model !== "string") return override;
+  if (OPENROUTER_VENDOR_PREFIXES.some((p) => override.model!.startsWith(p))) {
+    return { ...override, provider: "openrouter" };
+  }
   if (!override.model.endsWith("-latest")) return override;
   const e = BY_ALIAS.get(override.model);
   if (!e) {

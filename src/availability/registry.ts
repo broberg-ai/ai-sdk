@@ -109,6 +109,11 @@ const DEFAULTS: RegistryEntry[] = [
   // undefined), so a row would pass the gate for a route that silently bills
   // nothing. That is the same green-direction failure this card exists to remove,
   // and it needs a rate from a real source, not a guess. See the plan-doc.
+  { id: "anthropic/claude-haiku-5.5", aliases: [], provider: "openrouter", available: true, status: "available", note: "Claude Haiku 5.5 via OpenRouter EU in-region routing (F097) — backs claude-haiku-latest", source: "default" },
+  { id: "anthropic/claude-sonnet-5.5", aliases: [], provider: "openrouter", available: true, status: "available", note: "Claude Sonnet 5.5 via OpenRouter EU in-region routing (F097) — backs claude-sonnet-latest", source: "default" },
+  { id: "anthropic/claude-opus-5.5", aliases: [], provider: "openrouter", available: true, status: "available", note: "Claude Opus 5.5 via OpenRouter EU in-region routing (F097) — backs claude-opus-latest", source: "default" },
+  // F097 — backs `deepseek-flash-latest` since all OpenRouter calls go via the EU host (served there by e.g. Inceptron).
+  { id: "deepseek/deepseek-v4-flash-0731", aliases: [], provider: "openrouter", available: true, status: "available", note: "DeepSeek V4 Flash (dated 0731) via OpenRouter EU; CN-origin model weights, EU-hosted endpoint — model origin still worth noting for personal data", source: "default", grade: "cheap" },
   // F096 — backs `deepseek-flash-latest`; reached via OpenRouter (CN-hosted model — not for personal data).
   { id: "deepseek/deepseek-v4.1-flash-1017", aliases: [], provider: "openrouter", available: true, status: "available", note: "DeepSeek V4.1 Flash (dated 1017) via OpenRouter; CN-origin model, upstream picked by OpenRouter — not for personal data", source: "default", grade: "cheap" },
   { id: "deepseek-chat", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com; documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },

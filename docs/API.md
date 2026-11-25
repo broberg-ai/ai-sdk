@@ -652,11 +652,19 @@ import { listLatest } from "@broberg/ai-sdk";   // also from "@broberg/ai-sdk/re
 
 | alias | provider | pinned model (checked 2026-11-26) |
 |---|---|---|
-| `claude-haiku-latest` | anthropic | `claude-haiku-5-5` |
-| `claude-sonnet-latest` | anthropic | `claude-sonnet-5-5` |
-| `claude-opus-latest` | anthropic | `claude-opus-5-5` |
-| `mistral-large-latest` | mistral | `mistral-large-4-0` |
-| `deepseek-flash-latest` | openrouter | `deepseek/deepseek-v4.1-flash-1017` (CN model — not for personal data) |
+| `claude-haiku-latest` | openrouter (EU) | `anthropic/claude-haiku-5.5` |
+| `claude-sonnet-latest` | openrouter (EU) | `anthropic/claude-sonnet-5.5` |
+| `claude-opus-latest` | openrouter (EU) | `anthropic/claude-opus-5.5` |
+| `mistral-large-latest` | mistral (direct, EU) | `mistral-large-4-0` |
+| `deepseek-flash-latest` | openrouter (EU) | `deepseek/deepseek-v4-flash-0731` (CN-origin model on an EU endpoint) |
+
+**Since 0.78 (F097) every OpenRouter call goes to `https://eu.openrouter.ai/api/v1`**
+(owner, 2026-11-26; account on Business): `usage.region` = `"eu"`. Mistral is called
+direct. Any OpenRouter id written WITHOUT a provider — `override: { model: "moonshotai/kimi-k2.6" }`
+(prefixes anthropic/ openai/ google/ deepseek/ moonshotai/ z-ai/ amazon/) — routes there
+too. **One deliberate exception: `recraft/*` images go to the global host** (Recraft has no
+EU endpoint). Not in the EU (measured 2026-11-26): Recraft, embeddings via OpenRouter,
+deepseek-v4.1-flash-1017, deepseek-v4-pro, minimax-m2.7 — those fail visibly.
 
 - **Model only, no provider.** With a provider, the override is the provider's own id as before
   (`{provider:"mistral", model:"mistral-large-latest"}` is still Mistral's floating alias).

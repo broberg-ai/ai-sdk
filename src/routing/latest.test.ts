@@ -25,7 +25,7 @@ test("F096 every family alias (model only, no provider) routes to ai-sdk's pinne
     const r = await ai.chat({ prompt: "x", override: { model: e.alias } });
     expect({ alias: e.alias, provider: r.usage.provider, model: r.usage.model }).toEqual({ alias: e.alias, provider: e.provider, model: e.model });
   }
-  expect(providers.anthropic!.seen.map((s) => s.model)).toEqual(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"]);
+  expect(providers.openrouter!.seen.map((s) => s.model)).toEqual(["anthropic/claude-haiku-5.5", "anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "deepseek/deepseek-v4-flash-0731"]);
 });
 
 test("F096 a provider-native id WITH its provider is untouched — mistral-large-latest still goes to Mistral as written", async () => {
@@ -51,6 +51,6 @@ test("F096 every pinned model has a price row and a registry row; listLatest/res
     expect(e.checkedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   }
   expect(listLatest().map((e) => e.alias)).toEqual(LATEST.map((e) => e.alias));
-  expect(resolveLatest("claude-opus-latest")?.model).toBe("claude-opus-5-5");
+  expect(resolveLatest("claude-opus-latest")?.model).toBe("anthropic/claude-opus-5.5");
   expect(resolveLatest("nope-latest")).toBeUndefined();
 });

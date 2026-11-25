@@ -1,7 +1,8 @@
 // OpenRouter adapter (F4.4). Meta-router with an OpenAI-compatible API — reuses
 // the shared core + OpenRouter's attribution headers. Any upstream model is
 // reachable by its slug, e.g. "minimax/minimax-m2.7", "google/gemini-2.5-flash".
-import { DEFAULT_BASE_URLS } from "../cost/default-hosts.js";
+import { DEFAULT_BASE_URLS, OPENROUTER_GLOBAL_URL } from "../cost/default-hosts.js";
+import { regionOfHost } from "../cost/region.js";
 import { makeOpenAICompatibleAdapter } from "./openai-compatible.js";
 import { freshUsage } from "../cost/usage.js";
 import type { ProviderAdapter, ImageRequest, ImageResult } from "../types.js";
@@ -64,7 +65,11 @@ export function openrouterAdapter(config: OpenRouterAdapterConfig = {}): Provide
     if (req.seed !== undefined) body.seed = req.seed;
     if (req.outputFormat !== undefined) body.output_format = req.outputFormat;
 
-    const res = await doFetch(`${baseUrl}/images`, {
+    // F097 — the one deliberate exception: Recraft has no EU endpoint, so recraft/*
+    // goes to OpenRouter's global host unless the caller set its own baseUrl. Every
+    // other image model stays on the EU default and fails visibly if it is not there.
+    const imageBase = config.baseUrl === undefined && req.spec.model.startsWith("recraft/") ? OPENROUTER_GLOBAL_URL : baseUrl;
+    const res = await doFetch(`${imageBase}/images`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -90,6 +95,7 @@ export function openrouterAdapter(config: OpenRouterAdapterConfig = {}): Provide
       model: req.spec.model,
       transport: "http",
       capability: "image",
+      region: regionOfHost(imageBase), // F097 — EU default → "eu"; the Recraft exception → "unknown"
       inputTokens: 0,
       outputTokens: 0,
     });

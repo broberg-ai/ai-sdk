@@ -34,7 +34,7 @@ test("posts to OpenRouter with Authorization + HTTP-Referer + X-Title", async ()
     messages: [{ role: "user", content: "hi" }],
     spec: { provider: "openrouter", model: "google/gemini-2.5-flash", transport: "http" },
   });
-  expect(seen[0]?.url).toBe("https://openrouter.ai/api/v1/chat/completions");
+  expect(seen[0]?.url).toBe("https://eu.openrouter.ai/api/v1/chat/completions"); // F097 — EU by default
   expect(seen[0]?.headers["Authorization"]).toBe("Bearer or-key");
   expect(seen[0]?.headers["HTTP-Referer"]).toBe("https://broberg.ai");
   expect(seen[0]?.headers["X-Title"]).toBe("@broberg/ai-sdk");

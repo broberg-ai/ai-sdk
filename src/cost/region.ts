@@ -62,6 +62,11 @@ const HOST_REGION: Record<string, Region> = {
   "external.api.recraft.ai": "unknown",
   // Aggregators: the host is theirs, the upstream is not ours to know.
   "openrouter.ai": "unknown",
+  // F097 — OpenRouter EU in-region routing (Business plan): requests «go only to provider
+  // endpoints in Europe … never fall back to a provider outside it» (OpenRouter, 2026-11-18).
+  // A promise from a US company under its DPA, not something we can inspect — the same
+  // footing as the other host-derived "eu" rows.
+  "eu.openrouter.ai": "eu",
   "router.requesty.ai": "unknown",
 };
 
