@@ -21,7 +21,7 @@ En LATEST-tabel i ai-sdk (`src/routing/latest.ts`): familie-navn → én DATERET
 Brug: `ai.chat({ prompt, override: { model: "claude-sonnet-latest" } })` — KUN model, ingen provider; ai-sdk sætter provider. Svaret viser den daterede model i `usage.model`.
 
 - **D-385d97 holder:** aliaset er ikke en udbyders flydende `-latest`; det er ai-sdk's egen pinning til en dateret id, så et modelskift sker i en ai-sdk-release (synlig, med version), aldrig stille hos udbyderen.
-- **Kollision med udbyder-id'er:** `mistral-large-latest` er OGSÅ Mistrals egen flydende id. Reglen: familie-aliaset gælder kun når override har model UDEN provider. `{provider:"mistral", model:"mistral-large-latest"}` opfører sig præcis som før (flydende, advarsel) — ingen eksisterende forbruger ændrer adfærd.
+- **Kollision med udbyder-id'er:** `mistral-large-latest` er OGSÅ Mistrals egen flydende id. Reglen: familie-aliaset gælder kun når override har model UDEN provider. `{provider:"mistral", model:"mistral-large-latest"}` opfører sig præcis som før (flydende, advarsel). ÉN adfærdsændring, bevidst: et model-only `{model:"mistral-large-latest"}` gav før Mistrals flydende id og giver nu ai-sdk's pinnede `mistral-large-4-0` — samme model i dag (Mistrals alias peger på Large 4 siden 12/11), men låst, så Mistral ikke kan flytte den stille (D-385d97). Målt af tier-map.test.ts.
 - Ukendt `*-latest` uden provider → fejl der lister de kendte familier (fail closed som en tier).
 - `listLatest()` / `resolveLatest(alias)` eksporteres (også fra browser-entry `registry`) til modelvælgere.
 - **Vedligehold:** model-research-skillen (hver 14. dag) får et fast trin: tjek hver familie for en nyere dateret model og opdatér tabellen + `checkedAt` i en release. Forbrugere skal ikke gøre noget.

@@ -6,6 +6,7 @@ import { assertOverrideProvider, resolveTier } from "./routing/tier-map.js";
 import { resolveModel } from "./availability/resolve.js";
 import { isFloatingRoute } from "./availability/registry.js";
 import { defaultProviders } from "./providers/registry.js";
+import { expandLatest } from "./routing/latest.js";
 import { computeCost } from "./cost/usage.js";
 import { BudgetGuard } from "./cost/budget.js";
 import { buildVisionMessages, VISION_DEFAULT_TIER } from "./capabilities/vision.js";
@@ -314,6 +315,7 @@ export function createAI(config: AiConfig = {}): AiClient {
     override: Partial<TierSpec> | undefined,
     label: string,
   ): TierSpec {
+    override = expandLatest(override); // F096
     assertOverrideProvider(base, override, label, providerNames);
     return { ...base, ...override };
   }
@@ -332,7 +334,7 @@ export function createAI(config: AiConfig = {}): AiClient {
    *  its whole job is to make a silent exemption impossible to write. */
   function mergeUnguarded(base: TierSpec, override: Partial<TierSpec> | undefined, why: string): TierSpec {
     void why;
-    return { ...base, ...override };
+    return { ...base, ...expandLatest(override) }; // F096
   }
 
   /** F083.4 — a voice route's override that names a DIFFERENT provider but no model.

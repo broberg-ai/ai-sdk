@@ -71,9 +71,9 @@ test("an override naming the SAME provider needs no model", () => {
 });
 
 test("a model-only override still works (same provider, different model)", () => {
-  const spec = resolveTier("cheap", { model: "mistral-large-latest" });
+  const spec = resolveTier("cheap", { model: "mistral-large-2512" });
   expect(spec.provider).toBe("mistral");
-  expect(spec.model).toBe("mistral-large-latest");
+  expect(spec.model).toBe("mistral-large-2512");
 });
 
 test("an inherited Object key steps aside for the registry, like any unknown provider", () => {
@@ -104,4 +104,12 @@ test("assertOverrideProvider refuses a provider-only override at ANY spec merge"
 test("no tier floats on a -latest alias (F077) — a model change must be a release of ours", () => {
   const floating = Object.entries(DEFAULT_TIER_MAP).filter(([, s]) => s.model.endsWith("-latest")).map(([t, s]) => `${t}=${s.model}`);
   expect(floating).toEqual([]);
+});
+
+// F096 — a model-only «<family>-latest» is ai-sdk's PINNED family, not the provider's
+// floating alias. For mistral-large-latest that is the same model Mistral's alias points
+// at today (Large 4), but pinned: Mistral can no longer move it silently (D-385d97).
+test("F096 model-only mistral-large-latest resolves to ai-sdk's pinned Large 4", () => {
+  const spec = resolveTier("cheap", { model: "mistral-large-latest" });
+  expect({ provider: spec.provider, model: spec.model }).toEqual({ provider: "mistral", model: "mistral-large-4-0" });
 });

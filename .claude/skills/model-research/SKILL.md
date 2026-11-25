@@ -66,6 +66,20 @@ against it; leave it out and a move of `mistral-large-latest` (the `smart` and
 Push to main. This is the advisor's data, not a price: `src/cost/pricing.ts` is NEVER
 edited by this skill.
 
+## 3b. Move the LATEST families (F096) — this is ai-sdk's job, never a consumer's
+
+Owner 2026-11-26: «det er DIG der har researchet på hvad der er nyest … Det skal aldrig
+være den enkelte fleet agents ansvar». For EVERY row in `src/routing/latest.ts`:
+
+1. Is there a newer DATED/versioned model in that family in this run's research or in
+   `inventory.json`? (Never a floating `-latest` id — D-385d97.)
+2. If yes: it needs a price row in `src/cost/pricing.ts` and a registry row in
+   `src/availability/registry.ts` (`latest.test.ts` fails without both). Move the row's
+   `model`, set `checkedAt` to today, and release (bump → tag → push → verify npm).
+3. If no: set `checkedAt` to today anyway, so a reader can see the family was looked at.
+4. Name every moved family in the report and tell `cardmem` + `components` (dated:
+   «measured YYYY-MM-DD: claude-sonnet-latest → <id>»).
+
 ## 4. File the report in cardmem Assets/Reports
 
 Upload over the cardmem MCP endpoint from the shell, so the base64 never passes

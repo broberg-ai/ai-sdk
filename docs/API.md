@@ -639,6 +639,31 @@ DeepSeek V4.1 Flash 1017 (via openrouter). Override with `panel: [{ label, provi
 - Answers in Danish by default; `language: "English"` changes it.
 - Script: `bun run scripts/second-opinion.ts <file> [--focus …] [--synth] [--out …]`.
 
+### Always the newest — LATEST families (F096, v0.77+)
+
+Name a FAMILY; ai-sdk picks the newest model it has researched and pinned to a dated id.
+Choosing a version is never the consumer's job (owner, 2026-11-26).
+
+```ts
+const { text, usage } = await ai.chat({ prompt, override: { model: "claude-sonnet-latest" } });
+usage.model;   // "claude-sonnet-5-5" — the dated model that actually answered
+import { listLatest } from "@broberg/ai-sdk";   // also from "@broberg/ai-sdk/registry" for a picker
+```
+
+| alias | provider | pinned model (checked 2026-11-26) |
+|---|---|---|
+| `claude-haiku-latest` | anthropic | `claude-haiku-5-5` |
+| `claude-sonnet-latest` | anthropic | `claude-sonnet-5-5` |
+| `claude-opus-latest` | anthropic | `claude-opus-5-5` |
+| `mistral-large-latest` | mistral | `mistral-large-4-0` |
+| `deepseek-flash-latest` | openrouter | `deepseek/deepseek-v4.1-flash-1017` (CN model — not for personal data) |
+
+- **Model only, no provider.** With a provider, the override is the provider's own id as before
+  (`{provider:"mistral", model:"mistral-large-latest"}` is still Mistral's floating alias).
+- **Pinned, not floating** (D-385d97): a family moves only in an ai-sdk release; the
+  model-research run every 14 days checks each family.
+- An unknown `*-latest` without a provider throws and lists the families.
+
 ### Local embeddings at $0 — provider `local` (F095, v0.76+)
 
 Embeddings on one of our own machines (Ollama; llama.cpp server and LM Studio speak the

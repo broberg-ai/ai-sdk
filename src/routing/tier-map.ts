@@ -1,6 +1,7 @@
 // Tier routing: a named Tier resolves to a concrete (provider, model, transport).
 // Precedence is per-call override > client config map > built-in defaults.
 import type { Tier, TierSpec } from "../types.js";
+import { expandLatest } from "./latest.js";
 
 /** Built-in defaults. Every entry is overridable via AiConfig.defaults or a
  *  per-call override.
@@ -89,6 +90,7 @@ export function resolveTier(
   knownProviders?: readonly string[],
 ): TierSpec {
   const base = configMap?.[tier] ?? DEFAULT_TIER_MAP[tier];
+  override = expandLatest(override); // F096 — «<family>-latest» → ai-sdk's pinned model
   assertOverrideProvider(base, override, tier, knownProviders);
   return { ...base, ...override };
 }

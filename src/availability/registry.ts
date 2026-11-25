@@ -109,6 +109,8 @@ const DEFAULTS: RegistryEntry[] = [
   // undefined), so a row would pass the gate for a route that silently bills
   // nothing. That is the same green-direction failure this card exists to remove,
   // and it needs a rate from a real source, not a guess. See the plan-doc.
+  // F096 — backs `deepseek-flash-latest`; reached via OpenRouter (CN-hosted model — not for personal data).
+  { id: "deepseek/deepseek-v4.1-flash-1017", aliases: [], provider: "openrouter", available: true, status: "available", note: "DeepSeek V4.1 Flash (dated 1017) via OpenRouter; CN-origin model, upstream picked by OpenRouter — not for personal data", source: "default", grade: "cheap" },
   { id: "deepseek-chat", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com; documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
   { id: "deepseek-reasoner", aliases: [], provider: "deepseek", available: true, status: "available", note: "direct api.deepseek.com (thinking); documented to deprecate 2026-07-24 in favour of deepseek-v4-flash — not live-verified", source: "default" },
   // ── TypeSafe (US-hosted — NOT for personal data) ─────────────────────────

@@ -253,6 +253,7 @@ export type {
 } from "./types.js";
 
 export { describeTier, type TierDescription } from "./routing/describe-tier.js";
+export { listLatest, resolveLatest, LATEST, type LatestEntry } from "./routing/latest.js";
 // F078 — web search (SEARCH-PLAN).
 export { search, SEARCH_PRICE_USD, SearchKeyMissingError, SearchBudgetExceededError, DEFAULT_SEARCH_ROUTES, ZDR_PROVIDERS, routeSearch, memorySearchCache, SEARCH_CACHE_TTL_MS, webSearchTool, runWebSearch } from "./search/index.js";
 export type { SearchItem, SearchOptions, SearchProviderId, SearchRequest, SearchResult, SearchCredentials, SearchCache, SearchCapStore, SearchPurpose, SearchRoute, WebSearchContext, WebSearchToolResult } from "./search/index.js";

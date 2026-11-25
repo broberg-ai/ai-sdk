@@ -11,6 +11,7 @@
 // process.env (a server/host concern) and lives on the root entry only.
 export { resolveModel, listModels } from "./availability/resolve.js";
 export { describeTier, type TierDescription } from "./routing/describe-tier.js";
+export { listLatest, resolveLatest, LATEST, type LatestEntry } from "./routing/latest.js";
 export type { ResolveOptions } from "./availability/resolve.js";
 export { ModelUnavailableError } from "./availability/types.js";
 export type { ModelStatus, ResolveResult, AvailabilityStatus, AvailabilitySource } from "./availability/types.js";
