@@ -412,9 +412,14 @@ export function makeOpenAICompatibleAdapter(config: OpenAICompatibleConfig): Pro
       const choice = chunk.choices?.[0];
       if (choice) {
         const delta = choice.delta ?? {};
-        if (typeof delta.content === "string" && delta.content.length > 0) {
+        // F098 — a reasoning model (Mistral Large 4) streams delta.content as a LIST:
+        // thinking parts, then a part {type:"text", text:"Fly hosts"}, then plain strings.
+        // Reading only strings dropped that first text part (measured 2026-11-26). Same
+        // rule as chat(): text parts out, thinking parts ignored.
+        const piece = contentToText(delta.content);
+        if (piece.length > 0) {
           // F049 — the prefix is echoed back as the first deltas; strip before yielding.
-          const out = stripStreamPrefix(delta.content);
+          const out = stripStreamPrefix(piece);
           if (out.length > 0) yield { type: "text", delta: out };
         }
         for (const tc of delta.tool_calls ?? []) {
@@ -478,7 +483,7 @@ interface OAStreamChunk {
   model?: string;
   choices?: {
     delta?: {
-      content?: string | null;
+      content?: string | null | unknown[]; // F098 — reasoning models stream a list of parts
       tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string } }[];
     };
     finish_reason?: string | null;
