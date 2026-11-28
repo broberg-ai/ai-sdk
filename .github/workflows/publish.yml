@@ -30,10 +30,11 @@ jobs:
           bun-version: latest
           no-cache: true # F100 — a publishing job must not restore a cache (zizmor cache-poisoning)
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4 (F100: pinned 2026-11-28)
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0 (F100: pinned 2026-11-28; v4 has no switch to turn its cache off)
         with:
           node-version: 22 # resolves to >=22.14, required by OIDC publishing
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false # F100 — a publishing job must not restore a cache (zizmor cache-poisoning)
 
       # OIDC trusted publishing needs npm CLI >= 11.5.1; node 22 still ships 10.x.
       # Pinned to 11.5.1 (NOT @latest): npm v12 breaks `npm publish --provenance`
