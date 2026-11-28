@@ -60,7 +60,7 @@ test("F097 every LATEST family and secondOpinion's DeepSeek answer from the EU",
   }
   expect(LATEST.every((e) => e.provider === "openrouter" || e.provider === "mistral")).toBe(true);
   const ds = SECOND_OPINION_PANEL.find((p) => p.model.startsWith("deepseek/"));
-  expect(ds?.model).toBe("deepseek/deepseek-v4-flash-0731");
+  expect(ds?.model).toBe("deepseek/deepseek-v4.1-flash-1017");
 });
 
 test("F097 any OpenRouter id WITHOUT a provider routes via OpenRouter EU; Mistral and other slash ids are not captured", async () => {

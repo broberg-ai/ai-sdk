@@ -25,7 +25,7 @@ test("F096 every family alias (model only, no provider) routes to ai-sdk's pinne
     const r = await ai.chat({ prompt: "x", override: { model: e.alias } });
     expect({ alias: e.alias, provider: r.usage.provider, model: r.usage.model }).toEqual({ alias: e.alias, provider: e.provider, model: e.model });
   }
-  expect(providers.openrouter!.seen.map((s) => s.model)).toEqual(["anthropic/claude-haiku-5.5", "anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "deepseek/deepseek-v4-flash-0731"]);
+  expect(providers.openrouter!.seen.map((s) => s.model)).toEqual(["anthropic/claude-haiku-5.5", "anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "deepseek/deepseek-v4.1-flash-1017"]);
 });
 
 test("F096 a provider-native id WITH its provider is untouched — mistral-large-latest still goes to Mistral as written", async () => {
@@ -53,4 +53,9 @@ test("F096 every pinned model has a price row and a registry row; listLatest/res
   expect(listLatest().map((e) => e.alias)).toEqual(LATEST.map((e) => e.alias));
   expect(resolveLatest("claude-opus-latest")?.model).toBe("anthropic/claude-opus-5.5");
   expect(resolveLatest("nope-latest")).toBeUndefined();
+});
+
+test("F096.2 every family was checked on the last model-research run", () => {
+  for (const e of LATEST) expect({ alias: e.alias, checkedAt: e.checkedAt }).toEqual({ alias: e.alias, checkedAt: "2026-11-28" });
+  expect(LATEST.find((e) => e.alias === "deepseek-flash-latest")?.model).toBe("deepseek/deepseek-v4.1-flash-1017");
 });

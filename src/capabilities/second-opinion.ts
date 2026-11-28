@@ -20,7 +20,7 @@ export const SECOND_OPINION_PANEL: readonly PanelMember[] = [
   { label: "OpenAI GPT-6.1 Sol", provider: "openrouter", model: "openai/gpt-6.1-sol" },
   { label: "Google Gemini 4 Argon", provider: "gemini", model: "gemini-4-argon" },
   { label: "Mistral Large 4", provider: "mistral", model: "mistral-large-4-0" },
-  { label: "DeepSeek V4 Flash 0731", provider: "openrouter", model: "deepseek/deepseek-v4-flash-0731" }, // F097 — the EU-served DeepSeek
+  { label: "DeepSeek V4.1 Flash 1017", provider: "openrouter", model: "deepseek/deepseek-v4.1-flash-1017" }, // F096.2 — EU-served since 2026-11-28
 ];
 
 /** The synthesis step — EU. Large 4, not Large 3: the first live run (2026-11-05) had

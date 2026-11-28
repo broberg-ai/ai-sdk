@@ -22,7 +22,7 @@ export interface LatestEntry {
   checkedAt: string;
 }
 
-const CHECKED = "2026-11-26";
+const CHECKED = "2026-11-28";
 
 export const LATEST: readonly LatestEntry[] = [
   // F097 — owner 2026-11-26: «både Deep og Anthropic kører igennem EU så vi skal bare bede
@@ -32,9 +32,10 @@ export const LATEST: readonly LatestEntry[] = [
   { alias: "claude-sonnet-latest", provider: "openrouter", model: "anthropic/claude-sonnet-5.5", checkedAt: CHECKED },
   { alias: "claude-opus-latest", provider: "openrouter", model: "anthropic/claude-opus-5.5", checkedAt: CHECKED },
   { alias: "mistral-large-latest", provider: "mistral", model: "mistral-large-4-0", checkedAt: CHECKED },
-  // F097 — the newest DeepSeek Flash OpenRouter serves IN THE EU (measured 2026-11-26);
-  // v4.1-flash-1017 has no EU endpoint, and all OpenRouter calls now go via the EU host.
-  { alias: "deepseek-flash-latest", provider: "openrouter", model: "deepseek/deepseek-v4-flash-0731", checkedAt: CHECKED },
+  // F096.2 — the newest DeepSeek Flash OpenRouter serves IN THE EU. v4.1-flash-1017 was
+  // absent from eu.openrouter.ai on 2026-11-26 (so 0731 then) and present on 2026-11-28
+  // (live SDK call answered region eu) — moved by model-research.
+  { alias: "deepseek-flash-latest", provider: "openrouter", model: "deepseek/deepseek-v4.1-flash-1017", checkedAt: CHECKED },
 ];
 
 const BY_ALIAS = new Map(LATEST.map((e) => [e.alias, e]));
