@@ -23,14 +23,14 @@ jobs:
       contents: read
       id-token: write # lets GitHub mint the OIDC token npm exchanges for publish
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 (F100: pinned 2026-11-28)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 (F100: pinned 2026-11-28)
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2 (F100: pinned 2026-11-28)
         with:
           bun-version: latest
           no-cache: true # F100 — a publishing job must not restore a cache (zizmor cache-poisoning)
 
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0 (F100: pinned 2026-11-28; v4 has no switch to turn its cache off)
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6.5.0 (F100: pinned 2026-11-28; v4 has no switch to turn its cache off)
         with:
           node-version: 22 # resolves to >=22.14, required by OIDC publishing
           registry-url: https://registry.npmjs.org
