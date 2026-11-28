@@ -32,48 +32,54 @@ test("Anthropic pricing.md: base rows, cache-read column, and Haiku 5.5's long-p
   expect(rows).toHaveLength(3);
 });
 
-const page = (body: string) => `<html><body><h1>x</h1><p>${body}</p><div>FEATURES</div></body></html>`;
-const SALE = page(`52B active. <span>mistral-large-4</span> <span>+1</span> Speed Performance Modalities Context 1M Price USD EUR Sale price
-  Original price: $1.36 Sale price: $0.68 Input /M Tokens Original price: $0.14 Sale price: $0.07 Cached input /M Tokens
-  Original price: $4.18 Sale price: $2.09 Output /M Tokens Speed Performance Modalities Original price: $9 /M Tokens`);
-const PLAIN = page(`6.5B active. mistral-small-2603 +1 Speed Performance Modalities Context 256k Price USD EUR $0.15 /M Tokens $0.6 /M Tokens Speed Performance $0.15 /M Tokens $0.6 /M Tokens`);
-const NO_ALIAS = page(`mistral-large-2512 Speed Performance Price USD EUR $0.5 /M Tokens $1.5 /M Tokens`);
-const PER_PAGE = page(`mistral-ocr-2512 Speed Performance Price USD EUR $2 /1000 Pages $3 /1000 Annotated Pages`);
+// Fixtures shaped like the real pages after docs.mistral.ai moved to Next.js flight data
+// (read live 2026-11-28): the price lives in a backslash-escaped JSON record, no price text.
+const tok = (direction: string, label: string, priceUsd: number) => ({ direction, label, priceUsd, unit: "/M Tokens" });
+const page = (modelIds: string[], pricing: object[], extra = "") =>
+  `<html><script>self.__next_f.push([1,"${JSON.stringify({ modelIds, pricing, replacedBy: { modelIds: ["other-model"], pricing: [tok("input", "Input", 99), tok("output", "Output", 99)] } })
+    .replace(/"/g, '\\"')}${extra}"])</script></html>`;
+const CACHED = page(["mistral-large-4", "mistral-large-4-0", "mistral-large-latest"], [tok("input", "Input", 0.7), tok("input", "Cached input", 0.07), tok("output", "Output", 2.1)]);
+const PLAIN = page(["mistral-small-2603"], [tok("input", "Input", 0.15), tok("output", "Output", 0.6)]);
+const PER_PAGE = page(["mistral-ocr-2512"], [{ direction: "input", label: "Pages", priceUsd: 2, unit: "/1000 Pages" }]);
 
-test("Mistral page on SALE → the LIST price, never the sale price", () => {
-  expect(parseMistralModelPage(SALE)).toEqual({ provider: "mistral", model: "mistral-large-4", inputPer1M: 1.36, cacheReadPer1M: 0.14, outputPer1M: 4.18 });
+test("Mistral page → one list-price row per API id it names, cache-read from the 'Cached input' line", () => {
+  expect(parseMistralModelPage(CACHED)).toEqual(
+    ["mistral-large-4", "mistral-large-4-0", "mistral-large-latest"].map((model) => ({ provider: "mistral", model, inputPer1M: 0.7, cacheReadPer1M: 0.07, outputPer1M: 2.1 })),
+  );
 });
 
-test("Mistral page without sale, with and without an alias count; per-page models are skipped", () => {
-  expect(parseMistralModelPage(PLAIN)).toEqual({ provider: "mistral", model: "mistral-small-2603", inputPer1M: 0.15, outputPer1M: 0.6 });
-  expect(parseMistralModelPage(NO_ALIAS)).toEqual({ provider: "mistral", model: "mistral-large-2512", inputPer1M: 0.5, outputPer1M: 1.5 });
-  expect(parseMistralModelPage(PER_PAGE)).toBeUndefined();
+test("Mistral page reads the page's OWN record, never the replacement model nested after it", () => {
+  expect(parseMistralModelPage(PLAIN)).toEqual([{ provider: "mistral", model: "mistral-small-2603", inputPer1M: 0.15, outputPer1M: 0.6 }]);
+});
+
+test("per-page models and a layout we cannot read give no rows (so the caller can fail loudly, not silently)", () => {
+  expect(parseMistralModelPage(PER_PAGE)).toEqual([]);
+  expect(parseMistralModelPage("<html>Speed Performance $0.15 /M Tokens</html>")).toEqual([]);
 });
 
 test("a row at Small 3's $0.10 against the page's $0.15 is reported; a matching row is not", () => {
   const pricing = {
     "mistral:mistral-small-latest": { inputPer1M: 0.1, outputPer1M: 0.3, version: "t" },
-    "mistral:mistral-large-4": { inputPer1M: 1.36, outputPer1M: 4.18, cacheReadPer1M: 0.136, version: "t" },
+    "mistral:mistral-large-4": { inputPer1M: 0.7, outputPer1M: 2.1, cacheReadPer1M: 0.07, version: "t" },
   };
   const direct = withAliases(
-    [parseMistralModelPage(PLAIN)!, parseMistralModelPage(SALE)!],
+    [...parseMistralModelPage(PLAIN), ...parseMistralModelPage(CACHED)],
     [{ provider: "mistral", model: "mistral-small-2603", aliases: ["mistral-small-latest"] }],
   );
   const findings = comparePrices(direct, new Set(), pricing);
-  // Cache $0.14 on the page vs 0.136 in the table is the page's cent rounding, not drift.
   expect(findings).toEqual([{ kind: "changed", key: "mistral:mistral-small-latest", ours: "$0.1/$0.3", theirs: "$0.15/$0.6" }]);
   expect(renderPriceFindings(findings, {}).join("\n")).toContain("- mistral:mistral-small-latest: ours $0.1/$0.3 → provider $0.15/$0.6");
 });
 
 test("unpriced is reported only for ids the provider's API lists for us", () => {
-  const direct = [parseMistralModelPage(PLAIN)!];
+  const direct = parseMistralModelPage(PLAIN);
   expect(comparePrices(direct, new Set(["mistral:mistral-small-2603"]), {})).toEqual([{ kind: "unpriced", key: "mistral:mistral-small-2603", theirs: "$0.15/$0.6" }]);
   expect(comparePrices(direct, new Set(), {})).toEqual([]);
 });
 
 test("rows the check could not see are named, so silence is never read as 'checked'", () => {
   const pricing = { "mistral:mistral-embed": { inputPer1M: 0.1, outputPer1M: 0, version: "t" }, "mistral:mistral-small-2603": { inputPer1M: 0.15, outputPer1M: 0.6, version: "t" } };
-  const unchecked = uncheckedRows([parseMistralModelPage(PLAIN)!], ["mistral"], pricing);
+  const unchecked = uncheckedRows(parseMistralModelPage(PLAIN), ["mistral"], pricing);
   expect(unchecked).toEqual(["mistral:mistral-embed"]);
   expect(renderPriceFindings([], {}, unchecked).join("\n")).toContain("Not checked against the provider's own page");
 });

@@ -9,20 +9,20 @@ test("pricing covers every model in DEFAULT_TIER_MAP", () => {
   }
 });
 
-test("MiniMax M2.7 is priced via openrouter (live rate, re-read 2026-10-20)", () => {
-  // F067.7: rose from $0.21/$0.84 — found by /model-research 2026-10-17.
-  expect(getPrice("openrouter", "minimax/minimax-m2.7")).toMatchObject({ inputPer1M: 0.3, outputPer1M: 1.2 });
+test("MiniMax M2.7 is priced via openrouter (catalogue rate, re-read 2026-11-28)", () => {
+  // F099.1: rose from $0.3/$1.2 — found by /model-research 2026-11-28.
+  expect(getPrice("openrouter", "minimax/minimax-m2.7")).toMatchObject({ inputPer1M: 0.6, outputPer1M: 1.8 });
 });
 
-test("DeepSeek V4 is priced via openrouter (live rate, re-read 2026-10-02)", () => {
+test("DeepSeek V4 is priced via openrouter (catalogue rate, re-read 2026-11-28)", () => {
   // CN-hosted, non-GDPR — but a strong cheap route post-15-Jun. Must not log $0.
   expect(getPrice("openrouter", "deepseek/deepseek-v4-pro")).toBeDefined();
   expect(computeCost("openrouter", "deepseek/deepseek-v4-pro", 1_000_000, 1_000_000)).toBeCloseTo(
-    0.6264, // $0.2088 in + $0.4176 out
+    1.96963, // F099.1: $0.39053 in + $1.5791 out
     6,
   );
   // F067.7: flash rose from $0.028/$0.056 (re-read 2026-10-20).
-  expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toMatchObject({ inputPer1M: 0.091, outputPer1M: 0.182 });
+  expect(getPrice("openrouter", "deepseek/deepseek-v4-flash")).toMatchObject({ inputPer1M: 0.09, outputPer1M: 0.18 });
 });
 
 test("gemini-direct is priced under provider 'gemini' (not 'google')", () => {
@@ -103,6 +103,19 @@ test("cache-read is not 0.1x everywhere: Opus/Sonnet 5.5 at 0.05x, Fable 5.1 at 
   expect(getPrice("anthropic", "claude-opus-5-5")?.cacheReadPer1M).toBe(0.2);
   expect(getPrice("anthropic", "claude-sonnet-5-5")?.cacheReadPer1M).toBe(0.1);
   expect(getPrice("anthropic", "claude-fable-5-1")?.cacheReadPer1M).toBe(0.25);
+});
+
+test("claude-fable-5-2 is priced, not booked $0 (F099.1, provider list price read 2026-11-28)", () => {
+  expect(getPrice("anthropic", "claude-fable-5-2")).toMatchObject({ inputPer1M: 8, outputPer1M: 40, cacheReadPer1M: 0.2 });
+  expect(computeCost("anthropic", "claude-fable-5-2", 1_000_000, 1_000_000)).toBeCloseTo(48, 9);
+});
+
+test("the four OpenRouter rows that drifted carry the 2026-11-28 catalogue prices (F099.1)", () => {
+  const p = (m: string) => getPrice("openrouter", m);
+  expect([p("minimax/minimax-m2.7")?.inputPer1M, p("minimax/minimax-m2.7")?.outputPer1M]).toEqual([0.6, 1.8]);
+  expect([p("deepseek/deepseek-v4-pro")?.inputPer1M, p("deepseek/deepseek-v4-pro")?.outputPer1M]).toEqual([0.39053, 1.5791]);
+  expect([p("deepseek/deepseek-v4-flash-0731")?.inputPer1M, p("deepseek/deepseek-v4-flash-0731")?.outputPer1M]).toEqual([0.0456, 0.3]);
+  expect([p("deepseek/deepseek-v4-flash")?.inputPer1M, p("deepseek/deepseek-v4-flash")?.outputPer1M]).toEqual([0.09, 0.18]);
 });
 
 test("Haiku 5.5 is priced by prompt length: 5x above 100k tokens (F075)", () => {

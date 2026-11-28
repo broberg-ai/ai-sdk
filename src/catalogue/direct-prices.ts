@@ -72,24 +72,40 @@ export async function fetchAnthropicPrices(opts: { fetch?: FetchImpl } = {}): Pr
   return rows;
 }
 
-const textOf = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+/** The model's own record, as docs.mistral.ai embeds it in the page (Next.js flight data, so
+ *  every quote is backslash-escaped). Since 2026-11 the page carries NO price text — the old
+ *  text scrape found 0 rows. The page's own record is the first `modelIds`, and the first
+ *  `pricing` after it; related/replacement models are nested later in the same blob. */
+function ownRecord(html: string): { modelIds: string[]; pricing: { direction?: string; label?: string; priceUsd?: number; unit?: string }[] } | undefined {
+  const t = html.replace(/\\"/g, '"');
+  const ids = t.match(/"modelIds":(\[[^\]]*\])/);
+  if (!ids) return undefined;
+  const pr = /"pricing":(\[[^\]]*\])/.exec(t.slice(ids.index!));
+  if (!pr) return undefined;
+  try {
+    return { modelIds: JSON.parse(ids[1]!), pricing: JSON.parse(pr[1]!) };
+  } catch {
+    return undefined;
+  }
+}
 
-/** One Mistral model page → its API id and per-token list price. Exported for tests. */
-export function parseMistralModelPage(html: string): DirectPrice | undefined {
-  const t = textOf(html);
-  const idm = t.match(/([a-z][a-z0-9.-]*)(?: \+\d+)? Speed Performance/);
-  if (!idm) return undefined;
-  const after = t.slice(idm.index! + idm[0].length);
-  // The price block is rendered twice; read only the first.
-  const end = after.search(/Speed Performance|FEATURES/);
-  const seg = end === -1 ? after : after.slice(0, end);
-  const sale = /Original price/.test(seg);
-  const vals = sale
-    ? [...seg.matchAll(/Original price: \$([0-9.]+)/g)].map((m) => Number(m[1]))
-    : [...seg.matchAll(/\$([0-9.]+) \/M Tokens/g)].map((m) => Number(m[1]));
-  if (vals.length === 2) return { provider: "mistral", model: idm[1]!, inputPer1M: vals[0]!, outputPer1M: vals[1]! };
-  if (vals.length === 3) return { provider: "mistral", model: idm[1]!, inputPer1M: vals[0]!, cacheReadPer1M: vals[1]!, outputPer1M: vals[2]! };
-  return undefined; // per-page / per-minute models, or a layout we do not read
+/** One Mistral model page → one list-price row per API id the page names (dated id AND its
+ *  -latest aliases). USD, per 1M tokens. Exported for tests. */
+export function parseMistralModelPage(html: string): DirectPrice[] {
+  const rec = ownRecord(html);
+  if (!rec) return [];
+  const tokens = rec.pricing.filter((p) => p.unit === "/M Tokens" && typeof p.priceUsd === "number");
+  const input = tokens.find((p) => p.direction === "input" && !/cache/i.test(p.label ?? ""));
+  const cached = tokens.find((p) => p.direction === "input" && /cache/i.test(p.label ?? ""));
+  const output = tokens.find((p) => p.direction === "output");
+  if (!input || !output) return []; // per-page / per-minute models, or a layout we do not read
+  return rec.modelIds.map((model) => ({
+    provider: "mistral" as const,
+    model,
+    inputPer1M: input.priceUsd!,
+    ...(cached ? { cacheReadPer1M: cached.priceUsd! } : {}),
+    outputPer1M: output.priceUsd!,
+  }));
 }
 
 export async function fetchMistralPrices(opts: { fetch?: FetchImpl } = {}): Promise<DirectPrice[]> {
@@ -100,10 +116,10 @@ export async function fetchMistralPrices(opts: { fetch?: FetchImpl } = {}): Prom
   const pages = await Promise.allSettled(
     slugs.map(async (s) => {
       const r = await f(`${MISTRAL_BASE}/models/${s}`);
-      return r.ok ? parseMistralModelPage(await r.text()) : undefined;
+      return r.ok ? parseMistralModelPage(await r.text()) : [];
     }),
   );
-  const rows = pages.flatMap((p) => (p.status === "fulfilled" && p.value ? [p.value] : []));
+  const rows = pages.flatMap((p) => (p.status === "fulfilled" ? p.value : []));
   if (rows.length === 0) throw new Error("mistral model pages: no prices parsed — the page layout changed");
   return rows;
 }

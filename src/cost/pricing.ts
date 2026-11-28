@@ -73,6 +73,8 @@ export const PRICING: Record<string, PricingEntry> = {
   // from platform.claude.com/docs/en/about-claude/pricing. Cache-read is NOT 0.1x
   // everywhere: Opus/Sonnet 5.5 are 0.05x and Fable 5.1 is 0.025x. cacheWrite is the
   // 5-minute rate (the only one the SDK writes).
+  // F099.1 — listed by Anthropic /v1/models, was unpriced (booked $0). Provider's own figures, read 2026-11-28.
+  "anthropic:claude-fable-5-2": { inputPer1M: 8, outputPer1M: 40, cacheReadPer1M: 0.2, cacheWritePer1M: 10, version: "2026-11-28-anthropic" },
   "anthropic:claude-fable-5-1": { inputPer1M: 10, outputPer1M: 50, cacheReadPer1M: 0.25, cacheWritePer1M: 12.5, version: AN },
   "anthropic:claude-fable-5": { inputPer1M: 10, outputPer1M: 50, cacheReadPer1M: 1, cacheWritePer1M: 12.5, version: AN },
   "anthropic:claude-opus-5-5": { inputPer1M: 4, outputPer1M: 20, cacheReadPer1M: 0.2, cacheWritePer1M: 5, version: AN },
@@ -156,9 +158,9 @@ export const PRICING: Record<string, PricingEntry> = {
   "openrouter:google/gemini-2.5-flash": { inputPer1M: 0.3, outputPer1M: 2.5, version: V },
   // Ground-truth from OpenRouter /api/v1/models, re-read 2026-10-20 (F067.7; was 0.21/0.84).
   "openrouter:minimax/minimax-m2.7": {
-    inputPer1M: 0.3,
-    outputPer1M: 1.2,
-    version: "2026-10-20-openrouter-live",
+    inputPer1M: 0.6,
+    outputPer1M: 1.8,
+    version: "2026-11-28-openrouter-catalogue", // F099.1 — was 0.3/1.2
   },
   // DeepSeek V4 (CN-hosted — NOT GDPR-safe; non-personal-data workloads only).
   // On 2026-05-22 DeepSeek made the "75% off" promo the permanent official price.
@@ -168,7 +170,7 @@ export const PRICING: Record<string, PricingEntry> = {
   // Re-read from OpenRouter /api/v1/models 2026-10-02 (F067.5). These moved three
   // times in a month (Sep 3: pro 1.02, Oct 1: flash 0.042, Oct 2: flash 0.028) — an
   // OpenRouter call books usage.cost from the response anyway; this row is the fallback.
-  "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.2088, outputPer1M: 0.4176, version: "2026-10-02-openrouter-live" },
+  "openrouter:deepseek/deepseek-v4-pro": { inputPer1M: 0.39053, outputPer1M: 1.5791, version: "2026-11-28-openrouter-catalogue" }, // F099.1 — was 0.2088/0.4176
   // F067.7: flash re-read 2026-10-20 — rose from 0.028/0.056.
   "openrouter:openai/gpt-6-astra": { inputPer1M: 10, outputPer1M: 50, version: "2026-11-05-openrouter-live" },
   "openrouter:openai/gpt-6.1-sol": { inputPer1M: 2, outputPer1M: 10, version: "2026-11-05-openrouter-live" },
@@ -178,9 +180,9 @@ export const PRICING: Record<string, PricingEntry> = {
   "openrouter:anthropic/claude-haiku-5.5": { inputPer1M: 0.1, outputPer1M: 0.5, cacheReadPer1M: 0.01, version: "2026-11-14-openrouter-catalogue" },
   "openrouter:anthropic/claude-sonnet-5.5": { inputPer1M: 2, outputPer1M: 10, cacheReadPer1M: 0.1, version: "2026-11-14-openrouter-catalogue" },
   "openrouter:anthropic/claude-opus-5.5": { inputPer1M: 4, outputPer1M: 20, cacheReadPer1M: 0.2, version: "2026-11-14-openrouter-catalogue" },
-  "openrouter:deepseek/deepseek-v4-flash-0731": { inputPer1M: 0.0434, outputPer1M: 0.3, cacheReadPer1M: 0.035, version: "2026-11-14-openrouter-catalogue" },
+  "openrouter:deepseek/deepseek-v4-flash-0731": { inputPer1M: 0.0456, outputPer1M: 0.3, cacheReadPer1M: 0.035, version: "2026-11-28-openrouter-catalogue" }, // F099.1 — input was 0.0434
   "openrouter:deepseek/deepseek-v4.1-flash-1017": { inputPer1M: 0.15, outputPer1M: 0.6, version: "2026-11-05-openrouter-live" },
-  "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.091, outputPer1M: 0.182, version: "2026-10-20-openrouter-live" },
+  "openrouter:deepseek/deepseek-v4-flash": { inputPer1M: 0.09, outputPer1M: 0.18, version: "2026-11-28-openrouter-catalogue" }, // F099.1 — was 0.091/0.182
   // DeepSeek DIRECT API (provider "deepseek", F030 non-PII secondary). Rates from
   // api-docs.deepseek.com 2026-06-30 ($0.14/$0.28 per 1M; both map to deepseek-v4-flash).
   // `deepseek-chat` (non-thinking) + `deepseek-reasoner` (thinking) DEPRECATE 2026-07-24.
@@ -295,6 +297,11 @@ export const PRICING: Record<string, PricingEntry> = {
   // Embeddings (F016.5) — per input token.
   "mistral:mistral-embed": { inputPer1M: 0.1, cacheReadPer1M: 0.01, outputPer1M: 0, version: MS },
   "mistral:codestral-embed": { inputPer1M: 0.15, cacheReadPer1M: 0.015, outputPer1M: 0, version: MS },
+  // F099.1 — measured 2026-11-28 against Mistral's own /v1/models for our key: devstral-latest,
+  // open-mistral-nemo, mistral-moderation-latest and pixtral-large-latest are no longer listed
+  // (moderation: use mistral-moderation-2603). The rows STAY priced on purpose — a call to a
+  // retired id fails, but a stored usage record or a stale caller must not book $0. The pricing
+  // API already marks them upstream:"gone" and hides them by default.
   // F048 — reported by upmetrics as an unknown model (6 calls). Official mistral.ai/pricing.
   "mistral:pixtral-large-latest": { inputPer1M: 2.0, cacheReadPer1M: 0.2, outputPer1M: 6.0, version: "2026-09-03" },
 };
